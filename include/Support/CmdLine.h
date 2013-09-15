@@ -199,6 +199,24 @@ struct Parser<std::string>
     }
 };
 
+template<class BinaryOp>
+struct BinaryOpParser
+{
+    template<class T>
+    bool operator ()(StringRef value, size_t i, T& result) const
+    {
+        T t;
+
+        if (Parser<T>()(value, i, t))
+        {
+            result = BinaryOp()(result, t);
+            return true;
+        }
+
+        return false;
+    }
+};
+
 template<class T>
 struct MapParser
 {
