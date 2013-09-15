@@ -43,14 +43,17 @@ bool CmdLine::add(OptionBase* opt)
     }
     else
     {
-        auto names = opt->getValueNames();
-
-        if (!opt->name.empty())
-            names.push_back(opt->name);
-
-        for (auto const& s : names)
-            if (!options.insert({s, opt}).second)
+        if (opt->name.empty())
+        {
+            for (auto const& s : opt->getValueNames())
+                if (!options.insert({s, opt}).second)
+                    return false;
+        }
+        else
+        {
+            if (!options.insert({opt->name, opt}).second)
                 return false;
+        }
     }
 
     return true;
