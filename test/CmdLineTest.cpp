@@ -149,21 +149,13 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    // cl::BinaryOpParser ???
-    auto bitfieldParser = [](StringRef value, size_t i, unsigned& result) -> bool
-    {
-        unsigned t;
-
-        if (cl::Parser<unsigned>()(value, i, t))
-        {
-            result |= t;
-            return true;
-        }
-
-        return false;
-    };
-
-    auto bf = cl::makeOptionPiecewise<unsigned>(bitfieldParser, cmd, "bf", cl::ArgRequired);
+    auto bf = cl::makeOptionPiecewise<unsigned>(
+        cl::BinaryOpParser<std::bit_or<unsigned>>(),
+        cmd, "bf",
+        cl::CommaSeparated,
+        cl::ArgRequired,
+        cl::ZeroOrMore
+        );
 
                     //------------------------------------------------------------------------------
 
@@ -191,6 +183,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(simpson) << std::endl;
     std::cout << pretty(help) << std::endl;
 //    std::cout << pretty(regex) << std::endl;
+    std::cout << "bf = 0x" << std::hex << bf.get() << std::endl;
 
     std::cout << "files:\n";
     for (auto& s : files)
