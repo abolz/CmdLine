@@ -488,6 +488,26 @@ public:
 
     // Implicitly convert to the stored type
     operator stored_type const&() const { return get(); }
+
+    template<class X = stored_type, class R = decltype(( std::declval<X&>().begin() ))>
+    R begin() {
+        return get().begin();
+    }
+
+    template<class X = stored_type, class R = decltype(( std::declval<X&>().end() ))>
+    R end() {
+        return get().end();
+    }
+
+    template<class X = stored_type, class R = decltype(( std::declval<X const&>().begin() ))>
+    R begin() const {
+        return get().begin();
+    }
+
+    template<class X = stored_type, class R = decltype(( std::declval<X const&>().end() ))>
+    R end() const {
+        return get().end();
+    }
 };
 
 //----------------------------------------------------------------------------------------------
@@ -606,30 +626,6 @@ auto makeOption(An&&... an) -> Option<T> {
 template<class T, class P, class ...An>
 auto makeOptionPiecewise(P&& p, An&&... an) -> Option<T, Decay<P>> {
     return Option<T, Decay<P>>(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...);
-}
-
-//----------------------------------------------------------------------------------------------
-// begin(Option) / end(Option)
-//
-
-template<class T, class ParserT>
-auto begin(Option<T, ParserT>& arg) -> decltype(( adl_begin(arg.get()) )) {
-    return adl_begin(arg.get());
-}
-
-template<class T, class ParserT>
-auto end(Option<T, ParserT>& arg) -> decltype(( adl_end(arg.get()) )) {
-    return adl_end(arg.get());
-}
-
-template<class T, class ParserT>
-auto begin(Option<T, ParserT> const& arg) -> decltype(( adl_begin(arg.get()) )) {
-    return adl_begin(arg.get());
-}
-
-template<class T, class ParserT>
-auto end(Option<T, ParserT> const& arg) -> decltype(( adl_end(arg.get()) )) {
-    return adl_end(arg.get());
 }
 
 } // namespace cl
