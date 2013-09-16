@@ -62,6 +62,10 @@ namespace support
     using IsSame = typename std::is_same<T, U>::type;
 
 
+    template<class From, class To>
+    using IsConvertible = typename std::is_convertible<From, To>::type;
+
+
     //----------------------------------------------------------------------------------------------
     // <functional>
     //
@@ -157,10 +161,8 @@ namespace support
     //
 
 
-    namespace details
-    {
-    namespace adl
-    {
+    namespace details {
+    namespace adl {
 
         using std::begin;
         using std::end;
@@ -177,8 +179,7 @@ namespace support
             return end(std::forward<T>(t));
         }
 
-    } // namespace adl
-    } // namespace details
+    }}
 
     using details::adl::adl_begin;
     using details::adl::adl_end;
