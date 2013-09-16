@@ -149,6 +149,10 @@ struct Initializer
     {
     }
 
+    operator T() { // extract
+        return std::forward<T>(value);
+    }
+
 #ifdef _MSC_VER
     Initializer& operator =(Initializer const&) = delete; // C4512
 #endif
@@ -439,14 +443,14 @@ private:
     template<class ...An, class X = T, class = EnableIf< std::is_reference<X> >>
     explicit BasicOption(Tag, Initializer<T> x, An&&...)
         : BaseType()
-        , value(x.value)
+        , value(x)
     {
     }
 
     template<class U, class ...An, class X = T, class = DisableIf< std::is_reference<X> >>
     explicit BasicOption(Tag, Initializer<U> x, An&&...)
         : BaseType()
-        , value{std::forward<U>(x.value)}
+        , value{x}
     {
     }
 
