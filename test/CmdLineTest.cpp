@@ -24,7 +24,7 @@ namespace support {
 namespace cl {
 
     template<class T, class P>
-    void prettyPrint(std::ostream& stream, cl::Option<T, P> const& option)
+    void prettyPrint(std::ostream& stream, Option<T, P> const& option)
     {
         stream << option.getName() << ":\n";
         stream << "  count = " << option.getCount() << "\n";
