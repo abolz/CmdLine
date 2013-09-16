@@ -12,6 +12,11 @@
 #include <stdexcept>
 #include <vector>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4512) // assignment operator could not be generated
+#endif
+
 namespace support {
 namespace cl {
 
@@ -152,10 +157,6 @@ struct Initializer
     operator T() { // extract
         return std::forward<T>(value);
     }
-
-#ifdef _MSC_VER
-    Initializer& operator =(Initializer const&) = delete; // C4512
-#endif
 };
 
 template<class T>
@@ -471,10 +472,6 @@ public:
     using stored_type = RemoveReference<T>;
 
 public:
-#ifdef _MSC_VER
-    BasicOption& operator =(BasicOption const&) = delete; // C4512
-#endif
-
     // Returns the value
     stored_type& get() { return value; }
 
@@ -634,3 +631,7 @@ auto makeOptionPiecewise(P&& p, An&&... an) -> Option<T, Decay<P>> {
 
 } // namespace cl
 } // namespace support
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
