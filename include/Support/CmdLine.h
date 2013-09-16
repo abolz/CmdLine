@@ -247,14 +247,10 @@ struct MapParser
     }
 
     // Returns the underlying map
-    MapType& getMap() {
-        return values;
-    }
+    MapType& getMap() { return values; }
 
     // Returns the underlying map
-    MapType const& getMap() const {
-        return values;
-    }
+    MapType const& getMap() const { return values; }
 
     auto valuesBegin() const -> decltype( mapFirstIterator(values.begin()) ) {
         return mapFirstIterator(values.begin());
@@ -377,24 +373,16 @@ protected:
 
 public:
     // Returns the name of this option
-    std::string const& getName() const {
-        return name;
-    }
+    std::string const& getName() const { return name; }
 
     // Return name of the value
-    std::string const& getArgName() const {
-        return argName;
-    }
+    std::string const& getArgName() const { return argName; }
 
     // Resturns the description of this option
-    std::string const& getDesc() const {
-        return desc;
-    }
+    std::string const& getDesc() const { return desc; }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned getCount() const {
-        return count;
-    }
+    unsigned getCount() const { return count; }
 
 protected:
     void apply(std::string x)       { name = std::move(x); }
@@ -494,6 +482,12 @@ public:
 
     // Returns a pointer to the value
     stored_type const* operator ->() const { return std::addressof(value); }
+
+    // Implicitly convert to the stored type
+    operator stored_type&() { return get(); }
+
+    // Implicitly convert to the stored type
+    operator stored_type const&() const { return get(); }
 };
 
 //----------------------------------------------------------------------------------------------
@@ -532,14 +526,10 @@ public:
     }
 
     // Returns the parser
-    ParserT& getParser() {
-        return parser;
-    }
+    ParserT& getParser() { return parser; }
 
     // Returns the parser
-    ParserT const& getParser() const {
-        return parser;
-    }
+    ParserT const& getParser() const { return parser; }
 
 private:
     struct HasValuesImpl
