@@ -23,6 +23,8 @@ namespace support
 {
 
 
+    namespace details
+    {
     namespace pp
     {
 
@@ -42,7 +44,7 @@ namespace support
         struct IsContainerImpl
         {
             template<class U>
-            static auto test(U&& u) -> decltype(begin(u), end(u), std::true_type());
+            static auto test(U&& u) -> typename std::is_convertible<decltype(begin(u) == end(u)), bool>::type;
             static auto test(...) -> std::false_type;
         };
 
@@ -162,12 +164,13 @@ namespace support
         }
 
     } // namespace pp
+    } // namespace details
 
 
     template<class T>
-    inline pp::PrettyPrinter<T> pretty(T const& object)
+    inline details::pp::PrettyPrinter<T> pretty(T const& object)
     {
-        return pp::PrettyPrinter<T>(object);
+        return details::pp::PrettyPrinter<T>(object);
     }
 
 
