@@ -1,12 +1,14 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
+
 #include "Support/CmdLine.h"
 
 #include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <iostream>
+
 
 namespace cl = support::cl;
 
@@ -15,9 +17,11 @@ using cl::OptionBase;
 
 using support::StringRef;
 
+
 //--------------------------------------------------------------------------------------------------
 // Error handling
 //--------------------------------------------------------------------------------------------------
+
 
 inline std::ostream& Error() {
     return std::cerr << "error: ";
@@ -31,9 +35,11 @@ inline std::ostream& Note() {
     return std::cerr << "note: ";
 }
 
+
 //--------------------------------------------------------------------------------------------------
 // CmdLine
 //--------------------------------------------------------------------------------------------------
+
 
 bool CmdLine::add(OptionBase* opt)
 {
@@ -58,6 +64,7 @@ bool CmdLine::add(OptionBase* opt)
 
     return true;
 }
+
 
 bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
 {
@@ -127,6 +134,7 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
     return success;
 }
 
+
 void CmdLine::help() const
 {
     if (!overview.empty())
@@ -145,6 +153,7 @@ void CmdLine::help() const
     for (auto I : getOptions())
         I->help();
 }
+
 
 CmdLine::OptionVector CmdLine::getOptions() const
 {
@@ -169,11 +178,13 @@ CmdLine::OptionVector CmdLine::getOptions() const
     return opts;
 }
 
+
 OptionBase* CmdLine::findOption(StringRef name) const
 {
     auto I = options.find(name);
     return I == options.end() ? 0 : I->second;
 }
+
 
 // Parses a command line string and returns an array of command line arguments.
 template<class InputIterator, class OutputIterator>
@@ -230,6 +241,7 @@ static void StringToArgv(InputIterator first, InputIterator last, OutputIterator
         *out++ = std::move(arg);
 }
 
+
 // Recursively expand response files.
 // Returns true on success, false otherwise.
 bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
@@ -253,6 +265,7 @@ bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
 
     return true;
 }
+
 
 bool CmdLine::expandResponseFiles(StringVector& argv)
 {
@@ -280,6 +293,7 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
     return true;
 }
 
+
 bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVector::iterator& pos)
 {
     if (pos == positionals.end())
@@ -305,6 +319,7 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
     success = addOccurrence(opt, opt->name, name, i);
     return true;
 }
+
 
 // If 'name' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
@@ -364,6 +379,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
     return false;
 }
 
+
 bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 {
     assert( name.size() != 0 );
@@ -381,6 +397,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 
     return false;
 }
+
 
 bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 {
@@ -407,6 +424,7 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 
     return true;
 }
+
 
 bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, size_t i)
 {
@@ -447,6 +465,7 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
     return true;
 }
 
+
 bool CmdLine::check()
 {
     bool success = true;
@@ -460,6 +479,7 @@ bool CmdLine::check()
     return success;
 }
 
+
 bool CmdLine::check(OptionBase* opt)
 {
     if (opt->isOccurrenceRequired())
@@ -471,9 +491,11 @@ bool CmdLine::check(OptionBase* opt)
     return true;
 }
 
+
 //--------------------------------------------------------------------------------------------------
 // OptionBase
 //--------------------------------------------------------------------------------------------------
+
 
 // TODO: cache this?!?!
 std::string OptionBase::usage() const
@@ -508,6 +530,7 @@ std::string OptionBase::usage() const
     return str;
 }
 
+
 // TODO: cache this?!?!
 void OptionBase::help() const
 {
@@ -523,6 +546,7 @@ void OptionBase::help() const
     std::cout << desc << "\n";
 }
 
+
 bool OptionBase::isOccurrenceAllowed() const
 {
     if (numOccurrences == Optional || numOccurrences == Required)
@@ -530,6 +554,7 @@ bool OptionBase::isOccurrenceAllowed() const
 
     return true;
 }
+
 
 bool OptionBase::isOccurrenceRequired() const
 {
@@ -539,13 +564,18 @@ bool OptionBase::isOccurrenceRequired() const
     return false;
 }
 
-bool OptionBase::isUnbounded() const {
+
+bool OptionBase::isUnbounded() const
+{
     return numOccurrences == ZeroOrMore || numOccurrences == OneOrMore;
 }
 
-bool OptionBase::isOptional() const {
+
+bool OptionBase::isOptional() const
+{
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
 }
+
 
 template<class Iterator>
 static std::string Concat(Iterator first, Iterator last)
@@ -562,6 +592,7 @@ static std::string Concat(Iterator first, Iterator last)
 
     return stream.str();
 }
+
 
 void OptionBase::done()
 {
