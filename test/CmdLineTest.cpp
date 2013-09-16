@@ -18,7 +18,7 @@
 namespace cl = support::cl;
 
 using support::StringRef;
-using support::pp::pretty;
+using support::pretty;
 
 namespace support {
 namespace cl {

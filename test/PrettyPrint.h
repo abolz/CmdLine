@@ -11,7 +11,6 @@
 
 namespace support {
 namespace pp {
-namespace details {
 
     struct IsContainerImpl
     {
@@ -249,12 +248,11 @@ namespace details {
         return stream;
     }
 
-} // namespace details
+} // namespace pp
 
 template<class T>
-inline pp::details::PrettyPrinter<T> pretty(T const& object) {
-    return pp::details::PrettyPrinter<T>(object);
+inline pp::PrettyPrinter<T> pretty(T const& object) {
+    return pp::PrettyPrinter<T>(object);
 }
 
-} // namespace pp
 } // namespace support
