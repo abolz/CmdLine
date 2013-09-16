@@ -3,6 +3,7 @@
 
 
 #include "Support/CmdLine.h"
+#include "Support/PrettyPrint.h"
 
 #include <algorithm>
 #include <functional>
@@ -13,15 +14,27 @@
 #include <climits>
 #include <type_traits>
 
-#include "PrettyPrint.h"
 
 namespace cl = support::cl;
 
 using support::StringRef;
 using support::pretty;
 
+
 namespace support {
 namespace cl {
+
+    template<class T, class U>
+    struct Parser<std::pair<T, U>>
+    {
+        bool operator ()(StringRef value, size_t i, std::pair<T, U>& result) const
+        {
+            auto p = value.split(':');
+
+            return Parser<T>()(p.first.trim(), i, result.first)
+                && Parser<U>()(p.second.trim(), i, result.second);
+        }
+    };
 
     template<class T, class P>
     void prettyPrint(std::ostream& stream, Option<T, P> const& option)
@@ -32,6 +45,7 @@ namespace cl {
     }
 
 }}
+
 
 int main(int argc, char* argv[])
 {
@@ -159,6 +173,12 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
+    auto f = cl::makeOption<std::map<std::string, int>>(
+        cmd, "f", cl::CommaSeparated, cl::ArgRequired
+        );
+
+                    //------------------------------------------------------------------------------
+
     auto helpParser = [&](StringRef /*value*/, size_t /*i*/, bool& /*result*/) -> bool
     {
         cmd.help();
@@ -184,6 +204,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(help) << std::endl;
 //    std::cout << pretty(regex) << std::endl;
     std::cout << "bf = 0x" << std::hex << bf.get() << std::endl;
+    std::cout << pretty(f) << std::endl;
 
     std::cout << "files:\n";
     for (auto& s : files)
