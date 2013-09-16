@@ -101,7 +101,11 @@ namespace support
         template<class T>
         void dispatchTuple(std::ostream& stream, T const& object, std::true_type)
         {
+            stream << "{";
+
             printTuple(stream, object, typename std::tuple_size<T>::type());
+
+            stream << "}";
         }
 
         template<class T>
