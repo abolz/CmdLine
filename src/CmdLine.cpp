@@ -331,25 +331,27 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
     // Get the index of the first equals sign
     auto I = name.find('=');
 
-    // If there is an equals sign...
-    if (I != StringRef::npos)
-    {
-        if (auto opt = findOption(name.front(I)))
-        {
-            if (opt->numArgs == ArgDisallowed)
-            {
-                // An argument was specified, but this is not allowed
-                success = error("option '" + opt->name + "' does not allow an argument");
-            }
-            else
-            {
-                // Include the equals sign in the value for prefix options.
-                // Discard otherwise.
-                success = addOccurrence(opt, opt->name, name.dropFront(opt->formatting == Prefix ? I : I + 1), i);
-            }
+    if (I == StringRef::npos)
+        return false;
 
-            return true;
+    // Get the option name
+    auto opt_name = name.front(I);
+
+    if (auto opt = findOption(opt_name))
+    {
+        if (opt->numArgs == ArgDisallowed)
+        {
+            // An argument was specified, but this is not allowed
+            success = error("option '" + opt_name + "' does not allow an argument");
         }
+        else
+        {
+            // Include the equals sign in the value for prefix options.
+            // Discard otherwise.
+            success = addOccurrence(opt, opt_name, name.dropFront(opt->formatting == Prefix ? I : I + 1), i);
+        }
+
+        return true;
     }
 
     return false;
