@@ -625,8 +625,7 @@ namespace cl
                 throw std::runtime_error("failed to register option");
         }
 
-        // Parses the given value and stores the result.
-        // Used when T is a container type.
+        // Used when T is a container type
         bool parse(StringRef value, size_t i, std::false_type)
         {
             value_type t;
@@ -640,7 +639,7 @@ namespace cl
             return false;
         }
 
-        // Parses the given value and stores the result.
+        // Used when T is a value type
         bool parse(StringRef value, size_t i, std::true_type) {
             return parser(value, i, this->get());
         }
@@ -650,13 +649,11 @@ namespace cl
             return parse(value, i, is_scalar());
         }
 
-        // Returns a list of the values for this option.
         // Used if the parser does not provide valuesBegin() and valuesEnd().
         std::vector<StringRef> getValueNames(std::false_type) const {
             return std::vector<StringRef>();
         }
 
-        // Returns a list of the values for this option.
         // Used if the parser provides valuesBegin() and valuesEnd().
         std::vector<StringRef> getValueNames(std::true_type) const {
             return std::vector<StringRef>(getParser().valuesBegin(), getParser().valuesEnd());

@@ -212,7 +212,7 @@ static void StringToArgv(InputIterator first, InputIterator last, OutputIterator
             if (!arg.empty())
             {
                 *out++ = std::move(arg);
-                arg = std::string(); // arg.clear();
+                arg = StringType();
             }
             continue;
         }
