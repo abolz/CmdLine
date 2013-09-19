@@ -19,24 +19,6 @@ using support::StringRef;
 
 
 //--------------------------------------------------------------------------------------------------
-// Error handling
-//--------------------------------------------------------------------------------------------------
-
-
-inline std::ostream& Error() {
-    return std::cerr << "error: ";
-}
-
-inline std::ostream& Warning() {
-    return std::cerr << "warning: ";
-}
-
-inline std::ostream& Note() {
-    return std::cerr << "note: ";
-}
-
-
-//--------------------------------------------------------------------------------------------------
 // CmdLine
 //--------------------------------------------------------------------------------------------------
 
@@ -125,7 +107,7 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         ok = ignoreUnknowns;
 
         if (!ok)
-            Error() << "unknown option '" << arg << "'\n";
+            error("unknown option '" + arg + "'");
     }
 
     // Check if all required options have been successfully parsed
@@ -162,15 +144,18 @@ CmdLine::OptionVector CmdLine::getOptions() const
                              mapSecondIterator(options.end())
                              );
 
-    // 1. Sort by name
-    std::stable_sort(opts.begin(), opts.end(),
-        [](OptionBase* LHS, OptionBase* RHS) { return LHS->name < RHS->name; });
+    // Sort by name
+    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {
+        return LHS->name < RHS->name;
+    });
 
-    // 2. Remove duplicates
+    // Remove duplicates
     auto E = std::unique(opts.begin(), opts.end());
 
-    // 3. Remove hidden options
-    E = std::remove_if(opts.begin(), E, [](OptionBase* opt) { return opt->miscFlags & Hidden; });
+    // Remove hidden options
+    E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
+        return opt->miscFlags & Hidden;
+    });
 
     // Actually erase unused options
     opts.erase(E, opts.end());
@@ -249,10 +234,7 @@ bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
     std::ifstream file(argv[i].substr(1));
 
     if (!file)
-    {
-        Error() << "no such file or directory: \"" << argv[i] << "\"\n";
-        return false;
-    }
+        return error("no such file or directory: \"" + argv[i] + "\"");
 
     // Erase the i-th argument (@file)
     argv.erase(argv.begin() + i);
@@ -284,10 +266,7 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
             return false;
 
         if (--responseFilesLeft == 0)
-        {
-            Error() << "too many response files encountered\n";
-            return false;
-        }
+            return error("too many response files encountered");
     }
 
     return true;
@@ -298,8 +277,7 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
 {
     if (pos == positionals.end())
     {
-        Error() << "unhandled positional argument: '" << name << "'\n";
-        success = false;
+        success = error("unhandled positional argument: '" + name + "'");
         return true;
     }
 
@@ -339,8 +317,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         {
             if (i + 1 >= argv.size() || argv[i + 1][0] == '-')
             {
-                Error() << "option '" << name << "' expects an argument\n";
-                success = false;
+                success = error("option '" + name + "' expects an argument");
                 return true;
             }
 
@@ -362,8 +339,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
             if (opt->numArgs == ArgDisallowed)
             {
                 // An argument was specified, but this is not allowed
-                Error() << "option '" << opt->name << "' does not allow an argument\n";
-                success = false;
+                success = error("option '" + opt->name + "' does not allow an argument");
             }
             else
             {
@@ -431,20 +407,15 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
     if (!opt->isOccurrenceAllowed())
     {
         if (opt->numOccurrences == Optional)
-            Error() << "option '" << name << "' must occur at most once\n";
+            return error("option '" + name + "' must occur at most once");
         else
-            Error() << "option '" << name << "' must occur exactly once\n";
-
-        return false;
+            return error("option '" + name + "' must occur exactly once");
     }
 
     auto parse = [&](StringRef v) -> bool
     {
         if (!opt->parse(v, i))
-        {
-            Error() << "invalid argument '" << v << "' for option '" << name << "'\n";
-            return false;
-        }
+            return error("invalid argument '" + v + "' for option '" + name + "'");
 
         return true;
     };
@@ -483,12 +454,16 @@ bool CmdLine::check()
 bool CmdLine::check(OptionBase* opt)
 {
     if (opt->isOccurrenceRequired())
-    {
-        Error() << "option '" << opt->name << "' missing\n";
-        return false;
-    }
+        return error("option '" + opt->name + "' missing");
 
     return true;
+}
+
+
+bool CmdLine::error(std::string str)
+{
+    errors.push_back(std::move(str));
+    return false;
 }
 
 

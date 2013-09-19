@@ -368,5 +368,17 @@ namespace support
         return LHS.append(RHS.data(), RHS.size());
     }
 
+    inline std::string operator +(StringRef LHS, std::string RHS)
+    {
+        RHS.insert(0, LHS.data(), LHS.size());
+        return std::move(RHS);
+    }
+
+    inline std::string operator +(std::string LHS, StringRef RHS)
+    {
+        LHS.append(RHS.data(), RHS.size());
+        return std::move(LHS);
+    }
+
 
 } // namespace support

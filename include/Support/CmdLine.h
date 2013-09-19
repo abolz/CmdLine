@@ -88,6 +88,8 @@ namespace cl
         OptionMap options;
         // List of positional options
         OptionVector positionals;
+        // List of error message
+        StringVector errors;
 
     public:
         explicit CmdLine(std::string programName, std::string overview = "")
@@ -104,6 +106,11 @@ namespace cl
 
         // Prints the help message
         void help() const;
+
+        // Returns the list of errors
+        StringVector const& getErrors() const {
+            return errors;
+        }
 
     private:
         OptionVector getOptions() const;
@@ -122,6 +129,9 @@ namespace cl
 
         bool check();
         bool check(OptionBase* opt);
+
+        // Adds an error message. Returns false.
+        bool error(std::string str);
     };
 
 
