@@ -2,8 +2,8 @@
 // See the LICENSE file for details.
 
 
-#include "Support/CmdLine.h"
-#include "Support/PrettyPrint.h"
+#include "Support/CmdLine.hpp"
+#include "Support/PrettyPrint.hpp"
 
 #include <algorithm>
 #include <functional>

@@ -46,7 +46,7 @@ project "Test"
 
     files {
         "test/CmdLineTest.cpp",
-        "test/*.h",
+        "test/*.hpp",
     }
 
 

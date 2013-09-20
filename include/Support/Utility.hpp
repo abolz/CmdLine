@@ -94,6 +94,45 @@ namespace support
     //
 
 
+    template<class Function>
+    class FunctionOutputIterator
+        : public std::iterator<std::output_iterator_tag, void, void, void, void>
+    {
+        Function Fn;
+
+    public:
+        explicit FunctionOutputIterator(Function&& F)
+            : Fn(std::move(F))
+        {
+        }
+
+        template<class T, class = DisableIf< IsSame<Decay<T>, FunctionOutputIterator> >>
+        FunctionOutputIterator& operator =(T&& t)
+        {
+            Fn(std::forward<T>(t));
+            return *this;
+        }
+
+        FunctionOutputIterator& operator *() {
+            return *this;
+        }
+
+        FunctionOutputIterator& operator ++() {
+            return *this;
+        }
+
+        FunctionOutputIterator& operator ++(int) {
+            return *this;
+        }
+    };
+
+
+    template<class Function>
+    inline auto makeFunctionOutputIterator(Function&& F) -> FunctionOutputIterator<Decay<Function>> {
+        return FunctionOutputIterator<Decay<Function>>(std::forward<Function>(F));
+    }
+
+
     template<class Iterator, class Function>
     class MappedIterator
     {
@@ -107,9 +146,9 @@ namespace support
         using pointer               = void;
         using difference_type       = ptrdiff_t;
 
-        explicit MappedIterator(Iterator I, Function F)
+        explicit MappedIterator(Iterator I, Function&& F)
             : It(I)
-            , Fn(F)
+            , Fn(std::move(F))
         {
         }
 
@@ -136,9 +175,9 @@ namespace support
 
 
     template<class Iterator, class Function>
-    inline auto mapIterator(Iterator I, Function F) -> MappedIterator<Iterator, Decay<Function>>
+    inline auto mapIterator(Iterator I, Function&& F) -> MappedIterator<Iterator, Decay<Function>>
     {
-        return MappedIterator<Iterator, Decay<Function>>(I, F);
+        return MappedIterator<Iterator, Decay<Function>>(I, std::forward<Function>(F));
     }
 
 
