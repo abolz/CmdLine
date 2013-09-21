@@ -5,8 +5,8 @@
 #pragma once
 
 
-#include "StringRef.hh"
-#include "Utility.hh"
+#include "StringRef.h"
+#include "Utility.h"
 
 #include <iomanip>
 #include <map>

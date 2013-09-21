@@ -2,7 +2,7 @@
 // See the LICENSE file for details.
 
 
-#include "Support/CmdLine.hh"
+#include "Support/CmdLine.h"
 
 #include <algorithm>
 #include <cctype>
