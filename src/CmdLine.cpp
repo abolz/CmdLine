@@ -3,6 +3,7 @@
 
 
 #include "Support/CmdLine.h"
+#include "Support/CmdLineToArgv.h"
 
 #include <algorithm>
 #include <cctype>
@@ -171,62 +172,6 @@ OptionBase* CmdLine::findOption(StringRef name) const
 }
 
 
-// Parses a command line string and returns an array of command line arguments.
-template<class InputIterator, class OutputIterator>
-static void StringToArgv(InputIterator first, InputIterator last, OutputIterator out)
-{
-    using StringType = std::string;
-
-    StringType arg;
-    StringType::value_type quoteChar = 0;
-
-    for ( ; first != last; ++first)
-    {
-        auto ch = *first;
-
-        // Quoting a single character using the backslash?
-        if (quoteChar == '\\')
-        {
-            arg.push_back(ch);
-            quoteChar = 0;
-            continue;
-        }
-
-        // Currently quoting using ' or "?
-        if (quoteChar && ch != quoteChar)
-        {
-            arg.push_back(ch);
-            continue;
-        }
-
-        // Toggle quoting?
-        if (ch == '\'' || ch == '\"' || ch == '\\')
-        {
-            quoteChar = quoteChar ? 0 : ch;
-            continue;
-        }
-
-        // Arguments are separated by whitespace
-        if (std::isspace(ch))
-        {
-            if (!arg.empty())
-            {
-                *out++ = std::move(arg);
-                arg = StringType();
-            }
-            continue;
-        }
-
-        // Nothing special...
-        arg.push_back(ch);
-    }
-
-    // Append the last argument - if any
-    if (!arg.empty())
-        *out++ = std::move(arg);
-}
-
-
 // Recursively expand response files.
 // Returns true on success, false otherwise.
 bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
@@ -243,7 +188,7 @@ bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
     auto I = std::istreambuf_iterator<char>(file.rdbuf());
     auto E = std::istreambuf_iterator<char>();
 
-    StringToArgv(I, E, std::inserter(argv, argv.begin() + i));
+    tokenizeCommandLineUnix(I, E, std::inserter(argv, argv.begin() + i));
 
     return true;
 }
