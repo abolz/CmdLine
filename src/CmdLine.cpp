@@ -172,6 +172,25 @@ OptionBase* CmdLine::findOption(StringRef name) const
 }
 
 
+bool CmdLine::isPossibleOption(StringRef name) const
+{
+    if (name.size() < 2)
+        return false;
+
+    // If name does not start with a dash, it's not an option
+    if (name[0] != '-')
+        return false;
+
+    // If the name does start with two (or more...) dashes it might be an option
+    if (name[1] == '-')
+        return true;
+
+    // If name starts with a single dash, check if there is an option
+    // with the/ given name.
+    return findOption(name.dropFront(1)) != nullptr;
+}
+
+
 // Recursively expand response files.
 // Returns true on success, false otherwise.
 bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
@@ -260,7 +279,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         // command line, so that "-o file" is possible instead of "-o=file"
         /*else*/ if (opt->numArgs == ArgRequired)
         {
-            if (i + 1 >= argv.size() || argv[i + 1][0] == '-')
+            if (i + 1 >= argv.size() || isPossibleOption(argv[i + 1]))
             {
                 success = error("option '" + name + "' expects an argument");
                 return true;

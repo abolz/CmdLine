@@ -117,6 +117,8 @@ namespace cl
 
         OptionBase* findOption(StringRef name) const;
 
+        bool isPossibleOption(StringRef name) const;
+
         bool expandResponseFile(StringVector& argv, size_t i);
         bool expandResponseFiles(StringVector& argv);
 
