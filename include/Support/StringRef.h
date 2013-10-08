@@ -382,21 +382,26 @@ namespace support
     }
 
 
+    // Modified Bernstein hash
+    inline size_t hashValue(StringRef Str, size_t H = 5381)
+    {
+        for (size_t I = 0, E = Str.size(); I != E; ++I)
+            H = 33 * H ^ static_cast<unsigned char>(Str[I]);
+
+        return H;
+    }
+
+
 } // namespace support
 
 
 namespace std
 {
     template<>
-    struct hash< /**/ ::support::StringRef>
+    struct hash< ::support::StringRef>
     {
-        // Modified Bernstein hash
-        size_t operator ()(::support::StringRef Str, size_t H = 5381) const
-        {
-            for (size_t I = 0, E = Str.size(); I != E; ++I)
-                H = 33 * H ^ static_cast<unsigned char>(Str[I]);
-
-            return H;
+        size_t operator ()(::support::StringRef Str) const {
+            return hashValue(Str);
         }
     };
 }
