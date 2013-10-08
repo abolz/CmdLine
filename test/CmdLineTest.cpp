@@ -54,7 +54,8 @@ int main(int argc, char* argv[])
     double y = -1.0;
 
     auto y_ref = cl::makeOption<double&>(
-        cmd, "y",
+        cmd,
+        cl::Name("y"),
         cl::ArgName("float"),
         cl::Desc("Enter a floating-point number"),
         cl::ArgRequired,
@@ -63,15 +64,27 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto g = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ZeroOrMore);
-    auto h = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ZeroOrMore);
+    auto g = cl::makeOption<bool>(
+        cmd,
+        cl::Name("g"),
+        cl::Grouping,
+        cl::ZeroOrMore
+        );
+
+    auto h = cl::makeOption<bool>(
+        cmd,
+        cl::Name("h"),
+        cl::Grouping,
+        cl::ZeroOrMore
+        );
 
     //auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix);
 
                     //------------------------------------------------------------------------------
 
     auto z = cl::makeOption<std::set<int>>(
-        cmd, "z",
+        cmd,
+        cl::Name("z"),
         cl::ArgName("int"),
         cl::Desc("A list of integers"),
         cl::ZeroOrMore,
@@ -86,7 +99,8 @@ int main(int argc, char* argv[])
     };
 
     auto I = cl::makeOption<std::vector<std::string>>(
-        cmd, "I",
+        cmd,
+        cl::Name("I"),
         cl::ArgName("dir"),
         cl::Desc("Add the directory dir to the list of directories to be searched for header files."),
         cl::Prefix,
@@ -96,42 +110,36 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-////    auto regexParser = [](StringRef value, size_t, std::regex& result) -> bool
-////    {
-////        result = value.str();
-////        return true;
-////    };
-//
-//    std::regex regex_;
-//
-//    auto regex = cl::makeOption<std::regex&>(
-//        cmd,
-//        cl::init(regex_), "regex", cl::Positional, cl::Required
-//        );
+    auto files = cl::makeOption<std::vector<std::string>>(
+        cmd,
+        cl::Name("files"),
+        cl::Positional,
+        cl::ZeroOrMore
+        );
 
                     //------------------------------------------------------------------------------
 
-    auto files = cl::makeOption<std::vector<std::string>>(cmd, "files", cl::Positional, cl::ZeroOrMore);
-
-                    //------------------------------------------------------------------------------
-
-    enum OptLevel : unsigned {
-        None, Trivial, Default, Expensive
+    enum OptimizationLevel {
+        OL_None,
+        OL_Trivial,
+        OL_Default,
+        OL_Expensive
     };
 
-    auto optParser = cl::MapParser<OptLevel>({
-        { "O0", None        },
-        { "O1", Trivial     },
-        { "O2", Default     },
-        { "O3", Expensive   }
+    auto optParser = cl::MapParser<OptimizationLevel>({
+        { "O0", OL_None        },
+        { "O1", OL_Trivial     },
+        { "O2", OL_Default     },
+        { "O3", OL_Expensive   }
     });
 
-    auto opt = cl::makeOptionPiecewise<OptLevel>(
+    auto opt = cl::makeOptionPiecewise<OptimizationLevel>(
         optParser,
         cmd,
         cl::ArgDisallowed,
         cl::Desc("Choose an optimization level"),
-        cl::init(None)
+        cl::init(OL_None),
+        cl::init(OL_None)
         );
 
                     //------------------------------------------------------------------------------
@@ -151,7 +159,8 @@ int main(int argc, char* argv[])
 
     auto simpson = cl::makeOptionPiecewise<Simpson>(
         simpsonParser,
-        cmd, "simpson",
+        cmd,
+        cl::Name("simpson"),
         cl::Desc("Choose a Simpson"),
         cl::ArgRequired,
         cl::init(SideshowBob)
@@ -161,7 +170,8 @@ int main(int argc, char* argv[])
 
     auto bf = cl::makeOptionPiecewise<unsigned>(
         cl::BinaryOpParser<std::bit_or<unsigned>>(),
-        cmd, "bf",
+        cmd,
+        cl::Name("bf"),
         cl::CommaSeparated,
         cl::ArgRequired,
         cl::ZeroOrMore
@@ -170,7 +180,10 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto f = cl::makeOption<std::map<std::string, int>>(
-        cmd, "f", cl::CommaSeparated, cl::ArgRequired
+        cmd,
+        cl::Name("f"),
+        cl::CommaSeparated,
+        cl::ArgRequired
         );
 
                     //------------------------------------------------------------------------------
@@ -181,7 +194,12 @@ int main(int argc, char* argv[])
         exit(0);
     };
 
-    auto help = cl::makeOptionPiecewise<bool>(helpParser, cmd, "help", cl::Optional);
+    auto help = cl::makeOptionPiecewise<bool>(
+        helpParser,
+        cmd,
+        cl::Name("help"),
+        cl::Optional
+        );
 
     //----------------------------------------------------------------------------------------------
 
