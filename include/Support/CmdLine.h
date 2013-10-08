@@ -269,27 +269,25 @@ namespace cl
     };
 
 
-    template<class T>
+    template<class T, class MapType = std::map<StringRef, T>>
     struct MapParser
     {
-        using MapType = std::map<StringRef, T>;
-
-        MapType values;
+        MapType map;
 
         explicit MapParser()
         {
         }
 
         explicit MapParser(std::initializer_list<typename MapType::value_type> ilist)
-            : values(ilist)
+            : map(ilist)
         {
         }
 
         bool operator ()(StringRef value, size_t /*i*/, T& result) const
         {
-            auto I = values.find(value);
+            auto I = map.find(value);
 
-            if (I != values.end())
+            if (I != map.end())
             {
                 result = I->second;
                 return true;
@@ -298,18 +296,12 @@ namespace cl
             return false;
         }
 
-        // Returns the underlying map
-        MapType& getMap() { return values; }
-
-        // Returns the underlying map
-        MapType const& getMap() const { return values; }
-
-        auto valuesBegin() const -> decltype( mapFirstIterator(values.begin()) ) {
-            return mapFirstIterator(values.begin());
+        auto valuesBegin() const -> decltype( mapFirstIterator(map.begin()) ) {
+            return mapFirstIterator(map.begin());
         }
 
-        auto valuesEnd() const -> decltype( mapFirstIterator(values.end()) ) {
-            return mapFirstIterator(values.end());
+        auto valuesEnd() const -> decltype( mapFirstIterator(map.end()) ) {
+            return mapFirstIterator(map.end());
         }
     };
 

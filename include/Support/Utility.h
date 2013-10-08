@@ -41,7 +41,6 @@ namespace support
 
     namespace details
     {
-
         template<class T>
         struct RemoveCVRec {
             using type = RemoveCV<T>;
@@ -51,8 +50,7 @@ namespace support
         struct RemoveCVRec<T<A...>> {
             using type = T<typename RemoveCVRec<A>::type...>;
         };
-
-    } // namespace details
+    }
 
     template<class T>
     using RemoveCVRec = typename details::RemoveCVRec<T>::type;
