@@ -539,26 +539,6 @@ namespace cl
 
         // Explicitly convert to the stored type
         explicit operator stored_type const&() const { return get(); }
-
-        template<class X = stored_type, class R = decltype(( std::declval<X&>().begin() ))>
-        R begin() {
-            return get().begin();
-        }
-
-        template<class X = stored_type, class R = decltype(( std::declval<X&>().end() ))>
-        R end() {
-            return get().end();
-        }
-
-        template<class X = stored_type, class R = decltype(( std::declval<X const&>().begin() ))>
-        R begin() const {
-            return get().begin();
-        }
-
-        template<class X = stored_type, class R = decltype(( std::declval<X const&>().end() ))>
-        R end() const {
-            return get().end();
-        }
     };
 
 
@@ -687,6 +667,27 @@ namespace cl
     template<class T, class P, class ...An>
     auto makeOptionPiecewise(P&& p, An&&... an) -> Option<T, Decay<P>> {
         return Option<T, Decay<P>>(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...);
+    }
+
+
+    template<class T, class ParserT>
+    auto begin(Option<T, ParserT>& option) -> decltype(( adl_begin(option.get()) )) {
+        return adl_begin(option.get());
+    }
+
+    template<class T, class ParserT>
+    auto end(Option<T, ParserT>& option) -> decltype(( adl_end(option.get()) )) {
+        return adl_end(option.get());
+    }
+
+    template<class T, class ParserT>
+    auto begin(Option<T, ParserT> const& option) -> decltype(( adl_begin(option.get()) )) {
+        return adl_begin(option.get());
+    }
+
+    template<class T, class ParserT>
+    auto end(Option<T, ParserT> const& option) -> decltype(( adl_end(option.get()) )) {
+        return adl_end(option.get());
     }
 
 
