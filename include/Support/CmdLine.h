@@ -138,6 +138,21 @@ namespace cl
 
 
     //----------------------------------------------------------------------------------------------
+    // Name
+    //
+
+
+    struct Name
+    {
+        std::string value;
+
+        explicit Name(std::string value) : value(std::move(value))
+        {
+        }
+    };
+
+
+    //----------------------------------------------------------------------------------------------
     // ArgName
     //
 
@@ -430,6 +445,7 @@ namespace cl
 
     protected:
         void apply(std::string x)       { name = std::move(x); }
+        void apply(Name x)              { name = std::move(x.value); }
         void apply(ArgName x)           { argName = std::move(x.value); }
         void apply(Desc x)              { desc = std::move(x.value); }
         void apply(NumOccurrences x)    { numOccurrences = x; }
