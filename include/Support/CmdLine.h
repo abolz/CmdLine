@@ -526,11 +526,11 @@ namespace cl
         // Returns a pointer to the value
         stored_type const* operator ->() const { return std::addressof(value); }
 
-        // Implicitly convert to the stored type
-        operator stored_type&() { return get(); }
+        // Explicitly convert to the stored type
+        explicit operator stored_type&() { return get(); }
 
-        // Implicitly convert to the stored type
-        operator stored_type const&() const { return get(); }
+        // Explicitly convert to the stored type
+        explicit operator stored_type const&() const { return get(); }
 
         template<class X = stored_type, class R = decltype(( std::declval<X&>().begin() ))>
         R begin() {
