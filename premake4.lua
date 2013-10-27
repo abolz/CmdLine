@@ -40,7 +40,7 @@ project "Test"
 
     language "C++"
 
-    links { "CmdLine" }
+    links { "CmdLine", "gtest", "gtest_main" }
 
     includedirs { "include/" }
 

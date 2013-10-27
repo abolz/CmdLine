@@ -5,16 +5,13 @@
 #include "Support/CmdLine.h"
 #include "Support/PrettyPrint.h"
 
-#include <algorithm>
-#include <functional>
 #include <iostream>
 #include <set>
 
+#include <gtest/gtest.h>
 
-namespace cl = support::cl;
 
-using support::StringRef;
-using support::pretty;
+using namespace support;
 
 
 namespace support {
@@ -43,6 +40,156 @@ namespace cl {
 }}
 
 
+#if 1
+
+
+typedef std::vector<std::string> Argv;
+
+
+bool parse(cl::CmdLine& cmd, Argv argv)
+{
+    if (!cmd.parse(std::move(argv)))
+    {
+        for (auto const& s : cmd.getErrors())
+            std::cout << "NOTE: error : " << s << "\n";
+        return false;
+    }
+
+    return true;
+}
+
+
+TEST(CmdLineTest, Flags1)
+{
+    auto test = [](Argv argv, bool val_a, bool val_b, bool val_c) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<bool>(cmd, "a");
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), val_a);
+        if (b.getCount()) EXPECT_EQ(b.get(), val_b);
+        if (c.getCount()) EXPECT_EQ(c.get(), val_c);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=1"                 }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=true"              }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=0"                 }, 0, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=false"             }, 0, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a0"                  }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a1"                  }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-ax"                  }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-b"             }, 1, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-a", "-b", "-c"       }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-bc"            }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-cb"            }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a", "-bcbc"          }, 1, 1, 1 ) );
+}
+
+
+TEST(CmdLineTest, Grouping1)
+{
+    auto test = [](Argv argv, int cnt_a, int cnt_b, int cnt_c) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        EXPECT_EQ(a.getCount(), cnt_a);
+        EXPECT_EQ(b.getCount(), cnt_b);
+        EXPECT_EQ(c.getCount(), cnt_c);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=1"                 }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=true"              }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=0"                 }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=false"             }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a0"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a1"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-ax"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-ab"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-abb"                 }, 0, 0, 0 ) );
+    EXPECT_TRUE ( test({ "-abtrue"              }, 0, 0, 1 ) );
+    EXPECT_TRUE ( test({ "-abfalse"             }, 0, 0, 1 ) );
+    EXPECT_TRUE ( test({ "-ba"                  }, 1, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-ba", "-a"            }, 2, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-ab", "1", "-ba"      }, 1, 1, 1 ) );
+}
+
+
+TEST(CmdLineTest, Prefix1)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
+    EXPECT_TRUE ( test({ "-a", ""               }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+    EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
+}
+
+
+TEST(CmdLineTest, Prefix2)
+{
+    auto test = [](Argv argv, std::string const& a_val, std::string const& b_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix);
+        auto b = cl::makeOption<std::string>(cmd, "b", cl::StrictPrefix, cl::ArgRequired);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        if (b.getCount()) EXPECT_EQ(b.get(), b_val);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-ax"                  }, "x"      , ""        ) );
+    EXPECT_TRUE ( test({ "-a=x"                 }, "=x"     , ""        ) );
+    EXPECT_FALSE( test({ "-a", "x"              }, ""       , ""        ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-a", "-bx"            }, ""       , "x"       ) );
+    EXPECT_TRUE ( test({ "-a", "-b=x"           }, ""       , "=x"      ) );
+    EXPECT_FALSE( test({ "-a", "x", "-b=x"      }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-ax", "-b=x"          }, "x"      , "=x"      ) );
+    EXPECT_TRUE ( test({ "-a=x", "-bx"          }, "=x"     , "x"       ) );
+}
+
+
+#endif
+
+
+#if 0
+
 int main(int argc, char* argv[])
 {
     //----------------------------------------------------------------------------------------------
@@ -53,9 +200,7 @@ int main(int argc, char* argv[])
 
     double y = -1.0;
 
-    auto y_ref = cl::makeOption<double&>(
-        cmd,
-        cl::Name("y"),
+    auto y_ref = cl::makeOption<double&>(cmd, "y",
         cl::ArgName("float"),
         cl::Desc("Enter a floating-point number"),
         cl::ArgRequired,
@@ -64,27 +209,13 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto g = cl::makeOption<bool>(
-        cmd,
-        cl::Name("g"),
-        cl::Grouping,
-        cl::ZeroOrMore
-        );
-
-    auto h = cl::makeOption<bool>(
-        cmd,
-        cl::Name("h"),
-        cl::Grouping,
-        cl::ZeroOrMore
-        );
-
-    //auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix);
+    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ZeroOrMore);
+    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ZeroOrMore);
+    auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix, cl::ArgRequired);
 
                     //------------------------------------------------------------------------------
 
-    auto z = cl::makeOption<std::set<int>>(
-        cmd,
-        cl::Name("z"),
+    auto z = cl::makeOption<std::set<int>>(cmd, "z",
         cl::ArgName("int"),
         cl::Desc("A list of integers"),
         cl::ZeroOrMore,
@@ -98,21 +229,17 @@ int main(int argc, char* argv[])
         "eins", "zwei", "drei", "vier", "funf"
     };
 
-    auto I = cl::makeOption<std::vector<std::string>>(
-        cmd,
-        cl::Name("I"),
+    auto I = cl::makeOption<std::vector<std::string>>(cmd, "I",
         cl::ArgName("dir"),
         cl::Desc("Add the directory dir to the list of directories to be searched for header files."),
-        cl::Prefix,
+        cl::StrictPrefix,
         cl::ZeroOrMore,
         cl::init(Iinit)
         );
 
                     //------------------------------------------------------------------------------
 
-    auto files = cl::makeOption<std::vector<std::string>>(
-        cmd,
-        cl::Name("files"),
+    auto files = cl::makeOption<std::vector<std::string>>(cmd, "files",
         cl::Positional,
         cl::ZeroOrMore
         );
@@ -133,12 +260,11 @@ int main(int argc, char* argv[])
         { "O3", OL_Expensive   }
     });
 
-    auto opt = cl::makeOptionPiecewise<OptimizationLevel>(
+    auto opt = cl::makeOptionWithParser<OptimizationLevel>(
         optParser,
         cmd,
         cl::ArgDisallowed,
         cl::Desc("Choose an optimization level"),
-        cl::init(OL_None),
         cl::init(OL_None)
         );
 
@@ -157,21 +283,20 @@ int main(int argc, char* argv[])
         { "maggie",      Maggie }
     });
 
-    auto simpson = cl::makeOptionPiecewise<Simpson>(
+    auto simpson = cl::makeOptionWithParser<Simpson>(
         simpsonParser,
-        cmd,
-        cl::Name("simpson"),
+        cmd, "simpson",
         cl::Desc("Choose a Simpson"),
         cl::ArgRequired,
-        cl::init(SideshowBob)
+        cl::init(SideshowBob),
+        cl::Prefix
         );
 
                     //------------------------------------------------------------------------------
 
-    auto bf = cl::makeOptionPiecewise<unsigned>(
-        cl::BinaryOpParser<std::bit_or<unsigned>>(),
-        cmd,
-        cl::Name("bf"),
+    auto bf = cl::makeOptionWithParser<unsigned>(
+        cl::BinaryOpParser<support::BitOr>(),
+        cmd, "bf",
         cl::CommaSeparated,
         cl::ArgRequired,
         cl::ZeroOrMore
@@ -180,8 +305,7 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto f = cl::makeOption<std::map<std::string, int>>(
-        cmd,
-        cl::Name("f"),
+        cmd, "f",
         cl::CommaSeparated,
         cl::ArgRequired
         );
@@ -194,10 +318,9 @@ int main(int argc, char* argv[])
         exit(0);
     };
 
-    auto help = cl::makeOptionPiecewise<bool>(
+    auto help = cl::makeOptionWithParser<bool>(
         helpParser,
-        cmd,
-        cl::Name("help"),
+        cmd, "help",
         cl::Optional
         );
 
@@ -216,6 +339,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(y_ref) << std::endl;
     std::cout << pretty(g) << std::endl;
     std::cout << pretty(h) << std::endl;
+    std::cout << pretty(gh) << std::endl;
     std::cout << pretty(z) << std::endl;
     std::cout << pretty(I) << std::endl;
     std::cout << pretty(opt) << std::endl;
@@ -226,10 +350,12 @@ int main(int argc, char* argv[])
     std::cout << pretty(f) << std::endl;
 
     std::cout << "files:\n";
-    for (auto& s : files)
+    for (auto& s : files.get())
         std::cout << "  \"" << s << "\"" << std::endl;
 
     //----------------------------------------------------------------------------------------------
 
     return 0;
 }
+
+#endif
