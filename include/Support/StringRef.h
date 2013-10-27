@@ -206,68 +206,27 @@ public:
     // Explicitly convert to a std::string
     explicit operator std::string() const { return str(); }
 
+    // Write this string into the given stream
+    void write(std::ostream& Stream) const;
+
     // Search for the first character Ch in the sub-string [From, Length)
-    size_t find(char_type Ch, size_t From = 0) const
-    {
-        From = Min(From, size());
-
-        if (auto I = traits_type::find(data() + From, size() - From, Ch))
-            return I - data();
-
-        return npos;
-    }
+    size_t find(char_type Ch, size_t From = 0) const;
 
     // Search for the first character in the sub-string [From, Length)
     // which matches any of the characters in Chars.
-    size_t findFirstOf(StringRef Chars, size_t From = 0) const
-    {
-        From = Min(From, size());
-
-        for (auto I = From; I != size(); ++I)
-            if (traits_type::find(Chars.data(), Chars.size(), data()[I]))
-                return I;
-
-        return npos;
-    }
+    size_t findFirstOf(StringRef Chars, size_t From = 0) const;
 
     // Search for the first character in the sub-string [From, Length)
     // which does not match any of the characters in Chars.
-    size_t findFirstNotOf(StringRef Chars, size_t From = 0) const
-    {
-        From = Min(From, size());
-
-        for (auto I = From; I != size(); ++I)
-            if (!traits_type::find(Chars.data(), Chars.size(), data()[I]))
-                return I;
-
-        return npos;
-    }
+    size_t findFirstNotOf(StringRef Chars, size_t From = 0) const;
 
     // Search for the last character in the sub-string [From, Length)
     // which matches any of the characters in Chars.
-    size_t findLastOf(StringRef Chars, size_t From = npos) const
-    {
-        From = Min(From, size());
-
-        for (auto I = From; I != 0; --I)
-            if (traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
-                return I - 1;
-
-        return npos;
-    }
+    size_t findLastOf(StringRef Chars, size_t From = npos) const;
 
     // Search for the last character in the sub-string [From, Length)
     // which does not match any of the characters in Chars.
-    size_t findLastNotOf(StringRef Chars, size_t From = npos) const
-    {
-        From = Min(From, size());
-
-        for (auto I = From; I != 0; --I)
-            if (!traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
-                return I - 1;
-
-        return npos;
-    }
+    size_t findLastNotOf(StringRef Chars, size_t From = npos) const;
 
     // Split into two substrings around the first occurrence of the separator character.
     std::pair<StringRef, StringRef> split(char_type Ch, size_t From = 0) const
@@ -297,21 +256,13 @@ public:
     }
 
     // Return string with consecutive characters in Chars starting from the left removed.
-    StringRef trimLeft(StringRef Chars = " \t\n\v\f\r") const {
-        return dropFront(findFirstNotOf(Chars));
-    }
+    StringRef trimLeft(StringRef Chars = " \t\n\v\f\r") const;
 
     // Return string with consecutive characters in Chars starting from the right removed.
-    StringRef trimRight(StringRef Chars = " \t\n\v\f\r") const
-    {
-        auto I = findLastNotOf(Chars);
-        return front(I == npos ? npos : I + 1); // return front(Max(I, I + 1));
-    }
+    StringRef trimRight(StringRef Chars = " \t\n\v\f\r") const;
 
     // Return string with consecutive characters in Chars starting from the left and right removed.
-    StringRef trim(StringRef Chars = " \t\n\v\f\r") const {
-        return trimLeft(Chars).trimRight(Chars);
-    }
+    StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
 
     // Split into substrings around the occurrences of a separator string.
     // Each substring is passed to the given function.
