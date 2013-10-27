@@ -231,33 +231,6 @@ public:
     // which does not match any of the characters in Chars.
     size_t findLastNotOf(StringRef Chars, size_t From = npos) const;
 
-    // Split into two substrings around the first occurrence of the separator character.
-    std::pair<StringRef, StringRef> split(char_type Ch, size_t From = 0) const
-    {
-        auto I = find(Ch, From);
-
-        if (I == npos)
-            return {*this, StringRef()};
-
-        return {front(I), dropFront(I + 1)};
-    }
-
-    // Split into two substrings around the first occurrence of any of the separator characters.
-    std::pair<StringRef, StringRef> split(StringRef Chars, size_t From = 0) const
-    {
-        auto I = findFirstOf(Chars, From);
-
-        if (I == npos)
-            return {*this, StringRef()};
-
-        return {front(I), dropFront(I + 1)};
-    }
-
-    // Split into two substrings at the given position
-    std::pair<StringRef, StringRef> splitAt(size_t Pos) const {
-        return {front(Pos), dropFront(Pos)};
-    }
-
     // Return string with consecutive characters in Chars starting from the left removed.
     StringRef trimLeft(StringRef Chars = " \t\n\v\f\r") const;
 
@@ -266,26 +239,6 @@ public:
 
     // Return string with consecutive characters in Chars starting from the left and right removed.
     StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
-
-    // Split into substrings around the occurrences of a separator string.
-    // Each substring is passed to the given function.
-    template<class Function>
-    bool tokenize(StringRef Separators, Function out) const
-    {
-        auto rest = *this;
-
-        while (!rest.null())
-        {
-            auto p = rest.split(Separators);
-
-            if (!out(p.first))
-                return false;
-
-            rest = p.second;
-        }
-
-        return true;
-    }
 };
 
 

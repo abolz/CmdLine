@@ -4,6 +4,7 @@
 
 #include "Support/CmdLine.h"
 #include "Support/PrettyPrint.h"
+#include "Support/StringSplit.h"
 
 #include <iostream>
 #include <set>
@@ -22,7 +23,7 @@ namespace cl {
     {
         bool operator ()(StringRef value, size_t i, std::pair<T, U>& result) const
         {
-            auto p = value.split(':');
+            auto p = strings::split(value, ":")();
 
             return Parser<T>()(p.first.trim(), i, result.first)
                 && Parser<U>()(p.second.trim(), i, result.second);

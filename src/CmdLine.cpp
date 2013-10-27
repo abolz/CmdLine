@@ -4,6 +4,7 @@
 
 #include "Support/CmdLine.h"
 #include "Support/CmdLineToArgv.h"
+#include "Support/StringSplit.h"
 
 #include <algorithm>
 #include <fstream>
@@ -401,8 +402,9 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
 
     if (opt->miscFlags & CommaSeparated)
     {
-        if (!value.tokenize(",", parse))
-            return false;
+        for (auto s : strings::split(value, ","))
+            if (!parse(s))
+                return false;
     }
     else
     {
