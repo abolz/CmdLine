@@ -212,6 +212,9 @@ public:
     // Search for the first character Ch in the sub-string [From, Length)
     size_t find(char_type Ch, size_t From = 0) const;
 
+    // Search for the first substring Str in the sub-string [From, Length)
+    size_t find(StringRef Str, size_t From = 0) const;
+
     // Search for the first character in the sub-string [From, Length)
     // which matches any of the characters in Chars.
     size_t findFirstOf(StringRef Chars, size_t From = 0) const;

@@ -4,6 +4,7 @@
 
 #include "Support/StringRef.h"
 
+#include <algorithm>
 #include <ostream>
 
 
@@ -27,6 +28,24 @@ size_t StringRef::find(char_type Ch, size_t From) const
         return I - data();
 
     return npos;
+}
+
+
+size_t StringRef::find(StringRef Str, size_t From) const
+{
+    if (Str.size() == 1)
+        return find(Str[0], From);
+
+    if (empty() || Str.empty())
+        return npos;
+
+    if (From > size())
+        return npos;
+
+    auto I = std::search(begin() + From, end(), Str.begin(), Str.end());
+    auto x = static_cast<size_t>(I - begin());
+
+    return x + Str.size() <= size() ? x : npos;
 }
 
 
