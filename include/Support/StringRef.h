@@ -6,10 +6,8 @@
 
 
 #include <cassert>
-#include <functional>
-#include <ostream>
+#include <iosfwd>
 #include <string>
-#include <utility>
 
 
 namespace support
@@ -267,8 +265,10 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
 }
 
 
-inline std::ostream& operator <<(std::ostream& Stream, StringRef Str) {
-    return Stream.write(Str.data(), Str.size());
+inline std::ostream& operator <<(std::ostream& Stream, StringRef Str)
+{
+    Str.write(Stream);
+    return Stream;
 }
 
 
