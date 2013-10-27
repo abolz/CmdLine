@@ -89,10 +89,10 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         }
 
         // Starts with a dash, must be an argument.
-        auto name = arg.dropFront(1);
+        auto name = arg.drop_front(1);
 
         if (name.size() > 0 && name[0] == '-')
-            name = name.dropFront(1);
+            name = name.drop_front(1);
 
         assert( !name.empty() );
 
@@ -192,7 +192,7 @@ bool CmdLine::isPossibleOption(StringRef name) const
 
     // If name starts with a single dash, check if there is an option
     // with the/ given name.
-    return findOption(name.dropFront(1)) != nullptr;
+    return findOption(name.drop_front(1)) != nullptr;
 }
 
 
@@ -326,7 +326,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         {
             // Include the equals sign in the value for prefix options.
             // Discard otherwise.
-            success = addOccurrence(opt, opt_name, name.dropFront(opt->isPrefix() ? I : I + 1), i);
+            success = addOccurrence(opt, opt_name, name.drop_front(opt->isPrefix() ? I : I + 1), i);
         }
 
         return true;
@@ -346,7 +346,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 
         if (opt && (opt->formatting == StrictPrefix || opt->formatting == Prefix))
         {
-            success = addOccurrence(opt, opt->name, name.dropFront(n), i);
+            success = addOccurrence(opt, opt->name, name.drop_front(n), i);
             return true;
         }
     }
@@ -511,7 +511,7 @@ void OptionBase::help() const
     if (str.size() >= kIndent.size())
         std::cout << str << "\n" << kIndent;
     else
-        std::cout << str << kIndent.dropFront(str.size());
+        std::cout << str << kIndent.drop_front(str.size());
 
     std::cout << desc << "\n";
 }

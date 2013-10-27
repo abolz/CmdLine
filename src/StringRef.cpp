@@ -49,7 +49,7 @@ size_t StringRef::find(StringRef Str, size_t From) const
 }
 
 
-size_t StringRef::findFirstOf(StringRef Chars, size_t From) const
+size_t StringRef::find_first_of(StringRef Chars, size_t From) const
 {
     if (Chars.size() == 1)
         return find(Chars[0], From);
@@ -64,7 +64,7 @@ size_t StringRef::findFirstOf(StringRef Chars, size_t From) const
 }
 
 
-size_t StringRef::findFirstNotOf(StringRef Chars, size_t From) const
+size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
 {
     From = Min(From, size());
 
@@ -76,7 +76,7 @@ size_t StringRef::findFirstNotOf(StringRef Chars, size_t From) const
 }
 
 
-size_t StringRef::findLastOf(StringRef Chars, size_t From) const
+size_t StringRef::find_last_of(StringRef Chars, size_t From) const
 {
     From = Min(From, size());
 
@@ -88,7 +88,7 @@ size_t StringRef::findLastOf(StringRef Chars, size_t From) const
 }
 
 
-size_t StringRef::findLastNotOf(StringRef Chars, size_t From) const
+size_t StringRef::find_last_not_of(StringRef Chars, size_t From) const
 {
     From = Min(From, size());
 
@@ -100,20 +100,20 @@ size_t StringRef::findLastNotOf(StringRef Chars, size_t From) const
 }
 
 
-StringRef StringRef::trimLeft(StringRef Chars) const
+StringRef StringRef::trim_left(StringRef Chars) const
 {
-    return dropFront(findFirstNotOf(Chars));
+    return drop_front(find_first_not_of(Chars));
 }
 
 
-StringRef StringRef::trimRight(StringRef Chars) const
+StringRef StringRef::trim_right(StringRef Chars) const
 {
-    auto I = findLastNotOf(Chars);
+    auto I = find_last_not_of(Chars);
     return front(I == npos ? npos : I + 1); // return front(Max(I, I + 1));
 }
 
 
 StringRef StringRef::trim(StringRef Chars) const
 {
-    return trimLeft(Chars).trimRight(Chars);
+    return trim_left(Chars).trim_right(Chars);
 }

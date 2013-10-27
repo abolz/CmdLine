@@ -168,7 +168,7 @@ private:
         if (p.first == StringRef::npos)
             assign(Str, {});
         else
-            assign(Str.front(p.first), Str.dropFront(p.first + p.second));
+            assign(Str.front(p.first), Str.drop_front(p.first + p.second));
     }
 
     void assign(std::pair<StringRef, StringRef> p) {
@@ -210,7 +210,7 @@ public:
     }
 
     std::pair<size_t, size_t> operator ()(StringRef Str) const {
-        return { Str.findFirstOf(Chars), 1 };
+        return { Str.find_first_of(Chars), 1 };
     }
 };
 

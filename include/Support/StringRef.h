@@ -142,7 +142,7 @@ public:
     }
 
     // Removes the first N characters from the string.
-    StringRef dropFront(size_t N) const
+    StringRef drop_front(size_t N) const
     {
 		N = Min(N, size());
         return {data() + N, size() - N};
@@ -156,7 +156,7 @@ public:
     }
 
     // Removes the last N characters from the string.
-    StringRef dropBack(size_t N) const
+    StringRef drop_back(size_t N) const
     {
 		N = Min(N, size());
         return {data(), size() - N};
@@ -164,12 +164,12 @@ public:
 
     // Returns the substring [First, Last).
     StringRef slice(size_t First, size_t Last = npos) const {
-        return front(Last).dropFront(First);
+        return front(Last).drop_front(First);
     }
 
     // Returns the sub-string [First, First + Count).
     StringRef substr(size_t First, size_t Count = npos) const {
-        return dropFront(First).front(Count);
+        return drop_front(First).front(Count);
     }
 
     // Returns whether this string is equal to another.
@@ -185,14 +185,14 @@ public:
     }
 
     // Returns whether the string starts with Prefix
-    bool startsWith(StringRef Prefix) const
+    bool starts_with(StringRef Prefix) const
     {
         return size() >= Prefix.size()
             && 0 == Compare(data(), Prefix.data(), Prefix.size());
     }
 
     // Returns whether the string ends with Suffix
-    bool endsWith(StringRef Suffix) const
+    bool ends_with(StringRef Suffix) const
     {
         return size() >= Suffix.size()
             && 0 == Compare(data() + (size() - Suffix.size()), Suffix.data(), Suffix.size());
@@ -217,25 +217,25 @@ public:
 
     // Search for the first character in the sub-string [From, Length)
     // which matches any of the characters in Chars.
-    size_t findFirstOf(StringRef Chars, size_t From = 0) const;
+    size_t find_first_of(StringRef Chars, size_t From = 0) const;
 
     // Search for the first character in the sub-string [From, Length)
     // which does not match any of the characters in Chars.
-    size_t findFirstNotOf(StringRef Chars, size_t From = 0) const;
+    size_t find_first_not_of(StringRef Chars, size_t From = 0) const;
 
     // Search for the last character in the sub-string [From, Length)
     // which matches any of the characters in Chars.
-    size_t findLastOf(StringRef Chars, size_t From = npos) const;
+    size_t find_last_of(StringRef Chars, size_t From = npos) const;
 
     // Search for the last character in the sub-string [From, Length)
     // which does not match any of the characters in Chars.
-    size_t findLastNotOf(StringRef Chars, size_t From = npos) const;
+    size_t find_last_not_of(StringRef Chars, size_t From = npos) const;
 
     // Return string with consecutive characters in Chars starting from the left removed.
-    StringRef trimLeft(StringRef Chars = " \t\n\v\f\r") const;
+    StringRef trim_left(StringRef Chars = " \t\n\v\f\r") const;
 
     // Return string with consecutive characters in Chars starting from the right removed.
-    StringRef trimRight(StringRef Chars = " \t\n\v\f\r") const;
+    StringRef trim_right(StringRef Chars = " \t\n\v\f\r") const;
 
     // Return string with consecutive characters in Chars starting from the left and right removed.
     StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
@@ -304,11 +304,11 @@ inline size_t hashValue(StringRef Str, size_t H = 5381)
 
 namespace std
 {
-template<>
-struct hash< ::support::StringRef>
-{
-    size_t operator ()(::support::StringRef Str) const {
-        return hashValue(Str);
-    }
-};
+    template<>
+    struct hash< ::support::StringRef>
+    {
+        size_t operator ()(::support::StringRef Str) const {
+            return hashValue(Str);
+        }
+    };
 }
