@@ -64,9 +64,23 @@ namespace support
     using IsConvertible = typename std::is_convertible<From, To>::type;
 
 
-    //----------------------------------------------------------------------------------------------
-    // <functional>
-    //
+    namespace details {
+    namespace tt {
+
+        using std::begin;
+        using std::end;
+
+        struct HasBeginEndImpl
+        {
+            template<class T>
+            static auto test(T&& t) -> IsConvertible<decltype(begin(t) == end(t)), bool>;
+            static auto test(...) -> std::false_type;
+        };
+
+    }}
+
+    template<class T>
+    using HasBeginEnd = decltype(details::tt::HasBeginEndImpl::test(std::declval<T>()));
 
 
     struct GetFirst
@@ -191,35 +205,6 @@ namespace support
     {
         return mapIterator(I, GetSecond());
     }
-
-
-    //----------------------------------------------------------------------------------------------
-    // <utility>
-    //
-
-
-    namespace details {
-    namespace adl {
-
-        using std::begin;
-        using std::end;
-
-        template<class T>
-        auto adl_begin(T&& t) -> decltype(( begin(std::forward<T>(t)) ))
-        {
-            return begin(std::forward<T>(t));
-        }
-
-        template<class T>
-        auto adl_end(T&& t) -> decltype(( end(std::forward<T>(t)) ))
-        {
-            return end(std::forward<T>(t));
-        }
-
-    }}
-
-    using details::adl::adl_begin;
-    using details::adl::adl_end;
 
 
 } // namespace support

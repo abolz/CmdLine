@@ -6,22 +6,26 @@
 #include "Support/CmdLineToArgv.h"
 
 #include <algorithm>
-#include <cctype>
 #include <fstream>
 #include <iostream>
 
 
-namespace cl = support::cl;
+using namespace support;
 
 using cl::CmdLine;
 using cl::OptionBase;
-
-using support::StringRef;
 
 
 //--------------------------------------------------------------------------------------------------
 // CmdLine
 //--------------------------------------------------------------------------------------------------
+
+
+CmdLine::CmdLine(std::string program, std::string overview)
+    : program(std::move(program))
+    , overview(std::move(overview))
+{
+}
 
 
 bool CmdLine::add(OptionBase* opt)
@@ -123,7 +127,7 @@ void CmdLine::help() const
     if (!overview.empty())
         std::cout << "Overview:\n  " << overview << "\n\n";
 
-    std::cout << "Usage:\n  " << programName << " [options]";
+    std::cout << "Usage:\n  " << program << " [options]";
 
     if (!positionals.empty())
     {
@@ -269,15 +273,24 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 {
     if (auto opt = findOption(name)) // Standard option?
     {
-        StringRef value;
+//        if (opt->formatting == StrictPrefix)
+//        {
+//            success = error("option '" + name + "' expects an argument");
+//            return true;
+//        }
 
         // If the option name is empty, this option really is a map of option names
         if (opt->name.empty())
-            value = name;
+        {
+            success = addOccurrence(opt, name, name, i);
+            return true;
+        }
+
+        StringRef value;
 
         // If the option requires an argument, "steal" the next argument from the
         // command line, so that "-o file" is possible instead of "-o=file"
-        /*else*/ if (opt->numArgs == ArgRequired)
+        if (opt->numArgs == ArgRequired || opt->formatting == Prefix)
         {
             if (i + 1 >= argv.size() || isPossibleOption(argv[i + 1]))
             {
@@ -312,7 +325,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         {
             // Include the equals sign in the value for prefix options.
             // Discard otherwise.
-            success = addOccurrence(opt, opt_name, name.dropFront(opt->formatting == Prefix ? I : I + 1), i);
+            success = addOccurrence(opt, opt_name, name.dropFront(opt->isPrefix() ? I : I + 1), i);
         }
 
         return true;
@@ -330,7 +343,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
     {
         auto opt = findOption(name.front(n));
 
-        if (opt && opt->formatting == Prefix)
+        if (opt && (opt->formatting == StrictPrefix || opt->formatting == Prefix))
         {
             success = addOccurrence(opt, opt->name, name.dropFront(n), i);
             return true;
@@ -426,6 +439,7 @@ bool CmdLine::check(OptionBase* opt)
 }
 
 
+// Adds an error message. Returns false.
 bool CmdLine::error(std::string str)
 {
     errors.push_back(std::move(str));
@@ -436,6 +450,19 @@ bool CmdLine::error(std::string str)
 //--------------------------------------------------------------------------------------------------
 // OptionBase
 //--------------------------------------------------------------------------------------------------
+
+
+OptionBase::OptionBase()
+    : name()
+    , argName()
+    , desc("Documentation missing...")
+    , numOccurrences(Optional)
+    , numArgs(ArgOptional)
+    , formatting(DefaultFormatting)
+    , miscFlags(None)
+    , count(0)
+{
+}
 
 
 // TODO: cache this?!?!
@@ -518,6 +545,12 @@ bool OptionBase::isOptional() const
 }
 
 
+bool OptionBase::isPrefix() const
+{
+    return formatting == StrictPrefix || formatting == Prefix;
+}
+
+
 template<class Iterator>
 static std::string Concat(Iterator first, Iterator last)
 {
@@ -537,7 +570,7 @@ static std::string Concat(Iterator first, Iterator last)
 
 void OptionBase::done()
 {
-    if (formatting == Positional || formatting == Prefix)
+    if (formatting == Positional /*|| formatting == Prefix*/)
         numArgs = ArgRequired;
 
     if (formatting == Grouping)

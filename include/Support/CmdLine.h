@@ -52,6 +52,7 @@ namespace cl
     enum Formatting : unsigned char {
         DefaultFormatting,      // Nothing special
         Prefix,                 // Can this option directly prefix its value?
+        StrictPrefix,           // Must this option directly prefix its value?
         Grouping,               // Can this option group with other options?
         Positional,             // Is a positional argument, no '-' required
     };
@@ -81,7 +82,7 @@ namespace cl
 
     private:
         // The name of the program
-        std::string programName;
+        std::string program;
         // Additional text displayed in the help menu
         std::string overview;
         // List of options
@@ -92,11 +93,7 @@ namespace cl
         StringVector errors;
 
     public:
-        explicit CmdLine(std::string programName, std::string overview = "")
-            : programName(std::move(programName))
-            , overview(std::move(overview))
-        {
-        }
+        explicit CmdLine(std::string programName, std::string overview = "");
 
         // Adds the given option to the command line
         bool add(OptionBase* opt);
@@ -296,11 +293,11 @@ namespace cl
             return false;
         }
 
-        auto valuesBegin() const -> decltype( mapFirstIterator(map.begin()) ) {
+        auto begin() const -> decltype( mapFirstIterator(map.begin()) ) {
             return mapFirstIterator(map.begin());
         }
 
-        auto valuesEnd() const -> decltype( mapFirstIterator(map.end()) ) {
+        auto end() const -> decltype( mapFirstIterator(map.end()) ) {
             return mapFirstIterator(map.end());
         }
     };
@@ -325,7 +322,8 @@ namespace cl
         struct HasInsertImpl
         {
             template<class U>
-            static auto test(U&& u) -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
+            static auto test(U&& u)
+                -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
             static auto test(...) -> std::false_type;
         };
 
@@ -339,7 +337,7 @@ namespace cl
 
         template<class T>
         struct DefaultValueType<T, std::true_type> {
-        	using type = RemoveCVRec<typename T::value_type>;
+            using type = RemoveCVRec<typename T::value_type>;
         };
 
         template<class T, class = HasInsert<T>>
@@ -410,17 +408,7 @@ namespace cl
         unsigned count;
 
     protected:
-        explicit OptionBase()
-            : name()
-            , argName()
-            , desc("Documentation missing...")
-            , numOccurrences(Optional)
-            , numArgs(ArgOptional)
-            , formatting(DefaultFormatting)
-            , miscFlags(None)
-            , count(0)
-        {
-        }
+        explicit OptionBase();
 
     public:
         // Returns the name of this option
@@ -461,6 +449,7 @@ namespace cl
         bool isOccurrenceRequired() const;
         bool isUnbounded() const;
         bool isOptional() const;
+        bool isPrefix() const;
 
         // Parses the given value and stores the result.
         virtual bool parse(StringRef value, size_t i) = 0;
@@ -562,8 +551,10 @@ namespace cl
         using is_scalar         = typename std::is_void<inserter_type>::type;
 
     public:
+        struct WithParser {};
+
         template<class P, class ...An>
-        explicit Option(std::piecewise_construct_t, P&& p, An&&... an)
+        explicit Option(WithParser, P&& p, An&&... an)
             : BaseType(std::forward<An>(an)...)
             , parser(std::forward<P>(p))
         {
@@ -585,19 +576,8 @@ namespace cl
         ParserT const& getParser() const { return parser; }
 
     private:
-        struct HasValuesImpl
-        {
-            template<class V>
-            static auto test(V&& v) -> decltype(v.valuesBegin(), v.valuesEnd(), std::true_type());
-            static auto test(...) -> std::false_type;
-        };
-
-        template<class X>
-        using HasValues = decltype( HasValuesImpl::test(std::declval<X>()) );
-
-        void applyRec() {
-            this->done();
-        }
+        // End recursion - check for valid flags
+        void applyRec() { this->done(); }
 
         template<class A, class ...An>
         void applyRec(A&& a, An&&... an)
@@ -639,19 +619,19 @@ namespace cl
             return parse(value, i, is_scalar());
         }
 
-        // Used if the parser does not provide valuesBegin() and valuesEnd().
+        // Used if the parser does not provide begin() and end().
         std::vector<StringRef> getValueNames(std::false_type) const {
             return std::vector<StringRef>();
         }
 
-        // Used if the parser provides valuesBegin() and valuesEnd().
+        // Used if the parser provides begin() and end().
         std::vector<StringRef> getValueNames(std::true_type) const {
-            return std::vector<StringRef>(getParser().valuesBegin(), getParser().valuesEnd());
+            return std::vector<StringRef>(getParser().begin(), getParser().end());
         }
 
         // Returns a list of the values for this option.
         virtual std::vector<StringRef> getValueNames() const override {
-            return getValueNames(HasValues<ParserT>());
+            return getValueNames(HasBeginEnd<ParserT>());
         }
     };
 
@@ -662,32 +642,12 @@ namespace cl
         return Option<T>(std::forward<An>(an)...);
     }
 
-
     // Construct a new Option, initialize the parser with the given value
     template<class T, class P, class ...An>
-    auto makeOptionPiecewise(P&& p, An&&... an) -> Option<T, Decay<P>> {
-        return Option<T, Decay<P>>(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...);
-    }
-
-
-    template<class T, class ParserT>
-    auto begin(Option<T, ParserT>& option) -> decltype(( adl_begin(option.get()) )) {
-        return adl_begin(option.get());
-    }
-
-    template<class T, class ParserT>
-    auto end(Option<T, ParserT>& option) -> decltype(( adl_end(option.get()) )) {
-        return adl_end(option.get());
-    }
-
-    template<class T, class ParserT>
-    auto begin(Option<T, ParserT> const& option) -> decltype(( adl_begin(option.get()) )) {
-        return adl_begin(option.get());
-    }
-
-    template<class T, class ParserT>
-    auto end(Option<T, ParserT> const& option) -> decltype(( adl_end(option.get()) )) {
-        return adl_end(option.get());
+    auto makeOptionWithParser(P&& p, An&&... an) -> Option<T, Decay<P>>
+    {
+        using R = Option<T, Decay<P>>;
+        return R(typename R::WithParser(), std::forward<P>(p), std::forward<An>(an)...);
     }
 
 
