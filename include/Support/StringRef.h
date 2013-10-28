@@ -1,18 +1,14 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #pragma once
-
 
 #include <cassert>
 #include <iosfwd>
 #include <string>
 
-
 namespace support
 {
-
 
 class StringRef
 {
@@ -55,7 +51,7 @@ public:
         : Data(Data)
         , Length(Length)
     {
-        assert( (Data || Length == 0) && "constructing from a nullptr and a non-zero length" );
+        assert((Data || Length == 0) && "constructing from a nullptr and a non-zero length");
     }
 
     // Construct a StringRef from a C-string.
@@ -70,7 +66,7 @@ public:
         : Data(Begin)
         , Length(End - Begin)
     {
-        assert( (Begin ? Begin <= End : !End) && "invalid iterators" );
+        assert((Begin ? Begin <= End : !End) && "invalid iterators");
     }
 
     // Construct a StringRef from a std::string.
@@ -114,21 +110,21 @@ public:
     // Array access.
     const_reference operator [](size_t Index) const
     {
-        assert( Index < size() && "index out of range" );
+        assert(Index < size() && "index out of range");
         return Data[Index];
     }
 
     // Returns the first character of the string.
     const_reference front() const
     {
-        assert( !empty() && "index out of range" );
+        assert(!empty() && "index out of range");
         return data()[0];
     }
 
     // Returns the last character of the string.
     const_reference back() const
     {
-        assert( !empty() && "index out of range" );
+        assert(!empty() && "index out of range");
         return data()[size() - 1];
     }
 
@@ -136,28 +132,28 @@ public:
     StringRef front(size_t N) const
     {
         N = Min(N, size());
-        return {data(), N};
+        return { data(), N };
     }
 
     // Removes the first N characters from the string.
     StringRef drop_front(size_t N) const
     {
-		N = Min(N, size());
-        return {data() + N, size() - N};
+        N = Min(N, size());
+        return { data() + N, size() - N };
     }
 
     // Returns the last N characters of the string.
     StringRef back(size_t N) const
     {
-		N = Min(N, size());
-        return {data() + (size() - N), N};
+        N = Min(N, size());
+        return { data() + (size() - N), N };
     }
 
     // Removes the last N characters from the string.
     StringRef drop_back(size_t N) const
     {
-		N = Min(N, size());
-        return {data(), size() - N};
+        N = Min(N, size());
+        return { data(), size() - N };
     }
 
     // Returns the substring [First, Last).
@@ -171,14 +167,16 @@ public:
     }
 
     // Returns whether this string is equal to another.
-    bool equals(StringRef RHS) const {
-        return size() == RHS.size() && 0 == Compare(data(), RHS.data(), RHS.size());
+    bool equals(StringRef RHS) const
+    {
+        return size() == RHS.size()
+               && 0 == Compare(data(), RHS.data(), RHS.size());
     }
 
     // Lexicographically compare this string with another.
     bool less(StringRef RHS) const
     {
-		int c = Compare(data(), RHS.data(), Min(size(), RHS.size()));
+        int c = Compare(data(), RHS.data(), Min(size(), RHS.size()));
         return c < 0 || (c == 0 && size() < RHS.size());
     }
 
@@ -186,14 +184,14 @@ public:
     bool starts_with(StringRef Prefix) const
     {
         return size() >= Prefix.size()
-            && 0 == Compare(data(), Prefix.data(), Prefix.size());
+               && 0 == Compare(data(), Prefix.data(), Prefix.size());
     }
 
     // Returns whether the string ends with Suffix
     bool ends_with(StringRef Suffix) const
     {
         return size() >= Suffix.size()
-            && 0 == Compare(data() + (size() - Suffix.size()), Suffix.data(), Suffix.size());
+               && 0 == Compare(data() + (size() - Suffix.size()), Suffix.data(), Suffix.size());
     }
 
     // Constructs a std::string from this StringRef.
@@ -202,7 +200,9 @@ public:
     }
 
     // Explicitly convert to a std::string
-    explicit operator std::string() const { return str(); }
+    explicit operator std::string() const {
+        return str();
+    }
 
     // Write this string into the given stream
     void write(std::ostream& Stream) const;
@@ -239,7 +239,6 @@ public:
     StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
 };
 
-
 inline bool operator ==(StringRef LHS, StringRef RHS) {
     return LHS.equals(RHS);
 }
@@ -264,13 +263,11 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
     return !(LHS < RHS);
 }
 
-
 inline std::ostream& operator <<(std::ostream& Stream, StringRef Str)
 {
     Str.write(Stream);
     return Stream;
 }
-
 
 inline std::string& operator +=(std::string& LHS, StringRef RHS) {
     return LHS.append(RHS.data(), RHS.size());
@@ -288,7 +285,6 @@ inline std::string operator +(std::string LHS, StringRef RHS)
     return std::move(LHS);
 }
 
-
 // Modified Bernstein hash
 inline size_t hashValue(StringRef Str, size_t H = 5381)
 {
@@ -298,14 +294,12 @@ inline size_t hashValue(StringRef Str, size_t H = 5381)
     return H;
 }
 
-
 } // namespace support
-
 
 namespace std
 {
     template<>
-    struct hash< ::support::StringRef>
+    struct hash<::support::StringRef>
     {
         size_t operator ()(::support::StringRef Str) const {
             return hashValue(Str);

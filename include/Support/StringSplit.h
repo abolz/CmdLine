@@ -1,27 +1,22 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #pragma once
-
 
 #include "StringRef.h"
 
 #include <iterator>
-
 
 namespace support
 {
 namespace strings
 {
 
-
 //--------------------------------------------------------------------------------------------------
 // SplitResult
 //--------------------------------------------------------------------------------------------------
 
-
-template<class Splitter>
+template <class Splitter>
 class SplitResult
 {
     // The rest of the string to split
@@ -140,7 +135,7 @@ public:
     }
 
     // Construct a container from this range
-    template<class T>
+    template <class T>
     explicit operator T() const {
         return T(begin(), end());
     }
@@ -186,18 +181,16 @@ private:
 
 #ifndef NDEBUG
         // Tok == null implies Str == null
-        assert( Tok.data() || Str.data() == 0 );
+        assert(Tok.data() || Str.data() == 0);
         // Str must get smaller...
-        assert( len == 0 || Str.size() < len );
+        assert(len == 0 || Str.size() < len);
 #endif
     }
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // SplitAnyOf
 //--------------------------------------------------------------------------------------------------
-
 
 class SplitAnyOf
 {
@@ -214,15 +207,14 @@ public:
     }
 };
 
-inline SplitAnyOf any_of(StringRef Chars) {
+inline SplitAnyOf any_of(StringRef Chars)
+{
     return { Chars };
 }
-
 
 //--------------------------------------------------------------------------------------------------
 // SplitLiteral
 //--------------------------------------------------------------------------------------------------
-
 
 class SplitLiteral
 {
@@ -239,36 +231,35 @@ public:
     }
 };
 
-inline SplitLiteral literal(StringRef Str) {
+inline SplitLiteral literal(StringRef Str)
+{
     return { Str };
 }
-
 
 //--------------------------------------------------------------------------------------------------
 // split
 //--------------------------------------------------------------------------------------------------
 
-
-template<class Splitter>
-inline SplitResult<Splitter> split(StringRef Str, Splitter D, int MaxCount = -1) {
+template <class Splitter>
+inline SplitResult<Splitter> split(StringRef Str, Splitter D, int MaxCount = -1)
+{
     return { Str, std::move(D), MaxCount };
 }
 
-
-inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, int MaxCount = -1) {
+inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, int MaxCount = -1)
+{
     return split(Str, literal(Chars), MaxCount);
 }
 
-
-inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, int MaxCount = -1) {
+inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, int MaxCount = -1)
+{
     return split(Str, literal(Chars), MaxCount);
 }
 
-
-inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, int MaxCount = -1) {
+inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, int MaxCount = -1)
+{
     return split(Str, literal(Chars), MaxCount);
 }
-
 
 } // namespace strings
 } // namespace support

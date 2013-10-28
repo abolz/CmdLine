@@ -1,21 +1,17 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #include "Support/StringRef.h"
 
 #include <algorithm>
 #include <ostream>
 
-
 using namespace support;
-
 
 void StringRef::write(std::ostream& Stream) const
 {
     Stream.write(data(), size());
 }
-
 
 size_t StringRef::find(char_type Ch, size_t From) const
 {
@@ -29,7 +25,6 @@ size_t StringRef::find(char_type Ch, size_t From) const
 
     return npos;
 }
-
 
 size_t StringRef::find(StringRef Str, size_t From) const
 {
@@ -48,7 +43,6 @@ size_t StringRef::find(StringRef Str, size_t From) const
     return x + Str.size() <= size() ? x : npos;
 }
 
-
 size_t StringRef::find_first_of(StringRef Chars, size_t From) const
 {
     if (Chars.size() == 1)
@@ -63,7 +57,6 @@ size_t StringRef::find_first_of(StringRef Chars, size_t From) const
     return npos;
 }
 
-
 size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
 {
     From = Min(From, size());
@@ -74,7 +67,6 @@ size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
 
     return npos;
 }
-
 
 size_t StringRef::find_last_of(StringRef Chars, size_t From) const
 {
@@ -87,7 +79,6 @@ size_t StringRef::find_last_of(StringRef Chars, size_t From) const
     return npos;
 }
 
-
 size_t StringRef::find_last_not_of(StringRef Chars, size_t From) const
 {
     From = Min(From, size());
@@ -99,19 +90,16 @@ size_t StringRef::find_last_not_of(StringRef Chars, size_t From) const
     return npos;
 }
 
-
 StringRef StringRef::trim_left(StringRef Chars) const
 {
     return drop_front(find_first_not_of(Chars));
 }
-
 
 StringRef StringRef::trim_right(StringRef Chars) const
 {
     auto I = find_last_not_of(Chars);
     return front(I == npos ? npos : I + 1); // return front(Max(I, I + 1));
 }
-
 
 StringRef StringRef::trim(StringRef Chars) const
 {

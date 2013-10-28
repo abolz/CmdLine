@@ -1,9 +1,7 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #pragma once
-
 
 #include "StringRef.h"
 #include "Utility.h"
@@ -14,23 +12,19 @@
 #include <stdexcept>
 #include <vector>
 
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4512) // assignment operator could not be generated
 #endif
-
 
 namespace support
 {
 namespace cl
 {
 
-
 //--------------------------------------------------------------------------------------------------
 // Option flags
 //
-
 
 // Flags for the number of occurrences allowed
 enum NumOccurrences : unsigned char {
@@ -63,11 +57,9 @@ enum MiscFlags : unsigned char {
     Hidden = 0x02,          // Do not show this option in the usage
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // CmdLine
 //
-
 
 class OptionBase;
 
@@ -133,63 +125,59 @@ private:
     bool error(std::string str);
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // Name
 //
-
 
 struct Name
 {
     std::string value;
 
-    explicit Name(std::string value) : value(std::move(value))
+    explicit Name(std::string value)
+        : value(std::move(value))
     {
     }
 };
-
 
 //--------------------------------------------------------------------------------------------------
 // ArgName
 //
 
-
 struct ArgName
 {
     std::string value;
 
-    explicit ArgName(std::string value) : value(std::move(value))
+    explicit ArgName(std::string value)
+        : value(std::move(value))
     {
     }
 };
-
 
 //--------------------------------------------------------------------------------------------------
 // Desc
 //
 
-
 struct Desc
 {
     std::string value;
 
-    explicit Desc(std::string x) : value(std::move(x))
+    explicit Desc(std::string x)
+        : value(std::move(x))
     {
     }
 };
-
 
 //--------------------------------------------------------------------------------------------------
 // Initializer
 //
 
-
-template<class T>
+template <class T>
 struct Initializer
 {
     T value;
 
-    explicit Initializer(T x) : value(std::forward<T>(x))
+    explicit Initializer(T x)
+        : value(std::forward<T>(x))
     {
     }
 
@@ -198,19 +186,17 @@ struct Initializer
     }
 };
 
-
-template<class T>
-inline auto init(T&& value) -> Initializer<T&&> {
+template <class T>
+inline auto init(T&& value) -> Initializer<T&&>
+{
     return Initializer<T&&>(std::forward<T>(value));
 }
-
 
 //--------------------------------------------------------------------------------------------------
 // Parser
 //
 
-
-template<class T>
+template <class T>
 struct Parser
 {
     bool operator ()(StringRef value, size_t /*i*/, T& result) const
@@ -220,7 +206,7 @@ struct Parser
     }
 };
 
-template<>
+template <>
 struct Parser<bool>
 {
     bool operator ()(StringRef value, size_t /*i*/, bool& result) const
@@ -236,7 +222,7 @@ struct Parser<bool>
     }
 };
 
-template<>
+template <>
 struct Parser<std::string>
 {
     bool operator ()(StringRef value, size_t /*i*/, std::string& result) const
@@ -246,11 +232,10 @@ struct Parser<std::string>
     }
 };
 
-
-template<class BinaryOp>
+template <class BinaryOp>
 struct BinaryOpParser
 {
-    template<class T>
+    template <class T>
     bool operator ()(StringRef value, size_t i, T& result) const
     {
         T t;
@@ -265,8 +250,7 @@ struct BinaryOpParser
     }
 };
 
-
-template<class T, class MapType = std::map<StringRef, T>>
+template <class T, class MapType = std::map<StringRef, T>>
 struct MapParser
 {
     MapType map;
@@ -293,27 +277,24 @@ struct MapParser
         return false;
     }
 
-    auto begin() const -> decltype( mapFirstIterator(map.begin()) ) {
+    auto begin() const -> decltype(mapFirstIterator(map.begin())) {
         return mapFirstIterator(map.begin());
     }
 
-    auto end() const -> decltype( mapFirstIterator(map.end()) ) {
+    auto end() const -> decltype(mapFirstIterator(map.end())) {
         return mapFirstIterator(map.end());
     }
 };
-
 
 //--------------------------------------------------------------------------------------------------
 // Traits
 //
 
-
 namespace details
 {
-
     struct Inserter
     {
-        template<class C, class V>
+        template <class C, class V>
         void operator ()(C& c, V&& v) const {
             c.insert(c.end(), std::forward<V>(v));
         }
@@ -321,47 +302,44 @@ namespace details
 
     struct HasInsertImpl
     {
-        template<class U>
+        template <class U>
         static auto test(U&& u)
             -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
         static auto test(...) -> std::false_type;
     };
 
-    template<class T>
+    template <class T>
     using HasInsert = decltype(HasInsertImpl::test(std::declval<T>()));
 
-    template<class T, class = HasInsert<T>>
+    template <class T, class = HasInsert<T>>
     struct DefaultValueType {
         using type = T;
     };
 
-    template<class T>
+    template <class T>
     struct DefaultValueType<T, std::true_type> {
         using type = RemoveCVRec<typename T::value_type>;
     };
 
-    template<class T, class = HasInsert<T>>
+    template <class T, class = HasInsert<T>>
     struct DefaultInserter {
         using type = void;
     };
 
-    template<class T>
+    template <class T>
     struct DefaultInserter<T, std::true_type> {
         using type = Inserter;
     };
+}
 
-} // namespace details
-
-
-template<class ValueT, class InserterT>
+template <class ValueT, class InserterT = void>
 struct TraitsBase
 {
     using value_type = ValueT;
     using inserter_type = InserterT;
 };
 
-
-template<class T>
+template <class T>
 struct Traits
     : TraitsBase<
         typename details::DefaultValueType<T>::type,
@@ -370,21 +348,19 @@ struct Traits
 {
 };
 
-template<class T>
+template <class T>
 struct Traits<T&> : Traits<T>
 {
 };
 
-template<>
+template <>
 struct Traits<std::string> : TraitsBase<std::string, void>
 {
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // OptionBase
 //
-
 
 class OptionBase
 {
@@ -412,16 +388,24 @@ protected:
 
 public:
     // Returns the name of this option
-    std::string const& getName() const { return name; }
+    std::string const& getName() const {
+        return name;
+    }
 
     // Return name of the value
-    std::string const& getArgName() const { return argName; }
+    std::string const& getArgName() const {
+        return argName;
+    }
 
     // Resturns the description of this option
-    std::string const& getDesc() const { return desc; }
+    std::string const& getDesc() const {
+        return desc;
+    }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned getCount() const { return count; }
+    unsigned getCount() const {
+        return count;
+    }
 
 protected:
     void apply(std::string x)       { name = std::move(x); }
@@ -433,7 +417,7 @@ protected:
     void apply(Formatting x)        { formatting = x; }
     void apply(MiscFlags x)         { miscFlags = static_cast<MiscFlags>(miscFlags | x); }
 
-    template<class U>
+    template <class U>
     void apply(Initializer<U>) {
         // NOTE: this is handled in the ctors of BasicOption...
     }
@@ -458,13 +442,11 @@ private:
     virtual std::vector<StringRef> getValueNames() const = 0;
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // BasicOption<T>
 //
 
-
-template<class T>
+template <class T>
 class BasicOption : public OptionBase
 {
     using BaseType = OptionBase;
@@ -480,28 +462,28 @@ private:
     {
     }
 
-    template<class ...An, class X = T, class = EnableIf< std::is_reference<X> >>
+    template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
     explicit BasicOption(Tag, Initializer<T> x, An&&...)
         : BaseType()
         , value(x)
     {
     }
 
-    template<class U, class ...An, class X = T, class = DisableIf< std::is_reference<X> >>
+    template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
     explicit BasicOption(Tag, Initializer<U> x, An&&...)
         : BaseType()
-        , value{x}
+        , value{ x }
     {
     }
 
-    template<class A, class ...An>
+    template <class A, class... An>
     explicit BasicOption(Tag tag, A&&, An&&... an)
         : BasicOption(tag, std::forward<An>(an)...)
     {
     }
 
 protected:
-    template<class ...An>
+    template <class... An>
     explicit BasicOption(An&&... an)
         : BasicOption(Tag(), std::forward<An>(an)...)
     {
@@ -530,13 +512,11 @@ public:
     explicit operator stored_type const&() const { return get(); }
 };
 
-
 //--------------------------------------------------------------------------------------------------
 // Option
 //
 
-
-template<class T, class ParserT = Parser<typename Traits<T>::value_type>>
+template <class T, class ParserT = Parser<typename Traits<T>::value_type>>
 class Option : public BasicOption<T>
 {
     using BaseType = BasicOption<T>;
@@ -553,7 +533,7 @@ public:
 public:
     struct WithParser {};
 
-    template<class P, class ...An>
+    template <class P, class... An>
     explicit Option(WithParser, P&& p, An&&... an)
         : BaseType(std::forward<An>(an)...)
         , parser(std::forward<P>(p))
@@ -561,7 +541,7 @@ public:
         applyRec(is_scalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
-    template<class ...An>
+    template <class... An>
     explicit Option(An&&... an)
         : BaseType(std::forward<An>(an)...)
         , parser()
@@ -570,23 +550,29 @@ public:
     }
 
     // Returns the parser
-    ParserT& getParser() { return parser; }
+    ParserT& getParser() {
+        return parser;
+    }
 
     // Returns the parser
-    ParserT const& getParser() const { return parser; }
+    ParserT const& getParser() const {
+        return parser;
+    }
 
 private:
     // End recursion - check for valid flags
-    void applyRec() { this->done(); }
+    void applyRec() {
+        this->done();
+    }
 
-    template<class A, class ...An>
+    template <class A, class... An>
     void applyRec(A&& a, An&&... an)
     {
         this->apply(std::forward<A>(a));
         this->applyRec(std::forward<An>(an)...);
     }
 
-    template<class ...An>
+    template <class... An>
     void applyRec(CmdLine& cmd, An&&... an)
     {
         this->applyRec(std::forward<An>(an)...);
@@ -596,7 +582,7 @@ private:
     }
 
     // Used when T is a container type
-    bool parse(StringRef value, size_t i, std::false_type)
+    auto parse(StringRef value, size_t i, std::false_type) -> bool
     {
         value_type t;
 
@@ -610,7 +596,7 @@ private:
     }
 
     // Used when T is a value type
-    bool parse(StringRef value, size_t i, std::true_type) {
+    auto parse(StringRef value, size_t i, std::true_type) -> bool {
         return parser(value, i, this->get());
     }
 
@@ -620,40 +606,38 @@ private:
     }
 
     // Used if the parser does not provide begin() and end().
-    std::vector<StringRef> getValueNames(std::false_type) const {
+    auto getValueNames(std::false_type) const -> std::vector<StringRef> {
         return std::vector<StringRef>();
     }
 
     // Used if the parser provides begin() and end().
-    std::vector<StringRef> getValueNames(std::true_type) const {
+    auto getValueNames(std::true_type) const -> std::vector<StringRef> {
         return std::vector<StringRef>(getParser().begin(), getParser().end());
     }
 
     // Returns a list of the values for this option.
-    virtual std::vector<StringRef> getValueNames() const override {
+    virtual std::vector<StringRef> getValueNames() const {
         return getValueNames(HasBeginEnd<ParserT>());
     }
 };
 
-
 // Construct a new Option with a default constructed parser
-template<class T, class ...An>
-auto makeOption(An&&... an) -> Option<T> {
+template <class T, class... An>
+auto makeOption(An&&... an) -> Option<T>
+{
     return Option<T>(std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
-template<class T, class P, class ...An>
+template <class T, class P, class... An>
 auto makeOptionWithParser(P&& p, An&&... an) -> Option<T, Decay<P>>
 {
     using R = Option<T, Decay<P>>;
     return R(typename R::WithParser(), std::forward<P>(p), std::forward<An>(an)...);
 }
 
-
 } // namespace cl
 } // namespace support
-
 
 #ifdef _MSC_VER
 #pragma warning(pop)

@@ -1,25 +1,21 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #pragma once
-
 
 #include <cctype>
 #include <iterator>
 #include <string>
 #include <utility>
 
-
 namespace support
 {
 namespace cl
 {
 
-
 // Parses a command line string and returns a list of command line arguments.
 // Using Unix-style escaping.
-template<class InputIterator, class OutputIterator>
+template <class InputIterator, class OutputIterator>
 void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIterator out)
 {
     using CharType = typename std::iterator_traits<InputIterator>::value_type;
@@ -29,7 +25,7 @@ void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIter
 
     CharType quoteChar = 0;
 
-    for ( ; first != last; ++first)
+    for (; first != last; ++first)
     {
         auto ch = *first;
 
@@ -77,10 +73,9 @@ void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIter
     }
 }
 
-
 // Parses a command line string and returns a list of command line arguments.
 // Using Windows-style escaping.
-template<class InputIterator, class OutputIterator>
+template <class InputIterator, class OutputIterator>
 void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputIterator out)
 {
     using CharType = typename std::iterator_traits<InputIterator>::value_type;
@@ -93,7 +88,7 @@ void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputItera
     bool quoting = false;
     bool recentlyClosed = false;
 
-    for ( ; first != last; ++first)
+    for (; first != last; ++first)
     {
         auto ch = *first;
 
@@ -196,7 +191,6 @@ void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputItera
         *out++ = std::move(arg);
     }
 }
-
 
 } // namespace cl
 } // namespace support

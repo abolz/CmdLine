@@ -1,7 +1,6 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #include "Support/CmdLine.h"
 #include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
@@ -10,24 +9,20 @@
 #include <fstream>
 #include <iostream>
 
-
 using namespace support;
 
 using cl::CmdLine;
 using cl::OptionBase;
 
-
 //--------------------------------------------------------------------------------------------------
 // CmdLine
 //--------------------------------------------------------------------------------------------------
-
 
 CmdLine::CmdLine(std::string program, std::string overview)
     : program(std::move(program))
     , overview(std::move(overview))
 {
 }
-
 
 bool CmdLine::add(OptionBase* opt)
 {
@@ -40,19 +35,18 @@ bool CmdLine::add(OptionBase* opt)
         if (opt->name.empty())
         {
             for (auto const& s : opt->getValueNames())
-                if (!options.insert({s, opt}).second)
+                if (!options.insert({ s, opt }).second)
                     return false;
         }
         else
         {
-            if (!options.insert({opt->name, opt}).second)
+            if (!options.insert({ opt->name, opt }).second)
                 return false;
         }
     }
 
     return true;
 }
-
 
 bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
 {
@@ -94,7 +88,7 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         if (name.size() > 0 && name[0] == '-')
             name = name.drop_front(1);
 
-        assert( !name.empty() );
+        assert(!name.empty());
 
         // Try to process this argument as a standard option.
         if (handleOption(ok, name, i, argv))
@@ -122,7 +116,6 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
     return success;
 }
 
-
 void CmdLine::help() const
 {
     if (!overview.empty())
@@ -142,16 +135,15 @@ void CmdLine::help() const
         I->help();
 }
 
-
 CmdLine::OptionVector CmdLine::getOptions() const
 {
     // Get the list of all options
     auto opts = OptionVector(mapSecondIterator(options.begin()),
-                             mapSecondIterator(options.end())
-                             );
+                             mapSecondIterator(options.end()));
 
     // Sort by name
-    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {
+    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS)
+    {
         return LHS->name < RHS->name;
     });
 
@@ -159,7 +151,8 @@ CmdLine::OptionVector CmdLine::getOptions() const
     auto E = std::unique(opts.begin(), opts.end());
 
     // Remove hidden options
-    E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
+    E = std::remove_if(opts.begin(), E, [](OptionBase* opt)
+    {
         return opt->miscFlags & Hidden;
     });
 
@@ -169,13 +162,11 @@ CmdLine::OptionVector CmdLine::getOptions() const
     return opts;
 }
 
-
 OptionBase* CmdLine::findOption(StringRef name) const
 {
     auto I = options.find(name);
     return I == options.end() ? 0 : I->second;
 }
-
 
 bool CmdLine::isPossibleOption(StringRef name) const
 {
@@ -194,7 +185,6 @@ bool CmdLine::isPossibleOption(StringRef name) const
     // with the/ given name.
     return findOption(name.drop_front(1)) != nullptr;
 }
-
 
 // Recursively expand response files.
 // Returns true on success, false otherwise.
@@ -217,13 +207,12 @@ bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
     return true;
 }
 
-
 bool CmdLine::expandResponseFiles(StringVector& argv)
 {
     // Response file counter to prevent infinite recursion...
     size_t responseFilesLeft = 100;
 
-    for (size_t i = 0; i < argv.size(); )
+    for (size_t i = 0; i < argv.size();)
     {
         if (argv[i][0] != '@')
         {
@@ -240,7 +229,6 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
 
     return true;
 }
-
 
 bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVector::iterator& pos)
 {
@@ -267,18 +255,17 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
     return true;
 }
 
-
 // If 'name' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
 bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVector& argv)
 {
     if (auto opt = findOption(name)) // Standard option?
     {
-//        if (opt->formatting == StrictPrefix)
-//        {
-//            success = error("option '" + name + "' expects an argument");
-//            return true;
-//        }
+        //        if (opt->formatting == StrictPrefix)
+        //        {
+        //            success = error("option '" + name + "' expects an argument");
+        //            return true;
+        //        }
 
         // If the option name is empty, this option really is a map of option names
         if (opt->name.empty())
@@ -335,10 +322,9 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
     return false;
 }
 
-
 bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 {
-    assert( name.size() != 0 );
+    assert(name.size() != 0);
 
     for (auto n = name.size() - 1; n != 0; --n)
     {
@@ -353,7 +339,6 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 
     return false;
 }
-
 
 bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 {
@@ -381,7 +366,6 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
     return true;
 }
 
-
 bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, size_t i)
 {
     if (!opt->isOccurrenceAllowed())
@@ -392,7 +376,7 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
             return error("option '" + name + "' must occur exactly once");
     }
 
-    auto parse = [&](StringRef v) -> bool
+    auto parse = [&](StringRef v)->bool
     {
         if (!opt->parse(v, i))
             return error("invalid argument '" + v + "' for option '" + name + "'");
@@ -417,7 +401,6 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
     return true;
 }
 
-
 bool CmdLine::check()
 {
     bool success = true;
@@ -431,7 +414,6 @@ bool CmdLine::check()
     return success;
 }
 
-
 bool CmdLine::check(OptionBase* opt)
 {
     if (opt->isOccurrenceRequired())
@@ -440,7 +422,6 @@ bool CmdLine::check(OptionBase* opt)
     return true;
 }
 
-
 // Adds an error message. Returns false.
 bool CmdLine::error(std::string str)
 {
@@ -448,11 +429,9 @@ bool CmdLine::error(std::string str)
     return false;
 }
 
-
 //--------------------------------------------------------------------------------------------------
 // OptionBase
 //--------------------------------------------------------------------------------------------------
-
 
 OptionBase::OptionBase()
     : name()
@@ -465,7 +444,6 @@ OptionBase::OptionBase()
     , count(0)
 {
 }
-
 
 // TODO: cache this?!?!
 std::string OptionBase::usage() const
@@ -500,7 +478,6 @@ std::string OptionBase::usage() const
     return str;
 }
 
-
 // TODO: cache this?!?!
 void OptionBase::help() const
 {
@@ -516,7 +493,6 @@ void OptionBase::help() const
     std::cout << desc << "\n";
 }
 
-
 bool OptionBase::isOccurrenceAllowed() const
 {
     if (numOccurrences == Optional || numOccurrences == Required)
@@ -524,7 +500,6 @@ bool OptionBase::isOccurrenceAllowed() const
 
     return true;
 }
-
 
 bool OptionBase::isOccurrenceRequired() const
 {
@@ -534,26 +509,22 @@ bool OptionBase::isOccurrenceRequired() const
     return false;
 }
 
-
 bool OptionBase::isUnbounded() const
 {
     return numOccurrences == ZeroOrMore || numOccurrences == OneOrMore;
 }
-
 
 bool OptionBase::isOptional() const
 {
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
 }
 
-
 bool OptionBase::isPrefix() const
 {
     return formatting == StrictPrefix || formatting == Prefix;
 }
 
-
-template<class Iterator>
+template <class Iterator>
 static std::string Concat(Iterator first, Iterator last)
 {
     std::ostringstream stream;
@@ -568,7 +539,6 @@ static std::string Concat(Iterator first, Iterator last)
 
     return stream.str();
 }
-
 
 void OptionBase::done()
 {
