@@ -34,6 +34,24 @@ solution "Support"
 
 
 ----------------------------------------------------------------------------------------------------
+project "CmdLine"
+
+    kind "StaticLib"
+
+    language "C++"
+
+    includedirs { "include/" }
+
+    files {
+        "include/**.*",
+        "src/**.*",
+    }
+
+    configuration { "Debug" }
+        targetsuffix "d"
+
+
+----------------------------------------------------------------------------------------------------
 project "Test"
 
     kind "ConsoleApp"
@@ -51,21 +69,20 @@ project "Test"
 
 
 ----------------------------------------------------------------------------------------------------
-project "CmdLine"
+project "StringSplitTest"
 
-    kind "StaticLib"
+    kind "ConsoleApp"
 
     language "C++"
+
+    links { "CmdLine", "gtest", "gtest_main" }
 
     includedirs { "include/" }
 
     files {
-        "include/**.*",
-        "src/**.*",
+        "test/StringSplitTest.cpp",
+        "test/*.h",
     }
-
-    configuration { "Debug" }
-        targetsuffix "d"
 
 
 ----------------------------------------------------------------------------------------------------
