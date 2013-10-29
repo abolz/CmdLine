@@ -46,7 +46,6 @@ enum NumArgs : unsigned char {
 enum Formatting : unsigned char {
     DefaultFormatting,      // Nothing special
     Prefix,                 // Can this option directly prefix its value?
-    StrictPrefix,           // Must this option directly prefix its value?
     Grouping,               // Can this option group with other options?
     Positional,             // Is a positional argument, no '-' required
 };
@@ -97,9 +96,7 @@ public:
     void help() const;
 
     // Returns the list of errors
-    StringVector const& getErrors() const {
-        return errors;
-    }
+    StringVector const& getErrors() const { return errors; }
 
 private:
     OptionVector getOptions() const;
@@ -121,22 +118,7 @@ private:
     bool check();
     bool check(OptionBase* opt);
 
-    // Adds an error message. Returns false.
     bool error(std::string str);
-};
-
-//--------------------------------------------------------------------------------------------------
-// Name
-//
-
-struct Name
-{
-    std::string value;
-
-    explicit Name(std::string value)
-        : value(std::move(value))
-    {
-    }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -388,28 +370,19 @@ protected:
 
 public:
     // Returns the name of this option
-    std::string const& getName() const {
-        return name;
-    }
+    std::string const& getName() const { return name; }
 
     // Return name of the value
-    std::string const& getArgName() const {
-        return argName;
-    }
+    std::string const& getArgName() const { return argName; }
 
     // Resturns the description of this option
-    std::string const& getDesc() const {
-        return desc;
-    }
+    std::string const& getDesc() const { return desc; }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned getCount() const {
-        return count;
-    }
+    unsigned getCount() const { return count; }
 
 protected:
     void apply(std::string x)       { name = std::move(x); }
-    void apply(Name x)              { name = std::move(x.value); }
     void apply(ArgName x)           { argName = std::move(x.value); }
     void apply(Desc x)              { desc = std::move(x.value); }
     void apply(NumOccurrences x)    { numOccurrences = x; }
@@ -433,7 +406,6 @@ private:
     bool isOccurrenceRequired() const;
     bool isUnbounded() const;
     bool isOptional() const;
-    bool isPrefix() const;
 
     // Parses the given value and stores the result.
     virtual bool parse(StringRef value, size_t i) = 0;
@@ -550,14 +522,10 @@ public:
     }
 
     // Returns the parser
-    ParserT& getParser() {
-        return parser;
-    }
+    ParserT& getParser() { return parser; }
 
     // Returns the parser
-    ParserT const& getParser() const {
-        return parser;
-    }
+    ParserT const& getParser() const { return parser; }
 
 private:
     // End recursion - check for valid flags

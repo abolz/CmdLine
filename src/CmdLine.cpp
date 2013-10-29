@@ -10,9 +10,7 @@
 #include <iostream>
 
 using namespace support;
-
-using cl::CmdLine;
-using cl::OptionBase;
+using namespace support::cl;
 
 //--------------------------------------------------------------------------------------------------
 // CmdLine
@@ -182,7 +180,7 @@ bool CmdLine::isPossibleOption(StringRef name) const
         return true;
 
     // If name starts with a single dash, check if there is an option
-    // with the/ given name.
+    // with the given name.
     return findOption(name.drop_front(1)) != nullptr;
 }
 
@@ -261,12 +259,6 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 {
     if (auto opt = findOption(name)) // Standard option?
     {
-        if (opt->formatting == StrictPrefix && opt->numArgs == ArgRequired)
-        {
-            success = error("option '" + name + "' expects an argument");
-            return true;
-        }
-
         // If the option name is empty, this option really is a map of option names
         if (opt->name.empty())
         {
@@ -278,9 +270,9 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 
         // If the option requires an argument, "steal" the next argument from the
         // command line, so that "-o file" is possible instead of "-o=file"
-        if (opt->numArgs == ArgRequired || opt->formatting == Prefix)
+        if (opt->numArgs == ArgRequired)
         {
-            if (i + 1 >= argv.size() || isPossibleOption(argv[i + 1]))
+            if (opt->formatting == Prefix || ( i + 1 >= argv.size() || isPossibleOption(argv[i + 1]) ))
             {
                 success = error("option '" + name + "' expects an argument");
                 return true;
@@ -311,14 +303,12 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         }
         else
         {
-            StringRef value = name.drop_front(I);
-
-            // Include the equals sign in the value for strict-prefix options.
+            // Include the equals sign in the value if an argument is required.
             // Discard otherwise.
-            if (opt->formatting != StrictPrefix)
-                value = value.drop_front(1); // drop the equals sign.
+            if (opt->numArgs != ArgRequired)
+                I++;
 
-            success = addOccurrence(opt, opt_name, value, i);
+            success = addOccurrence(opt, opt_name, name.drop_front(I), i);
         }
 
         return true;
@@ -336,7 +326,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
     {
         auto opt = findOption(name.front(n));
 
-        if (opt && opt->isPrefix())
+        if (opt && opt->formatting == Prefix)
         {
             success = addOccurrence(opt, opt->name, name.drop_front(n), i);
             return true;
@@ -481,7 +471,7 @@ std::string OptionBase::usage() const
             if (numArgs == ArgOptional)
                 str = "[" + str + "]";
 
-            if (numArgs == ArgRequired && formatting != StrictPrefix)
+            if (numArgs == ArgRequired && formatting != Prefix)
                 str = " " + str;
         }
 
@@ -529,11 +519,6 @@ bool OptionBase::isUnbounded() const
 bool OptionBase::isOptional() const
 {
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
-}
-
-bool OptionBase::isPrefix() const
-{
-    return formatting == StrictPrefix || formatting == Prefix;
 }
 
 template <class Iterator>

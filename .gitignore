@@ -1,4 +1,6 @@
 /build/
+/build-aux/
 /backups/
+/scratch/
 /CmdLine.sublime-project
 /CmdLine.sublime-workspace

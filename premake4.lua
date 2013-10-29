@@ -63,8 +63,24 @@ project "Test"
     includedirs { "include/" }
 
     files {
-        "test/CmdLineTest.cpp",
+        "test/Test.cpp",
         "test/CmdLineQt.h",
+    }
+
+
+----------------------------------------------------------------------------------------------------
+project "CmdLineTest"
+
+    kind "ConsoleApp"
+
+    language "C++"
+
+    links { "CmdLine", "gtest", "gtest_main" }
+
+    includedirs { "include/" }
+
+    files {
+        "test/CmdLineTest.cpp",
     }
 
 
