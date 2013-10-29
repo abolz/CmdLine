@@ -85,6 +85,23 @@ project "CmdLineTest"
 
 
 ----------------------------------------------------------------------------------------------------
+project "CmdLineToArgvTest"
+
+    kind "ConsoleApp"
+
+    language "C++"
+
+    links { "CmdLine" }
+
+    includedirs { "include/" }
+
+    files {
+        "test/CmdLineToArgvTest.cpp",
+        "test/ConvertUTF.h",
+    }
+
+
+----------------------------------------------------------------------------------------------------
 project "StringSplitTest"
 
     kind "ConsoleApp"
