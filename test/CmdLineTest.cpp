@@ -1,7 +1,6 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #include "Support/CmdLine.h"
 #include "Support/PrettyPrint.h"
 #include "Support/StringSplit.h"
@@ -9,11 +8,7 @@
 #include <iostream>
 #include <set>
 
-#include <gtest/gtest.h>
-
-
 using namespace support;
-
 
 namespace support {
 namespace cl {
@@ -38,158 +33,8 @@ namespace cl {
         stream << "  value = " << pretty(option.get());
     }
 
-}}
-
-
-#if 1
-
-
-typedef std::vector<std::string> Argv;
-
-
-bool parse(cl::CmdLine& cmd, Argv argv)
-{
-    if (!cmd.parse(std::move(argv)))
-    {
-        for (auto const& s : cmd.getErrors())
-            std::cout << "NOTE: error : " << s << "\n";
-        return false;
-    }
-
-    return true;
-}
-
-
-TEST(CmdLineTest, Flags1)
-{
-    auto test = [](Argv argv, bool val_a, bool val_b, bool val_c) -> bool
-    {
-        cl::CmdLine cmd("program");
-
-        auto a = cl::makeOption<bool>(cmd, "a");
-        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
-        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping);
-
-        if (!parse(cmd, std::move(argv)))
-            return false;
-
-        if (a.getCount()) EXPECT_EQ(a.get(), val_a);
-        if (b.getCount()) EXPECT_EQ(b.get(), val_b);
-        if (c.getCount()) EXPECT_EQ(c.get(), val_c);
-        return true;
-    };
-
-    EXPECT_TRUE ( test({ "-a"                   }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=1"                 }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=true"              }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=0"                 }, 0, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=false"             }, 0, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a0"                  }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a1"                  }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-ax"                  }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-b"             }, 1, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-a", "-b", "-c"       }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-bc"            }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-cb"            }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a", "-bcbc"          }, 1, 1, 1 ) );
-}
-
-
-TEST(CmdLineTest, Grouping1)
-{
-    auto test = [](Argv argv, int cnt_a, int cnt_b, int cnt_c) -> bool
-    {
-        cl::CmdLine cmd("program");
-
-        auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
-        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
-        auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
-
-        if (!parse(cmd, std::move(argv)))
-            return false;
-
-        EXPECT_EQ(a.getCount(), cnt_a);
-        EXPECT_EQ(b.getCount(), cnt_b);
-        EXPECT_EQ(c.getCount(), cnt_c);
-        return true;
-    };
-
-    EXPECT_TRUE ( test({ "-a"                   }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=1"                 }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=true"              }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=0"                 }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=false"             }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a0"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a1"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-ax"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-ab"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-abb"                 }, 0, 0, 0 ) );
-    EXPECT_TRUE ( test({ "-abtrue"              }, 0, 0, 1 ) );
-    EXPECT_TRUE ( test({ "-abfalse"             }, 0, 0, 1 ) );
-    EXPECT_TRUE ( test({ "-ba"                  }, 1, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-ba", "-a"            }, 2, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-ab", "1", "-ba"      }, 1, 1, 1 ) );
-}
-
-
-TEST(CmdLineTest, Prefix1)
-{
-    auto test = [](Argv argv, std::string const& a_val) -> bool
-    {
-        cl::CmdLine cmd("program");
-
-        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix);
-
-        if (!parse(cmd, std::move(argv)))
-            return false;
-
-        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
-        return true;
-    };
-
-    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
-    EXPECT_TRUE ( test({ "-a", ""               }, ""       ) );
-    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
-    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
-    EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
-}
-
-
-TEST(CmdLineTest, Prefix2)
-{
-    auto test = [](Argv argv, std::string const& a_val, std::string const& b_val) -> bool
-    {
-        cl::CmdLine cmd("program");
-
-        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix);
-        auto b = cl::makeOption<std::string>(cmd, "b", cl::StrictPrefix, cl::ArgRequired);
-
-        if (!parse(cmd, std::move(argv)))
-            return false;
-
-        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
-        if (b.getCount()) EXPECT_EQ(b.get(), b_val);
-        return true;
-    };
-
-    EXPECT_TRUE ( test({ "-a"                   }, ""       , ""        ) );
-    EXPECT_TRUE ( test({ "-ax"                  }, "x"      , ""        ) );
-    EXPECT_TRUE ( test({ "-a=x"                 }, "=x"     , ""        ) );
-    EXPECT_FALSE( test({ "-a", "x"              }, ""       , ""        ) );
-    EXPECT_FALSE( test({ "-a", "-b"             }, ""       , ""        ) );
-    EXPECT_TRUE ( test({ "-a", "-bx"            }, ""       , "x"       ) );
-    EXPECT_TRUE ( test({ "-a", "-b=x"           }, ""       , "=x"      ) );
-    EXPECT_FALSE( test({ "-a", "x", "-b=x"      }, ""       , ""        ) );
-    EXPECT_TRUE ( test({ "-ax", "-b=x"          }, "x"      , "=x"      ) );
-    EXPECT_TRUE ( test({ "-a=x", "-bx"          }, "=x"     , "x"       ) );
-}
-
-
-#endif
-
-
-#if 0
+} // namespace cl
+} // namespace support
 
 int main(int argc, char* argv[])
 {
@@ -295,13 +140,13 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto bf = cl::makeOptionWithParser<unsigned>(
-        cl::BinaryOpParser<support::BitOr>(),
-        cmd, "bf",
-        cl::CommaSeparated,
-        cl::ArgRequired,
-        cl::ZeroOrMore
-        );
+//    auto bf = cl::makeOptionWithParser<unsigned>(
+//        cl::BinaryOpParser<support::BitOr>(),
+//        cmd, "bf",
+//        cl::CommaSeparated,
+//        cl::ArgRequired,
+//        cl::ZeroOrMore
+//        );
 
                     //------------------------------------------------------------------------------
 
@@ -346,8 +191,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(opt) << std::endl;
     std::cout << pretty(simpson) << std::endl;
     std::cout << pretty(help) << std::endl;
-//    std::cout << pretty(regex) << std::endl;
-    std::cout << "bf = 0x" << std::hex << bf.get() << std::endl;
+//    std::cout << "bf = 0x" << std::hex << bf.get() << std::endl;
     std::cout << pretty(f) << std::endl;
 
     std::cout << "files:\n";
@@ -357,6 +201,146 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
 
     return 0;
+}
+
+#if 0
+
+#include <gtest/gtest.h>
+
+typedef std::vector<std::string> Argv;
+
+bool parse(cl::CmdLine& cmd, Argv argv)
+{
+    if (!cmd.parse(std::move(argv)))
+    {
+        for (auto const& s : cmd.getErrors())
+            std::cout << "NOTE: error : " << s << "\n";
+        return false;
+    }
+
+    return true;
+}
+
+TEST(CmdLineTest, Flags1)
+{
+    auto test = [](Argv argv, bool val_a, bool val_b, bool val_c) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<bool>(cmd, "a");
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), val_a);
+        if (b.getCount()) EXPECT_EQ(b.get(), val_b);
+        if (c.getCount()) EXPECT_EQ(c.get(), val_c);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=1"                 }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=true"              }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=0"                 }, 0, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a=false"             }, 0, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a0"                  }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a1"                  }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-ax"                  }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-b"             }, 1, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-a", "-b", "-c"       }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-bc"            }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-a", "-cb"            }, 1, 1, 1 ) );
+    EXPECT_FALSE( test({ "-a", "-bcbc"          }, 1, 1, 1 ) );
+}
+
+TEST(CmdLineTest, Grouping1)
+{
+    auto test = [](Argv argv, int cnt_a, int cnt_b, int cnt_c) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        EXPECT_EQ(a.getCount(), cnt_a);
+        EXPECT_EQ(b.getCount(), cnt_b);
+        EXPECT_EQ(c.getCount(), cnt_c);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=1"                 }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=true"              }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=0"                 }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a=false"             }, 1, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a0"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-a1"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-ax"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-ab"                  }, 0, 0, 0 ) );
+    EXPECT_FALSE( test({ "-abb"                 }, 0, 0, 0 ) );
+    EXPECT_TRUE ( test({ "-abtrue"              }, 0, 0, 1 ) );
+    EXPECT_TRUE ( test({ "-abfalse"             }, 0, 0, 1 ) );
+    EXPECT_TRUE ( test({ "-ba"                  }, 1, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-ba", "-a"            }, 2, 1, 0 ) );
+    EXPECT_TRUE ( test({ "-ab", "1", "-ba"      }, 1, 1, 1 ) );
+}
+
+TEST(CmdLineTest, Prefix1)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
+    EXPECT_TRUE ( test({ "-a", ""               }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+    EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
+}
+
+TEST(CmdLineTest, Prefix2)
+{
+    auto test = [](Argv argv, std::string const& a_val, std::string const& b_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix);
+        auto b = cl::makeOption<std::string>(cmd, "b", cl::StrictPrefix, cl::ArgRequired);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        if (b.getCount()) EXPECT_EQ(b.get(), b_val);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-ax"                  }, "x"      , ""        ) );
+    EXPECT_TRUE ( test({ "-a=x"                 }, "=x"     , ""        ) );
+    EXPECT_FALSE( test({ "-a", "x"              }, ""       , ""        ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-a", "-bx"            }, ""       , "x"       ) );
+    EXPECT_TRUE ( test({ "-a", "-b=x"           }, ""       , "=x"      ) );
+    EXPECT_FALSE( test({ "-a", "x", "-b=x"      }, ""       , ""        ) );
+    EXPECT_TRUE ( test({ "-ax", "-b=x"          }, "x"      , "=x"      ) );
+    EXPECT_TRUE ( test({ "-a=x", "-bx"          }, "=x"     , "x"       ) );
 }
 
 #endif

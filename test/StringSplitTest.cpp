@@ -1,7 +1,6 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-
 #include "Support/StringSplit.h"
 
 #include <array>
@@ -11,105 +10,96 @@
 
 #include <gtest/gtest.h>
 
-
 using namespace support;
 using namespace support::strings;
 
-
-template<class Range>
+template <class Range>
 class RangeConverter
 {
     Range const& R;
 
 public:
-    RangeConverter(Range const& R) : R(R)
+    RangeConverter(Range const& R)
+        : R(R)
     {
     }
 
-    template<class Container>
+    template <class Container>
     operator Container() const
     {
         return Container(R.begin(), R.end());
     }
 };
 
-template<class Range>
+template <class Range>
 RangeConverter<Range> convert(Range const& R)
 {
     return RangeConverter<Range>(R);
 }
 
-
 TEST(StringSplitTest, EmptyString1)
 {
-    std::vector<StringRef> vec { split({}, ",") };
+    std::vector<StringRef> vec{ split({}, ",") };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
 }
-
 
 TEST(StringSplitTest, EmptyString2)
 {
-    std::vector<StringRef> vec { split("", ",") };
+    std::vector<StringRef> vec{ split("", ",") };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
 }
 
-
 TEST(StringSplitTest, X1)
 {
-    std::vector<StringRef> vec { split(",", ",") };
+    std::vector<StringRef> vec{ split(",", ",") };
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "");
     EXPECT_EQ(vec[1], "");
 }
 
-
 TEST(StringSplitTest, X2)
 {
-    std::vector<StringRef> vec { split(", ", ",") };
+    std::vector<StringRef> vec{ split(", ", ",") };
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "");
     EXPECT_EQ(vec[1], " ");
 }
 
-
 TEST(StringSplitTest, Z1)
 {
-    std::vector<StringRef> vec { split("a", ",") };
+    std::vector<StringRef> vec{ split("a", ",") };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "a");
 }
 
-
 TEST(StringSplitTest, Z2)
 {
-    std::vector<StringRef> vec { split("a,", ",") };
+    std::vector<StringRef> vec{ split("a,", ",") };
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "a");
     EXPECT_EQ(vec[1], "");
 }
 
-
 TEST(StringSplitTest, Z3)
 {
-    std::vector<StringRef> vec { split("a,b", ",") };
+    std::vector<StringRef> vec{ split("a,b", ",") };
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "a");
     EXPECT_EQ(vec[1], "b");
 }
 
-
 TEST(StringSplitTest, Test6)
 {
-    std::vector<StringRef> vec { split("a.b-c,. d, e .f-", any_of(".,-")) };
+    std::vector<StringRef> vec{ split("a.b-c,. d, e .f-", any_of(".,-")) };
 
     ASSERT_EQ(vec.size(), 8);
     EXPECT_EQ(vec[0], "a");
@@ -122,10 +112,9 @@ TEST(StringSplitTest, Test6)
     EXPECT_EQ(vec[7], "");
 }
 
-
 TEST(StringSplitTest, Test7)
 {
-    std::vector<StringRef> vec { split("-a-b-c----d", "--") };
+    std::vector<StringRef> vec{ split("-a-b-c----d", "--") };
 
     ASSERT_EQ(vec.size(), 3);
     EXPECT_EQ(vec[0], "-a-b-c");
@@ -133,10 +122,9 @@ TEST(StringSplitTest, Test7)
     EXPECT_EQ(vec[2], "d");
 }
 
-
 TEST(StringSplitTest, Test7_1)
 {
-    std::vector<StringRef> vec { split("-a-b-c----d", "-") };
+    std::vector<StringRef> vec{ split("-a-b-c----d", "-") };
 
     ASSERT_EQ(vec.size(), 8);
     EXPECT_EQ(vec[0], "");
@@ -149,25 +137,22 @@ TEST(StringSplitTest, Test7_1)
     EXPECT_EQ(vec[7], "d");
 }
 
-
 TEST(StringSplitTest, Test8)
 {
-    std::vector<StringRef> vec { split("a-b-c-d-e", "-", 2) };
+    std::vector<StringRef> vec{ split("a-b-c-d-e", "-", 2) };
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "a");
     EXPECT_EQ(vec[1], "b");
 }
 
-
 TEST(StringSplitTest, EmptySep)
 {
-    std::vector<StringRef> vec { split("abc", "") };
+    std::vector<StringRef> vec{ split("abc", "") };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "abc");
 }
-
 
 TEST(StringSplitTest, Iterator)
 {
@@ -207,7 +192,7 @@ TEST(StringSplitTest, AdaptorsTransformed)
     };
 
     std::vector<std::string> vec
-        = convert( split("a,b,c,d", ",") | transformed(AppendX()) );
+        = convert(split("a,b,c,d", ",") | transformed(AppendX()));
 
     ASSERT_EQ(vec.size(), 4);
     EXPECT_EQ(vec[0], "a+x");
@@ -228,7 +213,7 @@ TEST(StringSplitTest, AdaptorsFiltered)
     };
 
     std::vector<std::string> vec
-        = convert( split("a,,,b,,,c,,,d,,,", ",") | filtered(SkipEmpty()) );
+        = convert(split("a,,,b,,,c,,,d,,,", ",") | filtered(SkipEmpty()));
 
     ASSERT_EQ(vec.size(), 4);
     EXPECT_EQ(vec[0], "a");

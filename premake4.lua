@@ -58,13 +58,13 @@ project "Test"
 
     language "C++"
 
-    links { "CmdLine", "gtest", "gtest_main" }
+    links { "CmdLine" }
 
     includedirs { "include/" }
 
     files {
         "test/CmdLineTest.cpp",
-        "test/*.h",
+        "test/CmdLineQt.h",
     }
 
 
@@ -81,7 +81,6 @@ project "StringSplitTest"
 
     files {
         "test/StringSplitTest.cpp",
-        "test/*.h",
     }
 
 

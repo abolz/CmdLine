@@ -16,7 +16,7 @@ using cl::OptionBase;
 
 //--------------------------------------------------------------------------------------------------
 // CmdLine
-//--------------------------------------------------------------------------------------------------
+//
 
 CmdLine::CmdLine(std::string program, std::string overview)
     : program(std::move(program))
@@ -431,7 +431,7 @@ bool CmdLine::error(std::string str)
 
 //--------------------------------------------------------------------------------------------------
 // OptionBase
-//--------------------------------------------------------------------------------------------------
+//
 
 OptionBase::OptionBase()
     : name()
@@ -445,7 +445,6 @@ OptionBase::OptionBase()
 {
 }
 
-// TODO: cache this?!?!
 std::string OptionBase::usage() const
 {
     std::string str;
@@ -478,7 +477,6 @@ std::string OptionBase::usage() const
     return str;
 }
 
-// TODO: cache this?!?!
 void OptionBase::help() const
 {
     static const StringRef kIndent = "                        ";

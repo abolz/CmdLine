@@ -13,7 +13,7 @@ namespace cl
 //
 
 #ifdef QSTRING_H
-template<>
+template <>
 struct Parser<QString>
 {
     bool operator()(StringRef value, size_t /*i*/, QString& result) const
@@ -25,7 +25,7 @@ struct Parser<QString>
 #endif
 
 #ifdef QURL_H
-template<>
+template <>
 struct Parser<QUrl>
 {
     bool operator()(StringRef value, size_t /*i*/, QUrl& result) const
@@ -45,7 +45,7 @@ namespace qt
 #ifdef QMAP_H
     struct QMapInserter
     {
-        template<class C, class V>
+        template <class C, class V>
         void operator()(C& c, V&& v) const {
             c.insert(std::forward<V>(v).first, std::forward<V>(v).second);
         }
@@ -55,7 +55,7 @@ namespace qt
 #ifdef QSET_H
     struct QSetInserter
     {
-        template<class C, class V>
+        template <class C, class V>
         void operator()(C& c, V&& v) const {
             c.insert(std::forward<V>(v));
         }
@@ -64,38 +64,38 @@ namespace qt
 }
 
 #ifdef QHASH_H
-template<class T, class U>
+template <class T, class U>
 struct Traits<QHash<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
 {
 };
 
-template<class T, class U>
+template <class T, class U>
 struct Traits<QMultiHash<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
 {
 };
 #endif
 
 #ifdef QMAP_H
-template<class T, class U>
+template <class T, class U>
 struct Traits<QMap<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
 {
 };
 
-template<class T, class U>
+template <class T, class U>
 struct Traits<QMultiMap<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
 {
 };
 #endif
 
 #ifdef QSET_H
-template<class T>
+template <class T>
 struct Traits<QSet<T>> : TraitsBase<typename QSet<T>::value_type, qt::QSetInserter>
 {
 };
 #endif
 
 #ifdef QSTRING_H
-template<>
+template <>
 struct Traits<QString> : TraitsBase<QString, void>
 {
 };

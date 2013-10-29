@@ -582,7 +582,7 @@ private:
     }
 
     // Used when T is a container type
-    auto parse(StringRef value, size_t i, std::false_type) -> bool
+    bool parse(StringRef value, size_t i, std::false_type)
     {
         value_type t;
 
@@ -596,7 +596,7 @@ private:
     }
 
     // Used when T is a value type
-    auto parse(StringRef value, size_t i, std::true_type) -> bool {
+    bool parse(StringRef value, size_t i, std::true_type) {
         return parser(value, i, this->get());
     }
 
@@ -606,17 +606,17 @@ private:
     }
 
     // Used if the parser does not provide begin() and end().
-    auto getValueNames(std::false_type) const -> std::vector<StringRef> {
+    std::vector<StringRef> getValueNames(std::false_type) const {
         return std::vector<StringRef>();
     }
 
     // Used if the parser provides begin() and end().
-    auto getValueNames(std::true_type) const -> std::vector<StringRef> {
+    std::vector<StringRef> getValueNames(std::true_type) const {
         return std::vector<StringRef>(getParser().begin(), getParser().end());
     }
 
     // Returns a list of the values for this option.
-    virtual std::vector<StringRef> getValueNames() const {
+    virtual std::vector<StringRef> getValueNames() const override {
         return getValueNames(HasBeginEnd<ParserT>());
     }
 };
