@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "StringRef.h"
-#include "Utility.h"
+#include "Support/StringRef.h"
+#include "Support/Utility.h"
 
 #include <iomanip>
 #include <map>
