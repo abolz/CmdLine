@@ -246,7 +246,7 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
         return handlePositional(success, name, i, ++pos);
 
     //
-    // TODO:
+    // FIXME:
     //
     // If the current positional is Optional and cannot handle the given value,
     // skip to next positional argument instead of reporting an error?!
@@ -261,11 +261,11 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 {
     if (auto opt = findOption(name)) // Standard option?
     {
-        //        if (opt->formatting == StrictPrefix)
-        //        {
-        //            success = error("option '" + name + "' expects an argument");
-        //            return true;
-        //        }
+        if (opt->formatting == StrictPrefix && opt->numArgs == ArgRequired)
+        {
+            success = error("option '" + name + "' expects an argument");
+            return true;
+        }
 
         // If the option name is empty, this option really is a map of option names
         if (opt->name.empty())
@@ -311,9 +311,14 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         }
         else
         {
-            // Include the equals sign in the value for prefix options.
+            StringRef value = name.drop_front(I);
+
+            // Include the equals sign in the value for strict-prefix options.
             // Discard otherwise.
-            success = addOccurrence(opt, opt_name, name.drop_front(opt->isPrefix() ? I : I + 1), i);
+            if (opt->formatting != StrictPrefix)
+                value = value.drop_front(1); // drop the equals sign.
+
+            success = addOccurrence(opt, opt_name, value, i);
         }
 
         return true;
@@ -322,6 +327,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
     return false;
 }
 
+// Handles prefix options which have an argument specified without an equals sign.
 bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 {
     assert(name.size() != 0);
@@ -330,7 +336,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
     {
         auto opt = findOption(name.front(n));
 
-        if (opt && (opt->formatting == StrictPrefix || opt->formatting == Prefix))
+        if (opt && opt->isPrefix())
         {
             success = addOccurrence(opt, opt->name, name.drop_front(n), i);
             return true;
@@ -370,6 +376,9 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
 {
     if (!opt->isOccurrenceAllowed())
     {
+        if (opt->name.empty())
+            return error("option '" + name + "' not allowed here");
+
         if (opt->numOccurrences == Optional)
             return error("option '" + name + "' must occur at most once");
         else
@@ -405,10 +414,7 @@ bool CmdLine::check()
 {
     bool success = true;
 
-    for (auto& I : options)
-        success = check(I.second) && success;
-
-    for (auto& I : positionals)
+    for (auto& I : getOptions())
         success = check(I) && success;
 
     return success;
@@ -416,10 +422,13 @@ bool CmdLine::check()
 
 bool CmdLine::check(OptionBase* opt)
 {
-    if (opt->isOccurrenceRequired())
-        return error("option '" + opt->name + "' missing");
+    if (!opt->isOccurrenceRequired())
+        return true;
 
-    return true;
+    if (opt->name.empty())
+        return error("option <" + opt->argName + "> missing");
+    else
+        return error("option '" + opt->name + "' missing");
 }
 
 // Adds an error message. Returns false.
@@ -451,24 +460,29 @@ std::string OptionBase::usage() const
 
     if (formatting == Positional)
     {
-        str += "<" + name + ">" + (isUnbounded() ? "..." : "");
+        str += "<" + name + ">" + (isUnbounded() ? " ..." : "");
 
         if (isOptional())
             str = "[" + str + "]";
     }
     else
     {
-        if (name.empty() || numArgs != ArgDisallowed)
+        if (name.empty())
         {
-            str = "<" + argName + ">" + ((miscFlags & CommaSeparated) ? ",..." : "");
+            str = "<" + argName + ">";
+        }
+        else if (numArgs != ArgDisallowed)
+        {
+            str = "<" + argName + ">";
 
-            if (!name.empty())
-            {
-                if (numArgs == ArgOptional)
-                    str = "[=" + str + "]";
-                else /*ArgRequired*/ if (formatting != Prefix)
-                    str = " " + str;
-            }
+            if (miscFlags & CommaSeparated)
+                str += ",...";
+
+            if (numArgs == ArgOptional)
+                str = "[" + str + "]";
+
+            if (numArgs == ArgRequired && formatting != StrictPrefix)
+                str = " " + str;
         }
 
         str = name + str;

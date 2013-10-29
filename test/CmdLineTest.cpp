@@ -36,6 +36,8 @@ namespace cl {
 } // namespace cl
 } // namespace support
 
+#if 0
+
 int main(int argc, char* argv[])
 {
     //----------------------------------------------------------------------------------------------
@@ -79,6 +81,7 @@ int main(int argc, char* argv[])
         cl::ArgName("dir"),
         cl::Desc("Add the directory dir to the list of directories to be searched for header files."),
         cl::StrictPrefix,
+        cl::ArgRequired,
         cl::ZeroOrMore,
         cl::init(Iinit)
         );
@@ -109,6 +112,7 @@ int main(int argc, char* argv[])
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
         optParser,
         cmd,
+        cl::Required,
         cl::ArgDisallowed,
         cl::Desc("Choose an optimization level"),
         cl::init(OL_None)
@@ -203,7 +207,9 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-#if 0
+#endif
+
+#if 1
 
 #include <gtest/gtest.h>
 
@@ -214,7 +220,7 @@ bool parse(cl::CmdLine& cmd, Argv argv)
     if (!cmd.parse(std::move(argv)))
     {
         for (auto const& s : cmd.getErrors())
-            std::cout << "NOTE: error : " << s << "\n";
+            std::cout << "NOTE : " << s << "\n";
         return false;
     }
 
@@ -299,6 +305,7 @@ TEST(CmdLineTest, Prefix1)
         cl::CmdLine cmd("program");
 
         auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix);
+        auto b = cl::makeOption<bool>(cmd, "b");
 
         if (!parse(cmd, std::move(argv)))
             return false;
@@ -308,13 +315,125 @@ TEST(CmdLineTest, Prefix1)
     };
 
     EXPECT_FALSE( test({ "-a"                   }, ""       ) );
-    EXPECT_TRUE ( test({ "-a", ""               }, ""       ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) ); // "-b" is a valid option -> is not a valid argument for -a
     EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
-    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "xxx"    ) );
     EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
 }
 
 TEST(CmdLineTest, Prefix2)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
+        auto b = cl::makeOption<bool>(cmd, "b");
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
+}
+
+TEST(CmdLineTest, Prefix3)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgOptional);
+        auto b = cl::makeOption<bool>(cmd, "b");
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a", "xxx"            }, "xxx"    ) );
+}
+
+TEST(CmdLineTest, StrictPrefix1)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix);
+        auto b = cl::makeOption<bool>(cmd, "b");
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, ""       ) );
+    EXPECT_TRUE ( test({ "-a", "-b"             }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+}
+
+TEST(CmdLineTest, StrictPrefix2)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix, cl::ArgRequired);
+        auto b = cl::makeOption<bool>(cmd, "b");
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
+    EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+}
+
+TEST(CmdLineTest, StrictPrefix3)
+{
+    auto test = [](Argv argv, std::string const& a_val) -> bool
+    {
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::StrictPrefix, cl::ArgOptional);
+        auto b = cl::makeOption<bool>(cmd, "b");
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
+        return true;
+    };
+
+    EXPECT_TRUE ( test({ "-a"                   }, ""       ) );
+    EXPECT_TRUE ( test({ "-a", "-b"             }, ""       ) );
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+}
+
+TEST(CmdLineTest, StrictPrefix4)
 {
     auto test = [](Argv argv, std::string const& a_val, std::string const& b_val) -> bool
     {
