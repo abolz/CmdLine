@@ -179,7 +179,7 @@ bool decodeUTF8Sequence(Iterator& begin, Iterator end, uint32_t& U)
         if (begin == end)
             return false; // Insufficient data
 
-        if (!details::isContinuationByte(*begin))
+        if (!details::isContinuationByte(static_cast<uint8_t>(*begin)))
             return false; // Invalid UTF-8 sequence
 
         U = (U << 6) | (static_cast<uint32_t>(*begin++) & 0x3F);
