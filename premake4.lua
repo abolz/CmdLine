@@ -1,3 +1,4 @@
+----------------------------------------------------------------------------------------------------
 solution "Support"
 
     configurations { "Debug", "Release" }
@@ -32,6 +33,8 @@ solution "Support"
 
         flags { "Unicode" }
 
+----------------------------------------------------------------------------------------------------
+local have_gtest = os.isdir("test/gtest")
 
 ----------------------------------------------------------------------------------------------------
 project "CmdLine"
@@ -79,6 +82,10 @@ project "CmdLineTest"
 
     includedirs { "include/" }
 
+    if have_gtest then
+        includedirs { "test/gtest/include" }
+    end
+
     files {
         "test/CmdLineTest.cpp",
     }
@@ -112,6 +119,10 @@ project "ConvertUTFTest"
 
     includedirs { "include/" }
 
+    if have_gtest then
+        includedirs { "test/gtest/include" }
+    end
+
     files {
         "test/ConvertUTFTest.cpp",
         "test/ConvertUTF.h",
@@ -129,6 +140,10 @@ project "StringRefTest"
 
     includedirs { "include/" }
 
+    if have_gtest then
+        includedirs { "test/gtest/include" }
+    end
+
     files {
         "test/StringRefTest.cpp",
     }
@@ -145,9 +160,54 @@ project "StringSplitTest"
 
     includedirs { "include/" }
 
+    if have_gtest then
+        includedirs { "test/gtest/include" }
+    end
+
     files {
         "test/StringSplitTest.cpp",
     }
+
+
+----------------------------------------------------------------------------------------------------
+if have_gtest then
+
+    project "gtest"
+
+        kind "StaticLib"
+
+        language "C++"
+
+        includedirs {
+            "test/gtest/include",
+            "test/gtest",
+        }
+
+        files {
+            "test/gtest/src/gtest-all.cc",
+        }
+
+end
+
+----------------------------------------------------------------------------------------------------
+if have_gtest then
+
+    project "gtest_main"
+
+        kind "StaticLib"
+
+        language "C++"
+
+        includedirs {
+            "test/gtest/include",
+            "test/gtest",
+        }
+
+        files {
+            "test/gtest/src/gtest_main.cc",
+        }
+
+end
 
 
 ----------------------------------------------------------------------------------------------------
