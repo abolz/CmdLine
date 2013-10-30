@@ -102,6 +102,23 @@ project "CmdLineToArgvTest"
 
 
 ----------------------------------------------------------------------------------------------------
+project "ConvertUTFTest"
+
+    kind "ConsoleApp"
+
+    language "C++"
+
+    links { "CmdLine", "gtest", "gtest_main" }
+
+    includedirs { "include/" }
+
+    files {
+        "test/ConvertUTFTest.cpp",
+        "test/ConvertUTF.h",
+    }
+
+
+----------------------------------------------------------------------------------------------------
 project "StringRefTest"
 
     kind "ConsoleApp"
