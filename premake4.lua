@@ -102,6 +102,22 @@ project "CmdLineToArgvTest"
 
 
 ----------------------------------------------------------------------------------------------------
+project "StringRefTest"
+
+    kind "ConsoleApp"
+
+    language "C++"
+
+    links { "CmdLine", "gtest", "gtest_main" }
+
+    includedirs { "include/" }
+
+    files {
+        "test/StringRefTest.cpp",
+    }
+
+
+----------------------------------------------------------------------------------------------------
 project "StringSplitTest"
 
     kind "ConsoleApp"

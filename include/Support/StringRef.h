@@ -36,7 +36,7 @@ private:
     static size_t Max(size_t x, size_t y) { return x > y ? x : y; }
 
 public:
-    static size_t const npos = static_cast<size_t>(-1);
+    static size_t const npos;
 
 public:
     // Construct an empty StringRef.

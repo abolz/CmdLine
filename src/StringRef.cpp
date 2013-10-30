@@ -8,6 +8,8 @@
 
 using namespace support;
 
+size_t const StringRef::npos = static_cast<size_t>(-1);
+
 void StringRef::write(std::ostream& Stream) const
 {
     Stream.write(data(), size());
@@ -15,10 +17,8 @@ void StringRef::write(std::ostream& Stream) const
 
 size_t StringRef::find(char_type Ch, size_t From) const
 {
-    if (empty())
+    if (From >= size())
         return npos;
-
-    From = Min(From, size());
 
     if (auto I = traits_type::find(data() + From, size() - From, Ch))
         return I - data();
@@ -28,16 +28,13 @@ size_t StringRef::find(char_type Ch, size_t From) const
 
 size_t StringRef::find(StringRef Str, size_t From) const
 {
-    if (Str.size() == 1)
-        return find(Str[0], From);
-
-    if (empty() || Str.empty())
-        return npos;
-
     if (From > size())
         return npos;
 
-    auto I = std::search(begin() + From, end(), Str.begin(), Str.end());
+    if (Str.empty())
+        return From;
+
+    auto I = std::search(begin() + From, end(), Str.begin(), Str.end(), traits_type::eq);
     auto x = static_cast<size_t>(I - begin());
 
     return x + Str.size() <= size() ? x : npos;
@@ -45,10 +42,8 @@ size_t StringRef::find(StringRef Str, size_t From) const
 
 size_t StringRef::find_first_of(StringRef Chars, size_t From) const
 {
-    if (Chars.size() == 1)
-        return find(Chars[0], From);
-
-    From = Min(From, size());
+    if (From >= size() || Chars.empty())
+        return npos;
 
     for (auto I = From; I != size(); ++I)
         if (traits_type::find(Chars.data(), Chars.size(), data()[I]))
@@ -59,7 +54,8 @@ size_t StringRef::find_first_of(StringRef Chars, size_t From) const
 
 size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
 {
-    From = Min(From, size());
+    if (From >= size())
+        return npos;
 
     for (auto I = From; I != size(); ++I)
         if (!traits_type::find(Chars.data(), Chars.size(), data()[I]))
@@ -70,7 +66,13 @@ size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
 
 size_t StringRef::find_last_of(StringRef Chars, size_t From) const
 {
-    From = Min(From, size());
+    if (Chars.empty())
+        return npos;
+
+    if (From < size())
+        From++;
+    else
+        From = size();
 
     for (auto I = From; I != 0; --I)
         if (traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
@@ -81,7 +83,10 @@ size_t StringRef::find_last_of(StringRef Chars, size_t From) const
 
 size_t StringRef::find_last_not_of(StringRef Chars, size_t From) const
 {
-    From = Min(From, size());
+    if (From < size())
+        From++;
+    else
+        From = size();
 
     for (auto I = From; I != 0; --I)
         if (!traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
