@@ -1,6 +1,8 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
+#define SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL 0
+
 #include "Support/StringSplit.h"
 
 #include <array>
@@ -37,17 +39,33 @@ RangeConverter<Range> convert(Range const& R)
     return RangeConverter<Range>(R);
 }
 
-TEST(StringSplitTest, EmptyString1)
+//TEST(StringSplitTest, EmptyString1)
+//{
+//    std::vector<StringRef> vec{ split({}, ",") };
+//
+//    ASSERT_EQ(vec.size(), 1);
+//    EXPECT_EQ(vec[0], "");
+//}
+//
+//TEST(StringSplitTest, EmptyString2)
+//{
+//    std::vector<StringRef> vec{ split("", ",") };
+//
+//    ASSERT_EQ(vec.size(), 1);
+//    EXPECT_EQ(vec[0], "");
+//}
+
+TEST(StringSplitTest, EmptyString3)
 {
-    std::vector<StringRef> vec{ split({}, ",") };
+    std::vector<StringRef> vec{ split({}, any_of(",")) };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
 }
 
-TEST(StringSplitTest, EmptyString2)
+TEST(StringSplitTest, EmptyString4)
 {
-    std::vector<StringRef> vec{ split("", ",") };
+    std::vector<StringRef> vec{ split("", any_of(",")) };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
@@ -112,6 +130,18 @@ TEST(StringSplitTest, Test6)
     EXPECT_EQ(vec[7], "");
 }
 
+TEST(StringSplitTest, Test6_1)
+{
+    std::vector<StringRef> vec{ split("-a-b-c-", "-") };
+
+    ASSERT_EQ(vec.size(), 5);
+    EXPECT_EQ(vec[0], "");
+    EXPECT_EQ(vec[1], "a");
+    EXPECT_EQ(vec[2], "b");
+    EXPECT_EQ(vec[3], "c");
+    EXPECT_EQ(vec[4], "");
+}
+
 TEST(StringSplitTest, Test7)
 {
     std::vector<StringRef> vec{ split("-a-b-c----d", "--") };
@@ -146,9 +176,24 @@ TEST(StringSplitTest, Test8)
     EXPECT_EQ(vec[1], "b");
 }
 
-TEST(StringSplitTest, EmptySep)
+TEST(StringSplitTest, EmptySepLiteral)
 {
     std::vector<StringRef> vec{ split("abc", "") };
+
+#if !defined(SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL) || (SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL == 0)
+    ASSERT_EQ(vec.size(), 1);
+    EXPECT_EQ(vec[0], "abc");
+#else
+    ASSERT_EQ(vec.size(), 3);
+    EXPECT_EQ(vec[0], "a");
+    EXPECT_EQ(vec[1], "b");
+    EXPECT_EQ(vec[2], "c");
+#endif
+}
+
+TEST(StringSplitTest, EmptySepAnyOf)
+{
+    std::vector<StringRef> vec{ split("abc", any_of("")) };
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "abc");

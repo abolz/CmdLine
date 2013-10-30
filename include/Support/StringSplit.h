@@ -82,10 +82,6 @@ public:
         {
             assign({}, {});
         }
-        else if (Str.empty())
-        {
-            assign(Str, {});
-        }
         else
         {
             assign(Split(Str));
@@ -158,16 +154,40 @@ public:
     }
 
 private:
-    void assign(std::pair<size_t, size_t> p)
-    {
-        if (p.first == StringRef::npos)
-            assign(Str, {});
-        else
-            assign(Str.front(p.first), Str.drop_front(p.first + p.second));
+    void assign(std::pair<size_t, size_t> const& p) {
+        assign(Str.substr(p.first, p.second));
     }
 
-    void assign(std::pair<StringRef, StringRef> p) {
+    void assign(std::pair<StringRef, StringRef> const& p) {
         assign(p.first, p.second);
+    }
+
+    void assign(StringRef Sep)
+    {
+        if (Sep.data() == nullptr)
+        {
+            // If the splitter returns null, stop immediately.
+            assign({}, {});
+        }
+        else if (Sep.begin() == Str.end())
+        {
+            assert(Sep.empty());
+
+            // If the splitter returns an empty separator beginning at the end
+            // of the current string, use the current string as the next token
+            // and stop on the next iteration.
+            assign(Str, {});
+        }
+        else
+        {
+            assert(Str.begin() <= Sep.begin());
+            assert(Sep.begin() <= Sep.end());
+            assert(Sep.end() <= Str.end());
+
+            // Otherwise, split out the separator from the current string.
+            // NOTE: Sep may be empty!
+            assign({Str.begin(), Sep.begin()}, {Sep.end(), Str.end()});
+        }
     }
 
     void assign(StringRef tok, StringRef str)
@@ -202,8 +222,8 @@ public:
     {
     }
 
-    std::pair<size_t, size_t> operator ()(StringRef Str) const {
-        return { Str.find_first_of(Chars), 1 };
+    StringRef operator ()(StringRef Str) const {
+        return Str.substr(Str.find_first_of(Chars), 1);
     }
 };
 
@@ -226,8 +246,24 @@ public:
     {
     }
 
-    std::pair<size_t, size_t> operator ()(StringRef Str) const {
-        return { Str.find(Needle), Needle.size() };
+    StringRef operator ()(StringRef Str) const
+    {
+        // Handle empty needles
+        if (Needle.empty())
+        {
+#if !defined(SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL) || (SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL == 0)
+            // Returns the whole string as a token.
+            // Makes literal("") behave exactly as any_of("").
+            return Str.back(0);
+#else
+            if (Str.empty())
+                return {}; // Empty needle, empty haystack: Stop immediately
+            else
+                return Str.substr(1,0); // Split after the first character.
+#endif
+        }
+
+        return Str.substr(Str.find(Needle), Needle.size());
     }
 };
 
