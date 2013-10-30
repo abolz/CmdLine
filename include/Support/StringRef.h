@@ -166,6 +166,12 @@ public:
         return drop_front(First).front(Count);
     }
 
+    // Removes substr(Pos, N) from the current string S.
+    // Returns a pair (A,B) such that S == A + substr(Pos, N) + B.
+    std::pair<StringRef, StringRef> split(size_t Pos, size_t N = 0) const {
+        return { front(Pos), drop_front(Pos).drop_front(N) };
+    }
+
     // Returns whether this string is equal to another.
     bool equals(StringRef RHS) const
     {

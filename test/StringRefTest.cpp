@@ -126,3 +126,37 @@ TEST(StringRefTest, CheckStringRef)
 {
     CheckFind<StringRef>();
 }
+
+static void CheckSplit(StringRef str, size_t pos, size_t n, StringRef first, StringRef second)
+{
+    auto P = str.split(pos, n);
+
+    auto S = P.first.str() + str.substr(pos, n) + P.second;
+
+    ASSERT_EQ(P.first, first);
+    ASSERT_EQ(P.second, second);
+    ASSERT_EQ(S, str);
+}
+
+TEST(StringRefTest, Split)
+{
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   ,               0,               0, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   , StringRef::npos,               0, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   ,               2, StringRef::npos, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   ,               1, StringRef::npos, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   ,               0, StringRef::npos, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit(""   , StringRef::npos, StringRef::npos, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               0,               0, ""   , "abc"));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               0,               1, ""   , "bc" ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               0,               2, ""   , "c"  ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc", StringRef::npos,               0, "abc", ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               2, StringRef::npos, "ab" , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               2,               0, "ab" , "c"  ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               2,               1, "ab" , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               1, StringRef::npos, "a"  , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               1,               2, "a"  , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               1,               1, "a"  , "c"  ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               1,               0, "a"  , "bc" ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               0, StringRef::npos, ""   , ""   ));
+    EXPECT_NO_FATAL_FAILURE(CheckSplit("abc", StringRef::npos, StringRef::npos, "abc", ""   ));
+}
