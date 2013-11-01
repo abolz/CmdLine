@@ -4,6 +4,9 @@ if _ACTION == "clean" then
 end
 
 ----------------------------------------------------------------------------------------------------
+local have_gtest = os.isdir("test/gtest")
+
+----------------------------------------------------------------------------------------------------
 solution "Support"
 
     configurations { "Debug", "Release" }
@@ -12,6 +15,13 @@ solution "Support"
 
     location    ("build/" .. _ACTION)
     objdir      ("build/" .. _ACTION .. "/obj")
+
+    if have_gtest then
+        -- all tests are single threaded.
+        -- compiling with "-pthread" doesn't help... avoid linker errors...
+        -- FIXME!
+        defines { "GTEST_HAS_PTHREAD=0" }
+    end
 
     configuration { "Debug" }
         targetsuffix "d"
@@ -38,14 +48,10 @@ solution "Support"
         buildoptions {
             "-std=c++11",
             "-pedantic",
---            "-save-temps",
         }
 
     configuration { "windows" }
         flags { "Unicode" }
-
-----------------------------------------------------------------------------------------------------
-local have_gtest = os.isdir("test/gtest")
 
 ----------------------------------------------------------------------------------------------------
 project "CmdLine"
