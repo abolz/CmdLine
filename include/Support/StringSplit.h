@@ -5,6 +5,7 @@
 
 #include "Support/StringRef.h"
 
+#include <cstddef>
 #include <iterator>
 
 namespace support
