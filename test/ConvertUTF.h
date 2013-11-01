@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "Support/StringRef.h"
-
+#include <cassert>
 #include <cstdint>
 
 namespace support
