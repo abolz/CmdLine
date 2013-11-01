@@ -18,6 +18,10 @@ namespace cl
 template <class InputIterator, class OutputIterator>
 void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIterator out)
 {
+    // See:
+    // http://www.gnu.org/software/bash/manual/bashref.html#Quoting
+    // http://wiki.bash-hackers.org/syntax/quoting
+
     using CharType = typename std::iterator_traits<InputIterator>::value_type;
     using StringType = std::basic_string<CharType>;
 

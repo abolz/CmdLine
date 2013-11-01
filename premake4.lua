@@ -103,9 +103,13 @@ project "CmdLineToArgvTest"
 
     language "C++"
 
-    links { "CmdLine" }
+    links { "CmdLine", "gtest", "gtest_main" }
 
     includedirs { "include/" }
+
+    if have_gtest then
+        includedirs { "test/gtest/include" }
+    end
 
     files {
         "test/CmdLineToArgvTest.cpp",

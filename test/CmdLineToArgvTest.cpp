@@ -9,9 +9,17 @@
 #include <vector>
 #include <iostream>
 
+#include <gtest/gtest.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 using namespace support;
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+#ifdef _WIN32
 
 static std::string toUTF8(std::wstring const& str)
 {
@@ -63,21 +71,17 @@ static std::vector<std::string> stringToArgvCL(std::string const& args)
     return argv;
 }
 
-static void compare(std::string const& args, std::wstring const& wargs)
+static void compare(std::string const& args)
 {
-    auto argvWin = stringToArgvWin(wargs);
-    auto argvCL = stringToArgvCL(args);
+    SCOPED_TRACE("command-line: \"( " + args + " )\"");
 
-    if (argvWin != argvCL)
-    {
-        std::cout << "FAILED" << std::endl;
-        std::cout << "    command-line : " << pretty(args) << std::endl;
-        std::cout << "    actual       : " << pretty(argvCL) << std::endl;
-        std::cout << "    expected     : " << pretty(argvWin) << std::endl;
-    }
+    auto x = stringToArgvWin(toUTF16(args));
+    auto y = stringToArgvCL(args);
+
+    EXPECT_EQ(x, y);
 }
 
-int main()
+TEST(CmdLineToArgvTest, Win)
 {
 //  #define P R"("c:\path to\test program.exe" )"
 //  #define P R"("c:\path to\test program.exe )"
@@ -125,8 +129,19 @@ int main()
         P R"("a b c""")",
     };
 
-    for (auto&& s : tests)
-        compare( s, toUTF16(s) );
+    for (auto const& s : tests)
+    {
+        EXPECT_NO_FATAL_FAILURE( compare(s) );
+    }
+}
 
-    return 0;
+#endif
+
+//--------------------------------------------------------------------------------------------------
+//
+//--------------------------------------------------------------------------------------------------
+TEST(CmdLineToArgvTest, Unix)
+{
+    // FIXME:
+    // Add some tests here...
 }
