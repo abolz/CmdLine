@@ -1,4 +1,9 @@
 ----------------------------------------------------------------------------------------------------
+if _ACTION == "clean" then
+    os.rmdir("build")
+end
+
+----------------------------------------------------------------------------------------------------
 solution "Support"
 
     configurations { "Debug", "Release" }
@@ -7,30 +12,36 @@ solution "Support"
 
     location    ("build/" .. _ACTION)
     objdir      ("build/" .. _ACTION .. "/obj")
-    targetdir   ("build/" .. _ACTION .. "/bin")
 
     configuration { "Debug" }
-
+        targetsuffix "d"
         defines { "_DEBUG" }
         flags { "ExtraWarnings", "Symbols" }
 
     configuration { "Release" }
-
         defines { "NDEBUG" }
         flags { "ExtraWarnings", "Optimize" }
 
-    configuration { "gmake" }
+    configuration { "Debug", "x64" }
+        targetdir ("build/" .. _ACTION .. "/bin/x64/Debug")
 
+    configuration { "Release", "x64" }
+        targetdir ("build/" .. _ACTION .. "/bin/x64/Release")
+
+    configuration { "Debug", "x32" }
+        targetdir ("build/" .. _ACTION .. "/bin/x32/Debug")
+
+    configuration { "Release", "x32" }
+        targetdir ("build/" .. _ACTION .. "/bin/x32/Release")
+
+    configuration { "gmake" }
         buildoptions {
             "-std=c++11",
-            "-Wall",
-            "-Wextra",
             "-pedantic",
 --            "-save-temps",
         }
 
     configuration { "windows" }
-
         flags { "Unicode" }
 
 ----------------------------------------------------------------------------------------------------
@@ -50,10 +61,6 @@ project "CmdLine"
         "src/**.*",
     }
 
-    configuration { "Debug" }
-        targetsuffix "d"
-
-
 ----------------------------------------------------------------------------------------------------
 project "Test"
 
@@ -69,7 +76,6 @@ project "Test"
         "test/Test.cpp",
         "test/CmdLineQt.h",
     }
-
 
 ----------------------------------------------------------------------------------------------------
 project "CmdLineTest"
@@ -90,7 +96,6 @@ project "CmdLineTest"
         "test/CmdLineTest.cpp",
     }
 
-
 ----------------------------------------------------------------------------------------------------
 project "CmdLineToArgvTest"
 
@@ -104,9 +109,7 @@ project "CmdLineToArgvTest"
 
     files {
         "test/CmdLineToArgvTest.cpp",
-        "test/ConvertUTF.h",
     }
-
 
 ----------------------------------------------------------------------------------------------------
 project "ConvertUTFTest"
@@ -128,7 +131,6 @@ project "ConvertUTFTest"
         "test/ConvertUTF.h",
     }
 
-
 ----------------------------------------------------------------------------------------------------
 project "StringRefTest"
 
@@ -147,7 +149,6 @@ project "StringRefTest"
     files {
         "test/StringRefTest.cpp",
     }
-
 
 ----------------------------------------------------------------------------------------------------
 project "StringSplitTest"
@@ -168,7 +169,6 @@ project "StringSplitTest"
         "test/StringSplitTest.cpp",
     }
 
-
 ----------------------------------------------------------------------------------------------------
 if have_gtest then
 
@@ -187,11 +187,6 @@ if have_gtest then
             "test/gtest/src/gtest-all.cc",
         }
 
-end
-
-----------------------------------------------------------------------------------------------------
-if have_gtest then
-
     project "gtest_main"
 
         kind "StaticLib"
@@ -207,10 +202,4 @@ if have_gtest then
             "test/gtest/src/gtest_main.cc",
         }
 
-end
-
-
-----------------------------------------------------------------------------------------------------
-if _ACTION == "clean" then
-    os.rmdir("build")
 end
