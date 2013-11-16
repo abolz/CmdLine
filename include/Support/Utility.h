@@ -11,6 +11,10 @@
 namespace support
 {
 
+//--------------------------------------------------------------------------------------------------
+// Alias templates
+//--------------------------------------------------------------------------------------------------
+
 template <class T, class U = void>
 using EnableIf = typename std::enable_if<T::value, U>::type;
 
@@ -69,6 +73,10 @@ namespace tt
 template <class T>
 using HasBeginEnd = decltype(details::tt::HasBeginEndImpl::test(std::declval<T>()));
 
+//--------------------------------------------------------------------------------------------------
+// Functional
+//--------------------------------------------------------------------------------------------------
+
 struct GetFirst
 {
     template <class T>
@@ -84,6 +92,10 @@ struct GetSecond
         return std::forward<T>(t).second;
     }
 };
+
+//--------------------------------------------------------------------------------------------------
+// Iterator
+//--------------------------------------------------------------------------------------------------
 
 template <class Function>
 class FunctionOutputIterator
@@ -183,5 +195,52 @@ inline auto mapSecondIterator(Iterator I) -> decltype(mapIterator(I, GetSecond()
 {
     return mapIterator(I, GetSecond());
 }
+
+//--------------------------------------------------------------------------------------------------
+// ResultOf
+//--------------------------------------------------------------------------------------------------
+
+namespace details
+{
+    struct NotCallable {};
+
+    auto Call(...) -> NotCallable;
+
+    template <class F, class... A>
+    auto Call(F&& f, A&&... args)
+        -> decltype((std::forward<F>(f)(std::forward<A>(args)...)));
+
+    template <class F, class... A>
+    struct IsCallable
+    {
+        using result = decltype((Call(std::declval<F>(), std::declval<A>()...)));
+
+        // Use std::conditional to make VC12 happy...
+        using callable = typename std::conditional<
+            std::is_same<result, NotCallable>::value, std::false_type, std::true_type
+        >::type;
+    };
+
+    template <class C, bool = C::callable::value>
+    struct ResultOf
+    {
+        using type = typename C::result;
+    };
+
+    template <class C>
+    struct ResultOf<C, false>
+    {
+    };
+}
+
+template <class F, class... A>
+struct IsCallable : details::IsCallable<F, A...>::callable
+{
+};
+
+template <class F, class... A>
+struct ResultOf : details::ResultOf<details::IsCallable<F, A...>>
+{
+};
 
 } // namespace support
