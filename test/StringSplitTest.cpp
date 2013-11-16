@@ -73,20 +73,35 @@ TEST(StringSplitTest, EmptyString4)
 
 TEST(StringSplitTest, X1)
 {
-    auto vec = std::vector<StringRef>(split(",", ","));
+    {
+        auto vec = std::vector<StringRef>(split(",", ","));
 
-    ASSERT_EQ(vec.size(), 2);
-    EXPECT_EQ(vec[0], "");
-    EXPECT_EQ(vec[1], "");
+        ASSERT_EQ(vec.size(), 2);
+        EXPECT_EQ(vec[0], "");
+        EXPECT_EQ(vec[1], "");
+    }
+    {
+        auto vec = std::vector<StringRef>(split(",", ",", true/*SkipEmpty*/));
+
+        ASSERT_EQ(vec.size(), 0);
+    }
 }
 
 TEST(StringSplitTest, X2)
 {
-    auto vec = std::vector<StringRef>(split(", ", ","));
+    {
+        auto vec = std::vector<StringRef>(split(", ", ","));
 
-    ASSERT_EQ(vec.size(), 2);
-    EXPECT_EQ(vec[0], "");
-    EXPECT_EQ(vec[1], " ");
+        ASSERT_EQ(vec.size(), 2);
+        EXPECT_EQ(vec[0], "");
+        EXPECT_EQ(vec[1], " ");
+    }
+    {
+        auto vec = std::vector<StringRef>(split(", ", ",", true/*SkipEmpty*/));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], " ");
+    }
 }
 
 TEST(StringSplitTest, Z1)
@@ -154,22 +169,33 @@ TEST(StringSplitTest, Test7)
 
 TEST(StringSplitTest, Test7_1)
 {
-    auto vec = std::vector<StringRef>(split("-a-b-c----d", "-"));
+    {
+        auto vec = std::vector<StringRef>(split("-a-b-c----d", "-"));
 
-    ASSERT_EQ(vec.size(), 8);
-    EXPECT_EQ(vec[0], "");
-    EXPECT_EQ(vec[1], "a");
-    EXPECT_EQ(vec[2], "b");
-    EXPECT_EQ(vec[3], "c");
-    EXPECT_EQ(vec[4], "");
-    EXPECT_EQ(vec[5], "");
-    EXPECT_EQ(vec[6], "");
-    EXPECT_EQ(vec[7], "d");
+        ASSERT_EQ(vec.size(), 8);
+        EXPECT_EQ(vec[0], "");
+        EXPECT_EQ(vec[1], "a");
+        EXPECT_EQ(vec[2], "b");
+        EXPECT_EQ(vec[3], "c");
+        EXPECT_EQ(vec[4], "");
+        EXPECT_EQ(vec[5], "");
+        EXPECT_EQ(vec[6], "");
+        EXPECT_EQ(vec[7], "d");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("-a-b-c----d", "-", true/*SkipEmpty*/));
+
+        ASSERT_EQ(vec.size(), 4);
+        EXPECT_EQ(vec[0], "a");
+        EXPECT_EQ(vec[1], "b");
+        EXPECT_EQ(vec[2], "c");
+        EXPECT_EQ(vec[3], "d");
+    }
 }
 
 TEST(StringSplitTest, Test8)
 {
-    auto vec = std::vector<StringRef>(split("a-b-c-d-e", "-", 2));
+    auto vec = std::vector<StringRef>(split("a-b-c-d-e", "-", false/*SkipEmpty*/, 2));
 
     ASSERT_EQ(vec.size(), 2);
     EXPECT_EQ(vec[0], "a");
@@ -201,21 +227,38 @@ TEST(StringSplitTest, EmptySepAnyOf)
 
 TEST(StringSplitTest, Iterator)
 {
-    auto I = split("a,b,c,d", ",");
-    auto E = I.end();
+    auto R = split("a,b,c,d", ",");
 
-    std::vector<StringRef> vec;
-
-    for (; I != E; ++I)
     {
-        vec.push_back(*I);
-    }
+        std::vector<StringRef> vec;
 
-    ASSERT_EQ(vec.size(), 4);
-    EXPECT_EQ(vec[0], "a");
-    EXPECT_EQ(vec[1], "b");
-    EXPECT_EQ(vec[2], "c");
-    EXPECT_EQ(vec[3], "d");
+        for (auto I = R.begin(), E = R.end(); I != E; ++I)
+        {
+            vec.push_back(*I);
+        }
+
+        ASSERT_EQ(vec.size(), 4);
+        EXPECT_EQ(vec[0], "a");
+        EXPECT_EQ(vec[1], "b");
+        EXPECT_EQ(vec[2], "c");
+        EXPECT_EQ(vec[3], "d");
+    }
+    {
+        // R is reusable
+
+        std::vector<StringRef> vec;
+
+        for (auto I = R.begin(), E = R.end(); I != E; ++I)
+        {
+            vec.push_back(*I);
+        }
+
+        ASSERT_EQ(vec.size(), 4);
+        EXPECT_EQ(vec[0], "a");
+        EXPECT_EQ(vec[1], "b");
+        EXPECT_EQ(vec[2], "c");
+        EXPECT_EQ(vec[3], "d");
+    }
 }
 
 

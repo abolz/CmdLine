@@ -140,8 +140,7 @@ CmdLine::OptionVector CmdLine::getOptions() const
                              mapSecondIterator(options.end()));
 
     // Sort by name
-    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS)
-    {
+    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {
         return LHS->name < RHS->name;
     });
 
@@ -149,8 +148,7 @@ CmdLine::OptionVector CmdLine::getOptions() const
     auto E = std::unique(opts.begin(), opts.end());
 
     // Remove hidden options
-    E = std::remove_if(opts.begin(), E, [](OptionBase* opt)
-    {
+    E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
         return opt->miscFlags & Hidden;
     });
 
@@ -272,7 +270,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         // command line, so that "-o file" is possible instead of "-o=file"
         if (opt->numArgs == ArgRequired)
         {
-            if (opt->formatting == Prefix || ( i + 1 >= argv.size() || isPossibleOption(argv[i + 1]) ))
+            if (opt->formatting == Prefix || (i + 1 >= argv.size() || isPossibleOption(argv[i + 1])))
             {
                 success = error("option '" + name + "' expects an argument");
                 return true;
