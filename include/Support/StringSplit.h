@@ -38,7 +38,6 @@ class SplitResult
         // The current token
         StringRef Tok;
         // The rest of the string to split
-        // FIXME: use just an offset into Split->Str? saves a char*
         StringRef Str;
         // The number of tokens this iterator might produce
         int Count;
@@ -62,7 +61,7 @@ class SplitResult
 
         // Construct a new iterator
         // SplitResult must be non-null!
-        explicit Iterator(SplitResult const* Split, int MaxCount)
+        Iterator(SplitResult const* Split, int MaxCount)
             : Split(Split)
             , Tok()
             , Str(Split->Str)
@@ -120,8 +119,6 @@ class SplitResult
         // Returns whether the given iterators are equal
         friend bool operator ==(Iterator const& LHS, Iterator const& RHS)
         {
-            assert((!LHS.Split || LHS.Tok.data()) && "internal error");
-            assert((!RHS.Split || RHS.Tok.data()) && "internal error");
             assert((!LHS.Split || !RHS.Split || LHS.Split == RHS.Split) && "invalid comparison");
 
             return LHS.Tok.data() == RHS.Tok.data();
@@ -159,7 +156,7 @@ public:
 
     // Returns an iterator to the first token
     const_iterator begin() const {
-        return iterator(this, MaxCount);
+        return { this, MaxCount };
     }
 
     // Returns the past-the-end iterator
@@ -178,45 +175,51 @@ public:
     std::pair<StringRef, StringRef> operator ()() const
     {
         auto I = begin();
-        return {I.Tok, I.Str};
+        return { I.Tok, I.Str };
     }
 
 private:
+    void parse(StringRef& T, StringRef& S) const
+    {
+        auto Sep = Split(S);
+
+        if (Sep.data() == nullptr)
+        {
+            // If the splitter returns null, stop immediately.
+            T = {};
+            S = {};
+        }
+        else if (Sep.begin() == S.end())
+        {
+            assert(Sep.empty());
+
+            // If the splitter returns an empty separator beginning at the end
+            // of the current string, use the current string as the next token
+            // and stop on the next iteration.
+            T = S;
+            S = {};
+        }
+        else
+        {
+            assert(S.begin() <= Sep.begin());
+            assert(Sep.begin() <= Sep.end());
+            assert(Sep.end() <= S.end());
+
+            // Otherwise, split out the separator from the current string.
+            // NOTE: Sep may be empty!
+            T = { S.begin(), Sep.begin() };
+            S = { Sep.end(), S.end() };
+        }
+    }
+
     void next(StringRef& T, StringRef& S) const
     {
-        do
+        parse(T, S);
+
+        while (SkipEmpty && (T.empty() && T.data() != nullptr))
         {
-            auto Sep = Split(S);
-
-            if (Sep.data() == nullptr)
-            {
-                // If the splitter returns null, stop immediately.
-                T = {};
-                S = {};
-            }
-            else if (Sep.begin() == S.end())
-            {
-                assert(Sep.empty());
-
-                // If the splitter returns an empty separator beginning at the end
-                // of the current string, use the current string as the next token
-                // and stop on the next iteration.
-                T = S;
-                S = {};
-            }
-            else
-            {
-                assert(S.begin() <= Sep.begin());
-                assert(Sep.begin() <= Sep.end());
-                assert(Sep.end() <= S.end());
-
-                // Otherwise, split out the separator from the current string.
-                // NOTE: Sep may be empty!
-                T = {S.begin(), Sep.begin()};
-                S = {Sep.end(), S.end()};
-            }
+            parse(T, S);
         }
-        while (SkipEmpty && (T.empty() && T.data() != nullptr));
     }
 };
 
