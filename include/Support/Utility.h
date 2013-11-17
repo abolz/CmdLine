@@ -234,13 +234,9 @@ namespace details
 }
 
 template <class F, class... A>
-struct IsCallable : details::IsCallable<F, A...>::callable
-{
-};
+using IsCallable = typename details::IsCallable<F, A...>::callable;
 
 template <class F, class... A>
-struct ResultOf : details::ResultOf<details::IsCallable<F, A...>>
-{
-};
+using ResultOf = typename details::ResultOf<details::IsCallable<F, A...>>::type;
 
 } // namespace support
