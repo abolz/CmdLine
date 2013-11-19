@@ -81,6 +81,7 @@ project "Test"
     files {
         "test/Test.cpp",
         "test/CmdLineQt.h",
+        "test/CmdLineWithIndex.h",
     }
 
 ----------------------------------------------------------------------------------------------------

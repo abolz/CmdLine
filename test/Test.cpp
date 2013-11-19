@@ -5,6 +5,9 @@
 #include "Support/PrettyPrint.h"
 #include "Support/StringSplit.h"
 
+#include "CmdLineQt.h"
+#include "CmdLineWithIndex.h"
+
 #include <iostream>
 #include <set>
 
@@ -33,6 +36,12 @@ namespace cl
         stream << option.getName() << ":\n";
         stream << "  count = " << option.getCount() << "\n";
         stream << "  value = " << pretty(option.get());
+    }
+
+    template <class T>
+    void prettyPrint(std::ostream& stream, WithIndex<T> const& x)
+    {
+        stream << "(" << x.index << ": " << pretty(x.value) << ")";
     }
 
 } // namespace cl
@@ -73,11 +82,11 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    std::initializer_list<std::string> Iinit = {
+    std::initializer_list<cl::WithIndex<std::string>> Iinit {
         "eins", "zwei", "drei", "vier", "funf"
     };
 
-    auto I = cl::makeOption<std::vector<std::string>>(cmd, "I",
+    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(cmd, "I",
         cl::ArgName("dir"),
         cl::Desc("Add the directory dir to the list of directories to be searched for header files."),
         cl::Prefix,
