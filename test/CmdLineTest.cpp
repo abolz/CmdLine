@@ -151,6 +151,8 @@ TEST(CmdLineTest, PrefixOptional)
 
     EXPECT_TRUE ( test({ "-a"                   }, ""       ) );
     EXPECT_TRUE ( test({ "-a", "-b"             }, ""       ) ); // "-b" is a valid option -> is not a valid argument for -a
+    EXPECT_TRUE ( test({ "-a-b"                 }, "-b"     ) );
+    EXPECT_TRUE ( test({ "-a=-b"                }, "-b"     ) );
     EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
     EXPECT_TRUE ( test({ "-a=xxx"               }, "xxx"    ) );
     EXPECT_FALSE( test({ "-a", "xxx"            }, ""       ) ); // [unhandled positional]
@@ -174,6 +176,8 @@ TEST(CmdLineTest, PrefixRequired)
 
     EXPECT_FALSE( test({ "-a"                   }, ""       ) );
     EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) ); // "-b" is a valid option -> is not a valid argument for -a
+    EXPECT_TRUE ( test({ "-a-b"                 }, "-b"     ) );
+    EXPECT_TRUE ( test({ "-a=-b"                }, "=-b"    ) );
     EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
     EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
     EXPECT_FALSE( test({ "-a", "xxx"            }, "xxx"    ) ); // [option 'a' expects and argument, unhandled positional]
