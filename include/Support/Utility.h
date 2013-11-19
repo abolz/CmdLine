@@ -207,21 +207,17 @@ namespace details
     auto Call(...) -> NotCallable;
 
     template <class F, class... A>
-    auto Call(F&& f, A&&... args)
-        -> decltype((std::forward<F>(f)(std::forward<A>(args)...)));
+    auto Call(F&& f, A&&... args) -> decltype(( std::forward<F>(f)(std::forward<A>(args)...) ));
 
     template <class F, class... A>
     struct IsCallable
     {
-        using result = decltype((Call(std::declval<F>(), std::declval<A>()...)));
+        using result = decltype(( Call(std::declval<F>(), std::declval<A>()...) ));
 
-        // Use std::conditional to make VC12 happy...
-        using callable = typename std::conditional<
-            std::is_same<result, NotCallable>::value, std::false_type, std::true_type
-        >::type;
+        static const bool value = !std::is_same<result, NotCallable>::value;
     };
 
-    template <class C, bool = C::callable::value>
+    template <class C, bool = C::value>
     struct ResultOf
     {
         using type = typename C::result;
@@ -234,7 +230,7 @@ namespace details
 }
 
 template <class F, class... A>
-using IsCallable = typename details::IsCallable<F, A...>::callable;
+using IsCallable = std::integral_constant<bool, details::IsCallable<F, A...>::value>;
 
 template <class F, class... A>
 using ResultOf = typename details::ResultOf<details::IsCallable<F, A...>>::type;
