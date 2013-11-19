@@ -8,6 +8,7 @@
 #include "CmdLineQt.h"
 #include "CmdLineWithIndex.h"
 
+#include <functional>
 #include <iostream>
 #include <set>
 
@@ -160,21 +161,29 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto helpParser = [&](StringRef /*value*/, size_t /*i*/, bool & /*result*/)->bool
+    auto helpParser = [&](StringRef value) -> bool
     {
+        std::cout << "Showing help for \"" << value << "\"\n";
         cmd.help();
-        exit(0);
+        return true;
     };
 
-    auto help = cl::makeOptionWithParser<bool>(
-        helpParser,
+    auto help = cl::makeOptionWithParser<std::string/*subcommand*/>(
+        std::bind(helpParser, std::placeholders::_1),
         cmd, "help",
-        cl::Optional
+        cl::Optional,
+        cl::Prefix,
+        cl::ArgOptional
         );
 
     //----------------------------------------------------------------------------------------------
 
-    if (!cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false))
+    bool success = cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false);
+
+    if (help.getCount())
+        return 0;
+
+    if (!success)
     {
         for (auto const& s : cmd.getErrors())
             std::cout << "error: " << s << "\n";
