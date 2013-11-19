@@ -444,7 +444,7 @@ private:
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
     explicit BasicOption(Tag, Initializer<U> x, An&&...)
         : BaseType()
-        , value{ x }
+        , value(x)
     {
     }
 
