@@ -20,7 +20,7 @@ namespace strings
 template <class Splitter>
 class SplitResult
 {
-    // The rest of the string to split
+    // The string to split
     StringRef Str;
     // The delimiters
     Splitter Split;
@@ -146,7 +146,7 @@ public:
 
         // Make Str non-null!
         // NOTE: assert(StringRef() == "")
-        if (Str.empty())
+        if (Str.data() == nullptr)
             Str = kEmpty;
     }
 
