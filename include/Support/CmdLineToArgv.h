@@ -13,8 +13,10 @@ namespace support
 namespace cl
 {
 
+//--------------------------------------------------------------------------------------------------
 // Parses a command line string and returns a list of command line arguments.
 // Using Unix-style escaping.
+//
 template <class InputIterator, class OutputIterator>
 void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIterator out)
 {
@@ -77,8 +79,10 @@ void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIter
     }
 }
 
+//--------------------------------------------------------------------------------------------------
 // Parses a command line string and returns a list of command line arguments.
 // Using Windows-style escaping.
+//
 template <class InputIterator, class OutputIterator>
 void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputIterator out)
 {
