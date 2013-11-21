@@ -288,6 +288,47 @@ inline SplitLiteral literal(StringRef Str)
 }
 
 //--------------------------------------------------------------------------------------------------
+// SplitWrap
+//
+
+class SplitWrap
+{
+    // The maximum length of a single line
+    size_t Len;
+    // The list of separators
+    StringRef Spaces;
+
+public:
+    SplitWrap(size_t Len, StringRef Spaces)
+        : Len(Len)
+        , Spaces(Spaces)
+    {
+        assert(Len > 0);
+    }
+
+    StringRef operator ()(StringRef Str) const
+    {
+        // If the string fits into the current line,
+        // just return this last line.
+        if (Str.size() <= Len)
+            return Str.back(0);
+
+        // Search for the first space preceding the line length.
+        auto pos = Str.find_last_of(Spaces, Len);
+
+        if (pos != StringRef::npos)
+            return Str.substr(pos, 1); // There is a space.
+        else
+            return Str.substr(Len, 0); // No space in current line, break at Len.
+    }
+};
+
+inline SplitWrap wrap(size_t Width, StringRef Spaces = " \n")
+{
+    return SplitWrap(Width, Spaces);
+}
+
+//--------------------------------------------------------------------------------------------------
 // split
 //
 

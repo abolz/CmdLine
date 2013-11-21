@@ -89,7 +89,15 @@ int main(int argc, char* argv[])
 
     auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(cmd, "I",
         cl::ArgName("dir"),
-        cl::Desc("Add the directory dir to the list of directories to be searched for header files."),
+        cl::Desc(
+            // Test the word wrap algorithm...
+            "Add the directory dir to the list of directories to be searched for header files. "
+            "Directories named by -I are searched before the standard system include directories. "
+            "If the directory dir is a standard system include directory, the option is ignored to "
+            "ensure that the default search order for system directories and the special treatment "
+            "of system headers are not defeated . If dir begins with =, then the = will be replaced "
+            "by the sysroot prefix; see --sysroot and -isysroot."
+            ),
         cl::Prefix,
         cl::ArgRequired,
         cl::ZeroOrMore,

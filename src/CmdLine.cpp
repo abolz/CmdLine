@@ -479,18 +479,39 @@ std::string OptionBase::usage() const
     return str;
 }
 
+static void WordWrap(StringRef Text, size_t MaxWidth, size_t Indent)
+{
+    bool first = true;
+
+    for (auto par : strings::split(Text, "\n"))
+    {
+        for (auto line : strings::split(par, strings::wrap(MaxWidth - Indent)))
+        {
+            if (first)
+                first = false;
+            else
+                std::cout << "\n" << std::setw(Indent) << "";
+
+            std::cout << line;
+        }
+    }
+}
+
 void OptionBase::help() const
 {
-    static const StringRef kIndent = "                        ";
+    static const size_t Width = 80;
+    static const size_t Indent = 24;
 
     auto str = "  -" + usage();
 
-    if (str.size() >= kIndent.size())
-        std::cout << str << "\n" << kIndent;
+    if (str.size() > Indent)
+        std::cout << str << "\n" << std::setw(Indent) << "";
     else
-        std::cout << str << kIndent.drop_front(str.size());
+        std::cout << str << std::setw(Indent - str.size()) << "";
 
-    std::cout << desc << "\n";
+    WordWrap(desc, Width, Indent);
+
+    std::cout << "\n";
 }
 
 bool OptionBase::isOccurrenceAllowed() const
