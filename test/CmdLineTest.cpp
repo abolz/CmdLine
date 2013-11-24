@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <set>
+#include <sstream>
 
 #include <gtest/gtest.h>
 
@@ -24,6 +25,14 @@ bool parse(cl::CmdLine& cmd, Argv argv)
     }
 
     return true;
+}
+
+template <class T>
+static std::string to_pretty_string(T const& object)
+{
+    std::ostringstream str;
+    str << pretty(object);
+    return str.str();
 }
 
 TEST(CmdLineTest, ArgOptionalPass1)
@@ -181,4 +190,46 @@ TEST(CmdLineTest, PrefixRequired)
     EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
     EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
     EXPECT_FALSE( test({ "-a", "xxx"            }, "xxx"    ) ); // [option 'a' expects and argument, unhandled positional]
+}
+
+TEST(CmdLineTest, Equals)
+{
+    auto test = [](Argv argv, std::string const& val) -> bool
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
+        auto b = cl::makeOption<std::string>(cmd, "b", cl::Prefix, cl::ArgOptional);
+        auto c = cl::makeOption<std::string>(cmd, "c", cl::ArgRequired);
+        auto d = cl::makeOption<std::string>(cmd, "d", cl::ArgOptional);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (a.getCount()) EXPECT_EQ(a.get(), val);
+        if (b.getCount()) EXPECT_EQ(b.get(), val);
+        if (c.getCount()) EXPECT_EQ(c.get(), val);
+        if (d.getCount()) EXPECT_EQ(d.get(), val);
+
+        return true;
+    };
+
+    EXPECT_FALSE( test({ "-a"                   }, ""       ) ); // -a expects an argument
+    EXPECT_FALSE( test({ "-a", "xxx"            }, ""       ) ); // -a expects an argument
+    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
+    EXPECT_TRUE ( test({ "-b"                   }, ""       ) );
+    EXPECT_FALSE( test({ "-b", "xxx"            }, ""       ) ); // unhandled positional xxx
+    EXPECT_TRUE ( test({ "-bxxx"                }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-b=xxx"               }, "xxx"    ) );
+    EXPECT_FALSE( test({ "-c"                   }, ""       ) ); // -c expects an argument
+    EXPECT_TRUE ( test({ "-c", "xxx"            }, "xxx"    ) );
+    EXPECT_FALSE( test({ "-cxxx"                }, ""       ) ); // unknown option -cxxx
+    EXPECT_TRUE ( test({ "-c=xxx"               }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-d"                   }, ""       ) );
+    EXPECT_FALSE( test({ "-d", "xxx"            }, "xxx"    ) ); // unhandled positional xxx
+    EXPECT_FALSE( test({ "-dxxx"                }, ""       ) ); // unknown option -dxxx
+    EXPECT_TRUE ( test({ "-d=xxx"               }, "xxx"    ) );
 }

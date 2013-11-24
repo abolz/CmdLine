@@ -357,7 +357,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         {
             // Include the equals sign in the value if an argument is required.
             // Discard otherwise.
-            if (opt->numArgs != ArgRequired)
+            if (opt->formatting != Prefix || opt->numArgs != ArgRequired)
                 I++;
 
             success = addOccurrence(opt, opt_name, name.drop_front(I), i);
