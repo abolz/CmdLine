@@ -502,6 +502,9 @@ public:
     using inserter_type     = typename traits_type::inserter_type;
     using is_scalar         = typename std::is_void<inserter_type>::type;
 
+    static_assert(is_scalar::value || std::is_default_constructible<value_type>::value,
+        "Elements of containers must be default constructible");
+
 public:
     struct WithParser {};
 
@@ -569,7 +572,7 @@ private:
     }
 
     // Parses the given value and stores the result.
-    virtual bool parse(StringRef value, size_t i) override {
+    bool parse(StringRef value, size_t i) override {
         return parse(value, i, is_scalar());
     }
 
@@ -584,7 +587,7 @@ private:
     }
 
     // Returns a list of the values for this option.
-    virtual std::vector<StringRef> getValueNames() const override {
+    std::vector<StringRef> getValueNames() const override {
         return getValueNames(HasBeginEnd<ParserT>());
     }
 };
