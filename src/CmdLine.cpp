@@ -13,6 +13,59 @@ using namespace support;
 using namespace support::cl;
 
 //--------------------------------------------------------------------------------------------------
+// Misc.
+//
+
+namespace
+{
+
+const size_t kMaxWidth = 80;
+const size_t kIndentOverview = 2;
+const size_t kIndentDescription = 24;
+
+struct Wrapped
+{
+    // The text to wrap
+    StringRef Text;
+    // The maximum width of a single line of text
+    size_t MaxWidth;
+    // Indentation for all but the first line
+    // FIXME: Make this a string?
+    size_t Indent;
+
+    explicit Wrapped(StringRef Text, size_t MaxWidth = 80, size_t Indent = 0)
+        : Text(Text)
+        , MaxWidth(MaxWidth)
+        , Indent(Indent)
+    {
+    }
+};
+
+std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
+{
+    const std::string sbreak = "\n" + std::string(x.Indent, ' ');
+
+    bool first = true;
+
+    for (auto par : strings::split(x.Text, "\n"))
+    {
+        for (auto line : strings::split(par, strings::wrap(x.MaxWidth - x.Indent)))
+        {
+            if (first)
+                first = false;
+            else
+                stream << sbreak;
+
+            stream << line;
+        }
+    }
+
+    return stream;
+}
+
+} // namespace
+
+//--------------------------------------------------------------------------------------------------
 // CmdLine
 //
 
@@ -118,7 +171,7 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
 void CmdLine::help() const
 {
     if (!overview.empty())
-        std::cout << "Overview:\n  " << overview << "\n\n";
+        std::cout << "Overview:\n  " << Wrapped(overview, kMaxWidth, kIndentOverview) << "\n\n";
 
     std::cout << "Usage:\n  " << program << " [options]";
 
@@ -480,40 +533,16 @@ std::string OptionBase::usage() const
     return str;
 }
 
-// FIXME: Make Indent a string?
-static void WordWrap(StringRef Text, size_t MaxWidth, size_t Indent)
-{
-    bool first = true;
-
-    for (auto par : strings::split(Text, "\n"))
-    {
-        for (auto line : strings::split(par, strings::wrap(MaxWidth - Indent)))
-        {
-            if (first)
-                first = false;
-            else
-                std::cout << "\n" << std::setw(Indent) << "";
-
-            std::cout << line;
-        }
-    }
-}
-
 void OptionBase::help() const
 {
-    static const size_t Width = 80;
-    static const size_t Indent = 24;
-
     auto str = "  -" + usage();
 
-    if (str.size() >= Indent)
-        std::cout << str << "\n" << std::setw(Indent) << "";
+    if (str.size() >= kIndentDescription)
+        std::cout << str << "\n" << std::setw(kIndentDescription) << "";
     else
-        std::cout << str << std::setw(Indent - str.size()) << "";
+        std::cout << str << std::setw(kIndentDescription - str.size()) << "";
 
-    WordWrap(desc, Width, Indent);
-
-    std::cout << "\n";
+    std::cout << Wrapped(desc, kMaxWidth, kIndentDescription) << "\n";
 }
 
 bool OptionBase::isOccurrenceAllowed() const
