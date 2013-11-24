@@ -479,6 +479,7 @@ std::string OptionBase::usage() const
     return str;
 }
 
+// FIXME: Make Indent a string?
 static void WordWrap(StringRef Text, size_t MaxWidth, size_t Indent)
 {
     bool first = true;
@@ -504,7 +505,7 @@ void OptionBase::help() const
 
     auto str = "  -" + usage();
 
-    if (str.size() > Indent)
+    if (str.size() >= Indent)
         std::cout << str << "\n" << std::setw(Indent) << "";
     else
         std::cout << str << std::setw(Indent - str.size()) << "";
