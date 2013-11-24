@@ -232,7 +232,7 @@ struct BinaryOpParser
     }
 };
 
-template <class T, class MapType = std::map<StringRef, T>>
+template <class T, class MapType = std::map<std::string, T>>
 struct MapParser
 {
     MapType map;
@@ -248,7 +248,7 @@ struct MapParser
 
     bool operator ()(StringRef value, size_t /*i*/, T& result) const
     {
-        auto I = map.find(value);
+        auto I = map.find(value.str());
 
         if (I != map.end())
         {
