@@ -348,6 +348,7 @@ class OptionBase
 {
     friend class CmdLine;
 
+protected:
     // The name of this option
     std::string name;
     // The name of the value of this option
@@ -409,9 +410,6 @@ private:
 
     // Parses the given value and stores the result.
     virtual bool parse(StringRef value, size_t i) = 0;
-
-    // Returns a list of the values for this option.
-    virtual std::vector<StringRef> getValueNames() const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -532,7 +530,11 @@ public:
 
 private:
     // End recursion - check for valid flags
-    void applyRec() {
+    void applyRec()
+    {
+        if (this->argName.empty())
+            this->argName = makeArgName(HasBeginEnd<ParserT>());
+
         this->done();
     }
 
@@ -577,18 +579,27 @@ private:
     }
 
     // Used if the parser does not provide begin() and end().
-    std::vector<StringRef> getValueNames(std::false_type) const {
-        return std::vector<StringRef>();
+    std::string makeArgName(std::false_type) {
+        return "arg";
     }
 
     // Used if the parser provides begin() and end().
-    std::vector<StringRef> getValueNames(std::true_type) const {
-        return std::vector<StringRef>(getParser().begin(), getParser().end());
-    }
+    std::string makeArgName(std::true_type)
+    {
+        std::ostringstream str;
 
-    // Returns a list of the values for this option.
-    std::vector<StringRef> getValueNames() const override {
-        return getValueNames(HasBeginEnd<ParserT>());
+        auto I = getParser().begin();
+        auto E = getParser().end();
+
+        if (I != E)
+        {
+            str << *I;
+
+            while (++I != E)
+                str << "|" << *I;
+        }
+
+        return str.str();
     }
 };
 

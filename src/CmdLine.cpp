@@ -27,23 +27,24 @@ bool CmdLine::add(OptionBase* opt)
     if (opt->formatting == Positional)
     {
         positionals.push_back(opt);
-    }
-    else
-    {
-        if (opt->name.empty())
-        {
-            for (auto const& s : opt->getValueNames())
-                if (!options.insert({ s, opt }).second)
-                    return false;
-        }
-        else
-        {
-            if (!options.insert({ opt->name, opt }).second)
-                return false;
-        }
+        return true;
     }
 
-    return true;
+    if (opt->name.empty())
+    {
+        if (opt->argName.empty())
+            return false;
+
+        for (auto&& s : strings::split(opt->argName, "|"))
+        {
+            if (!options.insert({ s, opt }).second)
+                return false;
+        }
+
+        return true;
+    }
+
+    return options.insert({ opt->name, opt }).second;
 }
 
 bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
@@ -541,22 +542,6 @@ bool OptionBase::isOptional() const
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
 }
 
-template <class Iterator>
-static std::string Concat(Iterator first, Iterator last)
-{
-    std::ostringstream stream;
-
-    if (first != last)
-    {
-        stream << *first;
-
-        while (++first != last)
-            stream << "|" << *first;
-    }
-
-    return stream.str();
-}
-
 void OptionBase::done()
 {
     if (formatting == Positional /*|| formatting == Prefix*/)
@@ -564,14 +549,4 @@ void OptionBase::done()
 
     if (formatting == Grouping)
         numArgs = ArgDisallowed;
-
-    if (argName.empty())
-    {
-        auto names = getValueNames();
-
-        if (names.empty())
-            argName = "arg";
-        else
-            argName = Concat(names.begin(), names.end());
-    }
 }
