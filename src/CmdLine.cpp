@@ -465,6 +465,9 @@ bool CmdLine::check()
     for (auto& I : getOptions())
         success = check(I) && success;
 
+    for (auto& I : positionals)
+        success = check(I) && success;
+
     return success;
 }
 

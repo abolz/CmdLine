@@ -244,7 +244,7 @@ TEST(CmdLineTest, Consume1)
 
         auto a = cl::makeOption<std::string>(cmd, "a");
         auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
-        auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional, cl::ZeroOrMore);
+        auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional);
 
         if (!parse(cmd, std::move(argv)))
             return false;
@@ -260,7 +260,7 @@ TEST(CmdLineTest, Consume1)
         return true;
     };
 
-    //EXPECT_FALSE( test( { "-a"                      }, "script",    {           } ) ); // script name missing
+    EXPECT_FALSE( test( { "-a"                      }, "script",    {           } ) ); // script name missing
     EXPECT_TRUE ( test( { "script"                  }, "script",    {           } ) );
     EXPECT_TRUE ( test( { "script", "x"             }, "script",    {"x"        } ) );
     EXPECT_TRUE ( test( { "x", "script"             }, "x",         {"script"   } ) );
@@ -295,7 +295,7 @@ TEST(CmdLineTest, Consume2)
         return true;
     };
 
-    //EXPECT_FALSE( test( { "-a"                      }, {                        } ) ); // script name missing
+    EXPECT_FALSE( test( { "-a"                      }, {                        } ) ); // script name missing
     EXPECT_TRUE ( test( { "script"                  }, {"script",               } ) );
     EXPECT_TRUE ( test( { "script", "x"             }, {"script", "x"           } ) );
     EXPECT_TRUE ( test( { "x", "script"             }, {"x",      "script"      } ) );
