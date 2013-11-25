@@ -160,3 +160,49 @@ TEST(StringRefTest, Split)
     EXPECT_NO_FATAL_FAILURE(CheckSplit("abc",               0, StringRef::npos, ""   , ""   ));
     EXPECT_NO_FATAL_FAILURE(CheckSplit("abc", StringRef::npos, StringRef::npos, "abc", ""   ));
 }
+
+template <class StringT>
+void CheckStream()
+{
+    {
+        std::ostringstream Stream;
+        Stream << StringT("hello");
+        EXPECT_EQ("hello", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::setw(10) << StringT("hello");
+        EXPECT_EQ("     hello", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::setw(3) << StringT("hello");
+        EXPECT_EQ("hello", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::left << std::setw(10) << StringT("hello");
+        EXPECT_EQ("hello     ", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::left << std::setw(3) << StringT("hello");
+        EXPECT_EQ("hello", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::setw(10) << std::setfill('x') << StringT("hello");
+        EXPECT_EQ("xxxxxhello", Stream.str());
+    }
+    {
+        std::ostringstream Stream;
+        Stream << std::left << std::setfill('x') << std::setw(10) << StringT("hello");
+        EXPECT_EQ("helloxxxxx", Stream.str());
+    }
+}
+
+TEST(StringRefTest, Stream)
+{
+    EXPECT_NO_FATAL_FAILURE(CheckStream<std::string>());
+    EXPECT_NO_FATAL_FAILURE(CheckStream<StringRef>());
+}

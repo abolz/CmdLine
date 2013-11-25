@@ -269,11 +269,7 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
     return !(LHS < RHS);
 }
 
-inline std::ostream& operator <<(std::ostream& Stream, StringRef Str)
-{
-    Str.write(Stream);
-    return Stream;
-}
+/*extern*/ std::ostream& operator <<(std::ostream& Stream, StringRef Str);
 
 inline std::string& operator +=(std::string& LHS, StringRef RHS) {
     return LHS.append(RHS.data(), RHS.size());
