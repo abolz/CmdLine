@@ -131,6 +131,12 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         if (arg[0] != '-' || arg == "-" || dashdash)
         {
             handlePositional(ok, arg, i, pos);
+
+            // If the current positional argument has the Consume flag set, pass
+            // all given command-line arguments to this positional option.
+            if (ok && ((*pos)->miscFlags & ConsumeAfter) != 0)
+                dashdash = true;
+
             continue;
         }
 

@@ -233,3 +233,76 @@ TEST(CmdLineTest, Equals)
     EXPECT_FALSE( test({ "-dxxx"                }, ""       ) ); // unknown option -dxxx
     EXPECT_TRUE ( test({ "-d=xxx"               }, "xxx"    ) );
 }
+
+TEST(CmdLineTest, Consume1)
+{
+    auto test = [](Argv argv, std::string const& s_val, std::vector<std::string> const& x_val) -> bool
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a");
+        auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
+        auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional, cl::ZeroOrMore);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (s.getCount())
+            EXPECT_EQ(s.get(), s_val);
+
+        if (x.getCount())
+            EXPECT_EQ(x.get(), x_val);
+        else
+            EXPECT_TRUE(x_val.empty());
+
+        return true;
+    };
+
+    //EXPECT_FALSE( test( { "-a"                      }, "script",    {           } ) ); // script name missing
+    EXPECT_TRUE ( test( { "script"                  }, "script",    {           } ) );
+    EXPECT_TRUE ( test( { "script", "x"             }, "script",    {"x"        } ) );
+    EXPECT_TRUE ( test( { "x", "script"             }, "x",         {"script"   } ) );
+    EXPECT_TRUE ( test( { "script", "-a"            }, "script",    {"-a"       } ) );
+    EXPECT_TRUE ( test( { "-a", "script"            }, "script",    {           } ) ); // -a is an argument for <program>
+    EXPECT_TRUE ( test( { "-a", "script", "-a"      }, "script",    {"-a"       } ) ); // the second -a does not match the "consume-option"
+    EXPECT_TRUE ( test( { "-a", "script", "x", "-a" }, "script",    {"x", "-a"  } ) ); // the first -a is an argument for <program>
+    EXPECT_TRUE ( test( { "script", "-a", "x"       }, "script",    {"-a", "x"  } ) );
+    EXPECT_TRUE ( test( { "script", "x", "-a"       }, "script",    {"x", "-a"  } ) ); // -a is an argument for <s>
+}
+
+TEST(CmdLineTest, Consume2)
+{
+    // same as Consume1, but
+    // merge script name and arguments...
+
+    auto test = [](Argv argv, std::vector<std::string> const& s_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto a = cl::makeOption<std::string>(cmd, "a");
+        auto s = cl::makeOption<std::vector<std::string>>(cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
+
+        if (!parse(cmd, std::move(argv)))
+            return false;
+
+        if (s.getCount())
+            EXPECT_EQ(s.get(), s_val);
+
+        return true;
+    };
+
+    //EXPECT_FALSE( test( { "-a"                      }, {                        } ) ); // script name missing
+    EXPECT_TRUE ( test( { "script"                  }, {"script",               } ) );
+    EXPECT_TRUE ( test( { "script", "x"             }, {"script", "x"           } ) );
+    EXPECT_TRUE ( test( { "x", "script"             }, {"x",      "script"      } ) );
+    EXPECT_TRUE ( test( { "script", "-a"            }, {"script", "-a"          } ) );
+    EXPECT_TRUE ( test( { "-a", "script"            }, {"script",               } ) ); // -a is an argument for <program>
+    EXPECT_TRUE ( test( { "-a", "script", "-a"      }, {"script", "-a"          } ) ); // the second -a does not match the "consume-option"
+    EXPECT_TRUE ( test( { "-a", "script", "x", "-a" }, {"script", "x", "-a"     } ) ); // the first -a is an argument for <program>
+    EXPECT_TRUE ( test( { "script", "-a", "x"       }, {"script", "-a", "x"     } ) );
+    EXPECT_TRUE ( test( { "script", "x", "-a"       }, {"script", "x", "-a"     } ) ); // -a is an argument for <s>
+}

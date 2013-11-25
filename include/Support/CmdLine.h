@@ -54,6 +54,7 @@ enum MiscFlags : unsigned char {
     None = 0,
     CommaSeparated = 0x01,  // Should this list split between commas?
     Hidden = 0x02,          // Do not show this option in the usage
+    ConsumeAfter = 0x04,    // Indicates that a positional option consumes anything
 };
 
 //--------------------------------------------------------------------------------------------------
