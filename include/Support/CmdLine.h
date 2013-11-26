@@ -100,7 +100,7 @@ public:
     StringVector const& getErrors() const { return errors; }
 
 private:
-    OptionVector getOptions() const;
+    OptionVector getOptions(bool SkipHidden = true) const;
 
     OptionBase* findOption(StringRef name) const;
 

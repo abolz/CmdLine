@@ -193,7 +193,7 @@ void CmdLine::help() const
         I->help();
 }
 
-CmdLine::OptionVector CmdLine::getOptions() const
+CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
 {
     // Get the list of all options
     auto opts = OptionVector(mapSecondIterator(options.begin()),
@@ -208,9 +208,12 @@ CmdLine::OptionVector CmdLine::getOptions() const
     auto E = std::unique(opts.begin(), opts.end());
 
     // Remove hidden options
-    E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
-        return opt->miscFlags & Hidden;
-    });
+    if (!SkipHidden)
+    {
+        E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
+            return opt->miscFlags & Hidden;
+        });
+    }
 
     // Actually erase unused options
     opts.erase(E, opts.end());
@@ -429,8 +432,8 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, si
 
         if (opt->numOccurrences == Optional)
             return error("option '" + name + "' must occur at most once");
-        else
-            return error("option '" + name + "' must occur exactly once");
+
+        return error("option '" + name + "' must occur exactly once");
     }
 
     auto parse = [&](StringRef v)->bool
@@ -462,7 +465,7 @@ bool CmdLine::check()
 {
     bool success = true;
 
-    for (auto& I : getOptions())
+    for (auto& I : getOptions(false/*SkipHidden*/))
         success = check(I) && success;
 
     for (auto& I : positionals)
@@ -477,9 +480,9 @@ bool CmdLine::check(OptionBase* opt)
         return true;
 
     if (opt->name.empty())
-        return error("option <" + opt->argName + "> missing");
-    else
-        return error("option '" + opt->name + "' missing");
+        return error("option (" + opt->argName + ") missing");
+
+    return error("option '" + opt->name + "' missing");
 }
 
 // Adds an error message. Returns false.
