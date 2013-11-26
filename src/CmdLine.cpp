@@ -246,8 +246,8 @@ void CmdLine::help() const
 CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
 {
     // Get the list of all options
-    auto opts = OptionVector(mapSecondIterator(options.begin()),
-                             mapSecondIterator(options.end()));
+    auto opts = OptionVector(mapIterator(options.begin(), GetSecond()),
+                             mapIterator(options.end(), GetSecond()));
 
     // Sort by name
     std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {

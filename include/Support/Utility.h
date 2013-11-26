@@ -54,25 +54,6 @@ using IsSame = typename std::is_same<T, U>::type;
 template <class From, class To>
 using IsConvertible = typename std::is_convertible<From, To>::type;
 
-namespace details
-{
-namespace tt
-{
-    using std::begin;
-    using std::end;
-
-    struct HasBeginEndImpl
-    {
-        template <class T>
-        static auto test(T&& t) -> IsConvertible<decltype(begin(t) == end(t)), bool>;
-        static auto test(...) -> std::false_type;
-    };
-}
-}
-
-template <class T>
-using HasBeginEnd = decltype(details::tt::HasBeginEndImpl::test(std::declval<T>()));
-
 //--------------------------------------------------------------------------------------------------
 // Functional
 //
@@ -182,18 +163,6 @@ template <class Iterator, class Function>
 inline auto mapIterator(Iterator I, Function&& F) -> MappedIterator<Iterator, Decay<Function>>
 {
     return MappedIterator<Iterator, Decay<Function>>(I, std::forward<Function>(F));
-}
-
-template <class Iterator>
-inline auto mapFirstIterator(Iterator I) -> decltype(mapIterator(I, GetFirst()))
-{
-    return mapIterator(I, GetFirst());
-}
-
-template <class Iterator>
-inline auto mapSecondIterator(Iterator I) -> decltype(mapIterator(I, GetSecond()))
-{
-    return mapIterator(I, GetSecond());
 }
 
 //--------------------------------------------------------------------------------------------------
