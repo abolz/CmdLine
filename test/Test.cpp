@@ -152,12 +152,12 @@ int main(int argc, char* argv[])
     };
 
     auto simpsonParser = cl::MapParser<Simpson>({
-        { "homer",       Homer  },
-        { "marge",       Marge  },
-        { "bart",        Bart   },
-        { "el barto",    Bart   },
-        { "lisa",        Lisa   },
-        { "maggie",      Maggie }
+        { "homer",       { Homer,   "Homer Jay Simpson"         }},
+        { "marge",       { Marge,   "Marjorie Simpson"          }},
+        { "bart",        { Bart,    "Bartholomew JoJo Simpson"  }},
+        { "el barto",    { Bart,    "?"                         }},
+        { "lisa",        { Lisa,    "Lisa Marie Simpson"        }},
+        { "maggie",      { Maggie,  "Margaret Simpson"          }}
     });
 
     auto simpson = cl::makeOptionWithParser<Simpson>(

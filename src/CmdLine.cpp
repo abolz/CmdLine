@@ -27,16 +27,16 @@ struct Wrapped
 {
     // The text to wrap
     StringRef Text;
-    // The maximum width of a single line of text
-    size_t MaxWidth;
     // Indentation for all but the first line
     // FIXME: Make this a string?
     size_t Indent;
+    // The maximum width of a single line of text
+    size_t MaxWidth;
 
-    explicit Wrapped(StringRef Text, size_t MaxWidth = 80, size_t Indent = 0)
+    explicit Wrapped(StringRef Text, size_t Indent = 0, size_t MaxWidth = kMaxWidth)
         : Text(Text)
-        , MaxWidth(MaxWidth)
         , Indent(Indent)
+        , MaxWidth(MaxWidth)
     {
     }
 };
@@ -61,6 +61,34 @@ std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
     }
 
     return stream;
+}
+
+struct Aligned
+{
+    // The text to print
+    StringRef text;
+    // Align to
+    size_t indent;
+
+    explicit Aligned(StringRef text, size_t indent = kIndentDescription)
+        : text(text)
+        , indent(indent)
+    {
+    }
+};
+
+std::ostream& operator<<(std::ostream& stream, Aligned const& x)
+{
+    if (x.text.size() < x.indent)
+    {
+        // Fits.
+        // Print the text, then skip to indentation width
+        return stream << x.text << std::setw(x.indent - x.text.size()) << "";
+    }
+
+    // Does not fit.
+    // Print the text, move to next line, then move to indentation width
+    return stream << x.text << "\n" << std::setw(x.indent) << "";
 }
 
 template <class Range>
@@ -199,7 +227,7 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
 void CmdLine::help() const
 {
     if (!overview.empty())
-        std::cout << "Overview:\n  " << Wrapped(overview, kMaxWidth, kIndentOverview) << "\n\n";
+        std::cout << "Overview:\n  " << Wrapped(overview, kIndentOverview) << "\n\n";
 
     std::cout << "Usage:\n  " << program << " [options]";
 
@@ -501,10 +529,9 @@ bool CmdLine::check(OptionBase* opt)
     if (!opt->isOccurrenceRequired())
         return true;
 
-    if (opt->name.empty())
-        return error("option (" + opt->argName + ") missing");
+    std::string name = opt->name.empty() ? opt->argName : opt->name;
 
-    return error("option '" + opt->name + "' missing");
+    return error("option '" + name + "' missing");
 }
 
 // Adds an error message. Returns false.
@@ -543,16 +570,7 @@ std::string OptionBase::usage() const
     }
     else
     {
-        if (name.empty())
-        {
-            std::vector<StringRef> values;
-
-            if (getValues(values))
-                str = "<" + Join(values, "|") + ">";
-            else
-                str = "<" + argName + ">";
-        }
-        else if (numArgs != ArgDisallowed)
+        if (numArgs != ArgDisallowed)
         {
             str = "<" + argName + ">";
 
@@ -574,14 +592,45 @@ std::string OptionBase::usage() const
 
 void OptionBase::help() const
 {
-    auto str = "  -" + usage();
+    std::vector<StringRef> values;
+    std::vector<StringRef> descriptions;
 
-    if (str.size() >= kIndentDescription)
-        std::cout << str << "\n" << std::setw(kIndentDescription) << "";
+    if (!getValues(values))
+    {
+        std::cout << Aligned("  -" + usage()) << Wrapped(desc, kIndentDescription) << "\n";
+        return;
+    }
+
+    // This option only allows a limited set of values.
+    // Show all valid values.
+
+    // Get the description for each value
+    if (!getDescriptions(descriptions) || descriptions.size() != values.size())
+    {
+        assert(0 && "not supported");
+    }
+
+    if (name.empty())
+    {
+        // Print the description
+        std::cout << Wrapped("  " + desc + ":", 2) << "\n";
+    }
     else
-        std::cout << str << std::setw(kIndentDescription - str.size()) << "";
+    {
+        // Named alternative.
+        // Print the name and the description.
+        std::cout << Aligned("  -" + name) << Wrapped(desc + ":", kIndentDescription) << "\n";
+    }
 
-    std::cout << Wrapped(desc, kMaxWidth, kIndentDescription) << "\n";
+    std::string prefix = name.empty() ? "    -" : "    =";
+    std::string suffix = name.empty() ? "" : "- ";
+
+    // Print all the possible options
+    for (size_t I = 0; I < values.size(); ++I)
+    {
+        std::cout << Aligned(prefix + values[I])
+                  << Wrapped(suffix + descriptions[I], kIndentDescription + suffix.size()) << "\n";
+    }
 }
 
 bool OptionBase::isOccurrenceAllowed() const
@@ -619,5 +668,13 @@ void OptionBase::done()
         numArgs = ArgDisallowed;
 
     if (argName.empty())
-        argName = "arg";
+    {
+        std::vector<StringRef> values;
+
+        if (getValues(values))
+            argName = Join(values, "|");
+
+        if (argName.empty())
+            argName = "arg";
+    }
 }
