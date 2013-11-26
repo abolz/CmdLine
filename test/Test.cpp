@@ -2,11 +2,11 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/PrettyPrint.h"
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
 #include "CmdLineWithIndex.h"
+#include "PrettyPrint.h"
 
 #include <functional>
 #include <iostream>

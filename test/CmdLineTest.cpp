@@ -2,8 +2,9 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/PrettyPrint.h"
 #include "Support/StringSplit.h"
+
+#include "PrettyPrint.h"
 
 #include <iostream>
 #include <set>

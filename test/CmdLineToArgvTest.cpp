@@ -2,9 +2,9 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLineToArgv.h"
-#include "Support/PrettyPrint.h"
 
 #include "ConvertUTF.h"
+#include "PrettyPrint.h"
 
 #include <vector>
 #include <iostream>
