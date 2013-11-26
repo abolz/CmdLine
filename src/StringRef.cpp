@@ -134,9 +134,6 @@ bool Put(std::ostream& OS, char const* Data, std::streamsize Count)
 
 bool Put(std::ostream& OS, char const* Data, std::streamsize Count, std::streamsize Fill)
 {
-//  if (Fill == 0)
-//      return Put(OS, Data, Count);
-
     if ((OS.flags() & std::ios_base::adjustfield) == std::ios_base::left)
     {
         return Put(OS, Data, Count) && Pad(OS, Fill);
@@ -160,7 +157,7 @@ std::ostream& support::operator<<(std::ostream& Stream, StringRef Str)
     //      requested output. If the generation fails, then the formatted output
     //      function does setstate(ios_base::failbit), which might throw an
     //      exception. If an exception is thrown during output, then ios::badbit
-    //      is turned on in *this’s error state. If (exceptions()&badbit) != 0
+    //      is turned on in *this's error state. If (exceptions()&badbit) != 0
     //      then the exception is rethrown. Whether or not an exception is
     //      thrown, the sentry object is destroyed before leaving the formatted
     //      output function. If no exception is thrown, the result of the
@@ -187,28 +184,22 @@ std::ostream& support::operator<<(std::ostream& Stream, StringRef Str)
     std::ostream::sentry ok(Stream);
     if (ok)
     {
+        bool failed = false;
         try
         {
             std::streamsize Fill = Stream.width() <= 0 || static_cast<size_t>(Stream.width()) <= Str.size()
                 ? 0
                 : Stream.width() - Str.size();
 
-            if (!Put(Stream, Str.data(), Str.size(), Fill))
-            {
-                Stream.setstate(std::ios_base::failbit);
-            }
+            failed = !Put(Stream, Str.data(), Str.size(), Fill);
         }
         catch (...)
         {
-            Stream.setstate(std::ios_base::badbit);
-
-            if ((Stream.exceptions() & std::ostream::badbit) != 0)
-                throw;
+            failed = true;
         }
-    }
-    else
-    {
-        Stream.setstate(std::ios_base::badbit);
+
+        if (failed)
+            Stream.setstate(std::ios_base::badbit | std::ios_base::failbit);
     }
 
     Stream.width(0);
