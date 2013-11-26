@@ -204,7 +204,12 @@ namespace details
 {
     struct NotCallable {};
 
-    auto Call(...) -> NotCallable;
+    struct EatAny {
+        template <class T> EatAny(T&&) {}
+    };
+
+    template <class... A>
+    auto Call(EatAny, A&&...) -> NotCallable;
 
     template <class F, class... A>
     auto Call(F&& f, A&&... args) -> decltype(( std::forward<F>(f)(std::forward<A>(args)...) ));
