@@ -238,16 +238,35 @@ struct BinaryOpParser
     }
 };
 
-template <class T, class MapType = std::map<std::string, T>>
+template <class T>
+struct MapValue
+{
+    // The value
+    T value;
+    // A description
+    std::string desc;
+
+    template <class U, class = DisableIf<IsSame<MapValue, Decay<U>>>>
+    MapValue(U&& value, std::string desc = std::string()/*"Description missing"*/)
+        : value(std::forward<U>(value))
+        , desc(std::move(desc))
+    {
+    }
+};
+
+template <class T, class MapTypeT = std::map<std::string, MapValue<T>>>
 struct MapParser
 {
+    using MapType = MapTypeT;
+    using MapValueType = typename MapType::value_type;
+
     MapType map;
 
     explicit MapParser()
     {
     }
 
-    explicit MapParser(std::initializer_list<typename MapType::value_type> ilist)
+    explicit MapParser(std::initializer_list<MapValueType> ilist)
         : map(ilist)
     {
     }
@@ -258,19 +277,33 @@ struct MapParser
 
         if (I != map.end())
         {
-            result = I->second;
+            result = I->second.value;
             return true;
         }
 
         return false;
     }
 
-    auto begin() const -> decltype(mapFirstIterator(map.begin())) {
-        return mapFirstIterator(map.begin());
+    // Returns the list of valid arguments for this parser
+    bool getValues(std::vector<StringRef>& vec) const
+    {
+        auto convert = [](MapValueType const& x) -> StringRef {
+            return x.first;
+        };
+
+        vec.assign(mapIterator(map.begin(), convert), mapIterator(map.end(), convert));
+        return true;
     }
 
-    auto end() const -> decltype(mapFirstIterator(map.end())) {
-        return mapFirstIterator(map.end());
+    // Returns the list of descriptions for the valid arguments.
+    bool getDescriptions(std::vector<StringRef>& vec) const
+    {
+        auto convert = [](MapValueType const& x) -> StringRef {
+            return x.second.desc;
+        };
+
+        vec.assign(mapIterator(map.begin(), convert), mapIterator(map.end(), convert));
+        return true;
     }
 };
 
@@ -416,6 +449,12 @@ private:
 
     // Parses the given value and stores the result.
     virtual bool parse(StringRef value, size_t i) = 0;
+
+    // Returns a list of valid arguments for this option
+    virtual bool getValues(std::vector<StringRef>& vec) const = 0;
+
+    // Returns a list of the descriptions for each valid argument
+    virtual bool getDescriptions(std::vector<StringRef>& vec) const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -496,6 +535,7 @@ template <class T, class ParserT = Parser<typename Traits<T>::value_type>>
 class Option : public BasicOption<T>
 {
     using BaseType = BasicOption<T>;
+    using StringRefVector = std::vector<StringRef>;
 
     ParserT parser;
 
@@ -536,11 +576,7 @@ public:
 
 private:
     // End recursion - check for valid flags
-    void applyRec()
-    {
-        if (this->argName.empty())
-            this->argName = makeArgName(HasBeginEnd<ParserT>());
-
+    void applyRec() {
         this->done();
     }
 
@@ -584,28 +620,34 @@ private:
         return parse(value, i, is_scalar());
     }
 
-    // Used if the parser does not provide begin() and end().
-    std::string makeArgName(std::false_type) {
-        return "arg";
+    struct VectorsMeEat { // cannot pass objects of non-trivially-copyable type T through ...
+        VectorsMeEat(StringRefVector&) {}
+    };
+
+    template <class X = ParserT>
+    auto getValuesImpl(StringRefVector& vec) const -> decltype(std::declval<X>().getValues(vec)) {
+        return getParser().getValues(vec);
     }
 
-    // Used if the parser provides begin() and end().
-    std::string makeArgName(std::true_type)
-    {
-        std::ostringstream str;
+    bool getValuesImpl(VectorsMeEat) const {
+        return false;
+    }
 
-        auto I = getParser().begin();
-        auto E = getParser().end();
+    bool getValues(StringRefVector& vec) const override {
+        return getValuesImpl(vec);
+    }
 
-        if (I != E)
-        {
-            str << *I;
+    template <class X = ParserT>
+    auto getDescriptionsImpl(StringRefVector& vec) const -> decltype(std::declval<X>().getDescriptions(vec)) {
+        return getParser().getDescriptions(vec);
+    }
 
-            while (++I != E)
-                str << "|" << *I;
-        }
+    bool getDescriptionsImpl(VectorsMeEat) const {
+        return false;
+    }
 
-        return str.str();
+    bool getDescriptions(StringRefVector& vec) const override {
+        return getDescriptionsImpl(vec);
     }
 };
 

@@ -130,10 +130,10 @@ int main(int argc, char* argv[])
     };
 
     auto optParser = cl::MapParser<OptimizationLevel>({
-        { "O0", OL_None        },
-        { "O1", OL_Trivial     },
-        { "O2", OL_Default     },
-        { "O3", OL_Expensive   }
+        { "O0", { OL_None,      "No optimizations"                  }},
+        { "O1", { OL_Trivial,   "Enable trivial optimizations"      }},
+        { "O2", { OL_Default,   "Enable some optimizations"         }},
+        { "O3", { OL_Expensive, "Enable all optimizations"          }}
     });
 
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
@@ -199,6 +199,8 @@ int main(int argc, char* argv[])
 
     if (help.getCount())
         return 0;
+    else
+        cmd.help();
 
     if (!success)
     {

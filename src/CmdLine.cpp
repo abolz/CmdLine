@@ -63,6 +63,26 @@ std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
     return stream;
 }
 
+template <class Range>
+std::string Join(Range const& range, StringRef sep)
+{
+    std::ostringstream result;
+
+    bool first = true;
+
+    for (auto const& s : range)
+    {
+        if (first)
+            first = false;
+        else
+            result << sep;
+
+        result << s;
+    }
+
+    return result.str();
+}
+
 } // namespace
 
 //--------------------------------------------------------------------------------------------------
@@ -85,10 +105,12 @@ bool CmdLine::add(OptionBase* opt)
 
     if (opt->name.empty())
     {
-        if (opt->argName.empty())
+        std::vector<StringRef> values;
+
+        if (!opt->getValues(values))
             return false;
 
-        for (auto&& s : strings::split(opt->argName, "|"))
+        for (auto&& s : values)
         {
             if (!options.insert({ s, opt }).second)
                 return false;
@@ -523,7 +545,12 @@ std::string OptionBase::usage() const
     {
         if (name.empty())
         {
-            str = "<" + argName + ">";
+            std::vector<StringRef> values;
+
+            if (getValues(values))
+                str = "<" + Join(values, "|") + ">";
+            else
+                str = "<" + argName + ">";
         }
         else if (numArgs != ArgDisallowed)
         {
@@ -590,4 +617,7 @@ void OptionBase::done()
 
     if (formatting == Grouping)
         numArgs = ArgDisallowed;
+
+    if (argName.empty())
+        argName = "arg";
 }
