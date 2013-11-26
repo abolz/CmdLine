@@ -132,8 +132,8 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         {
             handlePositional(ok, arg, i, pos);
 
-            // If the current positional argument has the Consume flag set, pass
-            // all given command-line arguments to this positional option.
+            // If the current positional argument has the ConsumeAfter flag set, parse
+            // all following command-line arguments as positional options.
             if (ok && ((*pos)->miscFlags & ConsumeAfter) != 0)
                 dashdash = true;
 
