@@ -148,7 +148,7 @@ public:
     using pointer               = void;
     using difference_type       = ptrdiff_t;
 
-    explicit MappedIterator(Iterator I, Function&& F)
+    explicit MappedIterator(Iterator I, Function F)
         : It(I)
         , Fn(std::move(F))
     {
