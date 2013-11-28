@@ -3,7 +3,6 @@
 
 #include "Support/CmdLineToArgv.h"
 
-#include "ConvertUTF.h"
 #include "PrettyPrint.h"
 
 #include <vector>
@@ -23,26 +22,48 @@ using namespace support;
 
 static std::string toUTF8(std::wstring const& str)
 {
-    std::string result;
+    // Get the length of the UTF-8 encoded string
+    int len = ::WideCharToMultiByte(
+        CP_UTF8, 0, str.data(), str.size(), NULL, 0, NULL, NULL);
 
-    auto I = str.begin();
-    auto E = str.end();
+    if (len == 0)
+    {
+    }
 
-    utf::convertUTF16ToUTF8(I, E, std::back_inserter(result));
+    std::vector<char> buf(len);
 
-    return result;
+    // Convert from UTF-16 to UTF-8
+    len = ::WideCharToMultiByte(
+        CP_UTF8, 0, str.data(), str.size(), buf.data(), buf.size(), NULL, NULL);
+
+    if (len == 0)
+    {
+    }
+
+    return std::string(buf.begin(), buf.end());
 }
 
 static std::wstring toUTF16(std::string const& str)
 {
-    std::wstring result;
+    // Get the length of the UTF-16 encoded string
+    int len = ::MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, str.data(), str.size(), NULL, 0);
 
-    auto I = str.begin();
-    auto E = str.end();
+    if (len == 0)
+    {
+    }
 
-    utf::convertUTF8ToUTF16(I, E, std::back_inserter(result));
+    std::vector<wchar_t> buf(len);
 
-    return result;
+    // Convert from UTF-8 to UTF-16
+    len = ::MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, str.data(), str.size(), buf.data(), buf.size());
+
+    if (len == 0)
+    {
+    }
+
+    return std::wstring(buf.begin(), buf.end());
 }
 
 static std::vector<std::string> stringToArgvWin(std::wstring const& wargs)

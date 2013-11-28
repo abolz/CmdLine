@@ -106,7 +106,6 @@ end
 
 add_unittest("CmdLineTest")
 add_unittest("CmdLineToArgvTest")
-add_unittest("ConvertUTFTest")
 add_unittest("StringRefTest")
 add_unittest("StringSplitTest")
 
