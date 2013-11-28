@@ -238,10 +238,9 @@ struct BinaryOpParser
     }
 };
 
-template <class T>
+template <class T, class MapType = std::map<std::string, std::pair<T, std::string>>>
 struct MapParser
 {
-    using MapType = std::map<std::string, std::pair<T, std::string>>;
     using MapValueType = typename MapType::value_type;
 
     struct Triple : MapValueType
