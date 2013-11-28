@@ -4,11 +4,11 @@
 #pragma once
 
 #include "Support/StringRef.h"
+#include "Support/StringRefStream.h"
 #include "Support/Utility.h"
 
 #include <iomanip>
 #include <map>
-#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -189,8 +189,8 @@ struct Parser
 {
     bool operator ()(StringRef value, size_t /*i*/, T& result) const
     {
-        std::stringstream stream;
-        return (stream << value.str()) && (stream >> std::setbase(0) >> result) && stream.eof();
+        StringRefStream stream(value);
+        return (stream >> std::setbase(0) >> result) && stream.eof();
     }
 };
 
