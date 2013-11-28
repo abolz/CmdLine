@@ -243,11 +243,11 @@ struct MapParser
 {
     using MapValueType = typename MapType::value_type;
 
-    struct Triple : MapValueType
+    struct KeyValue : MapValueType
     {
-        template <class A1, class A2, class A3>
-        Triple(A1&& key, A2&& value, A3&& desc)
-            : MapValueType(std::forward<A1>(key), { std::forward<A2>(value), std::forward<A3>(desc) })
+        template <class K, class... V>
+        KeyValue(K&& key, V&&... value)
+            : MapValueType(std::forward<K>(key), { std::forward<V>(value)... })
         {
         }
     };
@@ -258,7 +258,7 @@ struct MapParser
     {
     }
 
-    explicit MapParser(std::initializer_list<Triple> ilist)
+    explicit MapParser(std::initializer_list<KeyValue> ilist)
         : map(ilist.begin(), ilist.end())
     {
     }
