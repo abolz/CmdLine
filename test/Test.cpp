@@ -130,10 +130,10 @@ int main(int argc, char* argv[])
     };
 
     auto optParser = cl::MapParser<OptimizationLevel>({
-        { "O0", { OL_None,      "No optimizations"                  }},
-        { "O1", { OL_Trivial,   "Enable trivial optimizations"      }},
-        { "O2", { OL_Default,   "Enable some optimizations"         }},
-        { "O3", { OL_Expensive, "Enable all optimizations"          }}
+        { "O0", OL_None,      "No optimizations"             },
+        { "O1", OL_Trivial,   "Enable trivial optimizations" },
+        { "O2", OL_Default,   "Enable some optimizations"    },
+        { "O3", OL_Expensive, "Enable all optimizations"     }
     });
 
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
@@ -152,12 +152,13 @@ int main(int argc, char* argv[])
     };
 
     auto simpsonParser = cl::MapParser<Simpson>({
-        { "homer",       { Homer,   "Homer Jay Simpson"         }},
-        { "marge",       { Marge,   "Marjorie Simpson"          }},
-        { "bart",        { Bart,    "Bartholomew JoJo Simpson"  }},
-        { "el barto",    { Bart,    "?"                         }},
-        { "lisa",        { Lisa,    "Lisa Marie Simpson"        }},
-        { "maggie",      { Maggie,  "Margaret Simpson"          }}
+        { "homer",        Homer,       "Homer Jay Simpson"            },
+        { "marge",        Marge,       "Marjorie Simpson"             },
+        { "bart",         Bart,        "Bartholomew JoJo Simpson"     },
+        { "el barto",     Bart,        "?"                            },
+        { "lisa",         Lisa,        "Lisa Marie Simpson"           },
+        { "maggie",       Maggie,      "Margaret Simpson"             },
+//      { "sideshow bob", SideshowBob, "Robert Underdunk Terwilliger" },
     });
 
     auto simpson = cl::makeOptionWithParser<Simpson>(
@@ -172,6 +173,7 @@ int main(int argc, char* argv[])
 
     auto f = cl::makeOption<std::map<std::string, int>>(
         cmd, "f",
+        cl::ArgName("string:int"),
         cl::CommaSeparated,
         cl::ArgRequired
         );

@@ -90,7 +90,7 @@ private:
     StringVector errors;
 
 public:
-    explicit CmdLine(std::string programName, std::string overview = "");
+    explicit CmdLine(std::string program, std::string overview = "");
 
     // Adds the given option to the command line
     bool add(OptionBase* opt);
@@ -239,26 +239,19 @@ struct BinaryOpParser
 };
 
 template <class T>
-struct MapValue
-{
-    // The value
-    T value;
-    // A description
-    std::string desc;
-
-    template <class U, class = DisableIf<IsSame<MapValue, Decay<U>>>>
-    MapValue(U&& value, std::string desc = std::string()/*"Description missing"*/)
-        : value(std::forward<U>(value))
-        , desc(std::move(desc))
-    {
-    }
-};
-
-template <class T, class MapTypeT = std::map<std::string, MapValue<T>>>
 struct MapParser
 {
-    using MapType = MapTypeT;
+    using MapType = std::map<std::string, std::pair<T, std::string>>;
     using MapValueType = typename MapType::value_type;
+
+    struct Triple : MapValueType
+    {
+        template <class A1, class A2, class A3>
+        Triple(A1&& key, A2&& value, A3&& desc)
+            : MapValueType(std::forward<A1>(key), { std::forward<A2>(value), std::forward<A3>(desc) })
+        {
+        }
+    };
 
     MapType map;
 
@@ -266,8 +259,8 @@ struct MapParser
     {
     }
 
-    explicit MapParser(std::initializer_list<MapValueType> ilist)
-        : map(ilist)
+    explicit MapParser(std::initializer_list<Triple> ilist)
+        : map(ilist.begin(), ilist.end())
     {
     }
 
@@ -277,7 +270,7 @@ struct MapParser
 
         if (I != map.end())
         {
-            result = I->second.value;
+            result = I->second.first;
             return true;
         }
 
@@ -299,7 +292,7 @@ struct MapParser
     bool getDescriptions(std::vector<StringRef>& vec) const
     {
         auto convert = [](MapValueType const& x) -> StringRef {
-            return x.second.desc;
+            return x.second.second;
         };
 
         vec.assign(mapIterator(map.begin(), convert), mapIterator(map.end(), convert));
