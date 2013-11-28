@@ -238,16 +238,17 @@ struct BinaryOpParser
     }
 };
 
-template <class T, class MapType = std::map<std::string, std::pair<T, std::string>>>
+template <class T>
 struct MapParser
 {
+    using MapType = std::map<std::string, std::pair<T/*value*/, std::string/*desc*/>>;
     using MapValueType = typename MapType::value_type;
 
     struct KeyValue : MapValueType
     {
-        template <class K, class... V>
-        KeyValue(K&& key, V&&... value)
-            : MapValueType(std::forward<K>(key), { std::forward<V>(value)... })
+        template <class K, class V1, class V2>
+        KeyValue(K&& key, V1&& v1, V2&& v2)
+            : MapValueType(std::forward<K>(key), { std::forward<V1>(v1), std::forward<V2>(v2) })
         {
         }
     };
