@@ -82,103 +82,33 @@ project "Test"
         "test/Test.cpp",
         "test/CmdLineQt.h",
         "test/CmdLineWithIndex.h",
+        "test/PrettyPrint.h"
     }
 
 ----------------------------------------------------------------------------------------------------
-project "CmdLineTest"
+function add_unittest(name)
+    project (name)
 
-    kind "ConsoleApp"
+        kind "ConsoleApp"
 
-    language "C++"
+        language "C++"
 
-    links { "CmdLine", "gtest", "gtest_main" }
+        links { "CmdLine", "gtest", "gtest_main" }
 
-    includedirs { "include/" }
+        includedirs { "include/", "test/" }
 
-    if have_gtest then
-        includedirs { "test/gtest/include" }
-    end
+        if have_gtest then
+            includedirs { "test/gtest/include" }
+        end
 
-    files {
-        "test/CmdLineTest.cpp",
-    }
+        files { "test/unittests/" .. name .. ".cpp" }
+end
 
-----------------------------------------------------------------------------------------------------
-project "CmdLineToArgvTest"
-
-    kind "ConsoleApp"
-
-    language "C++"
-
-    links { "CmdLine", "gtest", "gtest_main" }
-
-    includedirs { "include/" }
-
-    if have_gtest then
-        includedirs { "test/gtest/include" }
-    end
-
-    files {
-        "test/CmdLineToArgvTest.cpp",
-    }
-
-----------------------------------------------------------------------------------------------------
-project "ConvertUTFTest"
-
-    kind "ConsoleApp"
-
-    language "C++"
-
-    links { "CmdLine", "gtest", "gtest_main" }
-
-    includedirs { "include/" }
-
-    if have_gtest then
-        includedirs { "test/gtest/include" }
-    end
-
-    files {
-        "test/ConvertUTFTest.cpp",
-        "test/ConvertUTF.h",
-    }
-
-----------------------------------------------------------------------------------------------------
-project "StringRefTest"
-
-    kind "ConsoleApp"
-
-    language "C++"
-
-    links { "CmdLine", "gtest", "gtest_main" }
-
-    includedirs { "include/" }
-
-    if have_gtest then
-        includedirs { "test/gtest/include" }
-    end
-
-    files {
-        "test/StringRefTest.cpp",
-    }
-
-----------------------------------------------------------------------------------------------------
-project "StringSplitTest"
-
-    kind "ConsoleApp"
-
-    language "C++"
-
-    links { "CmdLine", "gtest", "gtest_main" }
-
-    includedirs { "include/" }
-
-    if have_gtest then
-        includedirs { "test/gtest/include" }
-    end
-
-    files {
-        "test/StringSplitTest.cpp",
-    }
+add_unittest("CmdLineTest")
+add_unittest("CmdLineToArgvTest")
+add_unittest("ConvertUTFTest")
+add_unittest("StringRefTest")
+add_unittest("StringSplitTest")
 
 ----------------------------------------------------------------------------------------------------
 if have_gtest then
