@@ -626,6 +626,14 @@ auto makeOption(An&&... an) -> Option<T>
     return Option<T>(std::forward<An>(an)...);
 }
 
+// Construct a new Option with a MapParser
+template <class T, class... An>
+auto makeOption(std::initializer_list<typename MapParser<T>::KeyValueDesc> ilist, An&&... an) -> Option<T, MapParser<T>>
+{
+    using R = Option<T, MapParser<T>>;
+    return R(typename R::WithParser(), ilist, std::forward<An>(an)...);
+}
+
 // Construct a new Option, initialize the parser with the given value
 template <class T, class P, class... An>
 auto makeOptionWithParser(P&& p, An&&... an) -> Option<T, Decay<P>>
