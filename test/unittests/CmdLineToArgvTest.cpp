@@ -24,7 +24,7 @@ static std::string toUTF8(std::wstring const& str)
 {
     // Get the length of the UTF-8 encoded string
     int len = ::WideCharToMultiByte(
-        CP_UTF8, 0, str.data(), str.size(), NULL, 0, NULL, NULL);
+        CP_UTF8, 0, str.data(), static_cast<int>(str.size()), NULL, 0, NULL, NULL);
 
     if (len == 0)
     {
@@ -34,7 +34,10 @@ static std::string toUTF8(std::wstring const& str)
 
     // Convert from UTF-16 to UTF-8
     len = ::WideCharToMultiByte(
-        CP_UTF8, 0, str.data(), str.size(), buf.data(), buf.size(), NULL, NULL);
+        CP_UTF8, 0,
+        str.data(), static_cast<int>(str.size()),
+        buf.data(), static_cast<int>(buf.size()),
+        NULL, NULL);
 
     if (len == 0)
     {
@@ -47,7 +50,7 @@ static std::wstring toUTF16(std::string const& str)
 {
     // Get the length of the UTF-16 encoded string
     int len = ::MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, str.data(), str.size(), NULL, 0);
+        CP_UTF8, MB_ERR_INVALID_CHARS, str.data(), static_cast<int>(str.size()), NULL, 0);
 
     if (len == 0)
     {
@@ -57,7 +60,9 @@ static std::wstring toUTF16(std::string const& str)
 
     // Convert from UTF-8 to UTF-16
     len = ::MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, str.data(), str.size(), buf.data(), buf.size());
+        CP_UTF8, MB_ERR_INVALID_CHARS,
+        str.data(), static_cast<int>(str.size()),
+        buf.data(), static_cast<int>(buf.size()));
 
     if (len == 0)
     {
