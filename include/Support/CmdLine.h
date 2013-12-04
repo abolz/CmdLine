@@ -89,6 +89,8 @@ private:
     OptionVector positionals;
     // List of error message
     StringVector errors;
+    // List of unknown command line arguments
+    StringVector unknowns;
     // The length of the longest prefix option
     size_t maxPrefixLength;
 
@@ -106,6 +108,9 @@ public:
 
     // Returns the list of errors
     StringVector const& getErrors() const { return errors; }
+
+    // Returns the list of unknown command line arguments
+    StringVector const& getUnknowns() const { return unknowns; }
 
 private:
     OptionVector getOptions(bool SkipHidden = true) const;

@@ -233,10 +233,15 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
             continue;
 
         // Unknown option specified...
-        ok = ignoreUnknowns;
-
-        if (!ok)
-            error("unknown option '" + arg + "'");
+        if (ignoreUnknowns)
+        {
+            unknowns.emplace_back(arg);
+            ok = false;
+        }
+        else
+        {
+            ok = error("unknown option '" + arg + "'");
+        }
     }
 
     // Check if all required options have been successfully parsed
