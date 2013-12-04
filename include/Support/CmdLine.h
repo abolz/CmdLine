@@ -45,7 +45,8 @@ enum NumArgs : unsigned char {
 // parsed differently...
 enum Formatting : unsigned char {
     DefaultFormatting,      // Nothing special
-    Prefix,                 // Can this option directly prefix its value?
+    Prefix,                 // Must this option directly prefix its value?
+    MayPrefix,              // Can this option directly prefix its value?
     Grouping,               // Can this option group with other options?
     Positional,             // Is a positional argument, no '-' required
 };
@@ -425,6 +426,7 @@ private:
     bool isOccurrenceRequired() const;
     bool isUnbounded() const;
     bool isOptional() const;
+    bool isPrefix() const;
 
     // Parses the given value and stores the result.
     virtual bool parse(StringRef value, size_t i) = 0;

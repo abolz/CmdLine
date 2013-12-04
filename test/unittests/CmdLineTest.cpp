@@ -73,129 +73,181 @@ TEST(CmdLineTest, ArgOptionalFail1)
 
 TEST(CmdLineTest, Flags1)
 {
-    auto test = [](Argv argv, bool val_a, bool val_b, bool val_c) -> bool
+    using Pair = std::pair<unsigned, int>;
+
+    auto test = [](bool result, Argv argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
     {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
         cl::CmdLine cmd("program");
 
         auto a = cl::makeOption<bool>(cmd, "a");
         auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
-        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping, cl::ZeroOrMore);
 
-        if (!parse(cmd, std::move(argv)))
-            return false;
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
 
-        if (a.getCount()) EXPECT_EQ(a.get(), val_a);
-        if (b.getCount()) EXPECT_EQ(b.get(), val_b);
-        if (c.getCount()) EXPECT_EQ(c.get(), val_c);
-        return true;
+        EXPECT_EQ(a_val.first, a.getCount());
+        EXPECT_EQ(b_val.first, b.getCount());
+        EXPECT_EQ(c_val.first, c.getCount());
+
+        if (a.getCount())
+            EXPECT_EQ(a_val.second, +a.get());
+        if (b.getCount())
+            EXPECT_EQ(b_val.second, +b.get());
+        if (c.getCount())
+            EXPECT_EQ(c_val.second, +c.get());
     };
 
-    EXPECT_TRUE ( test({ "-a"                   }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=1"                 }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=true"              }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=0"                 }, 0, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a=false"             }, 0, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a0"                  }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a1"                  }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-ax"                  }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-b"             }, 1, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-a", "-b", "-c"       }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-bc"            }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-a", "-cb"            }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-a", "-bcbc"          }, 1, 1, 1 ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=1"                 }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=true"              }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=0"                 }, {1,0}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=false"             }, {1,0}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a0"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a0
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a1"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a1
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ax"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -ax
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a", "-b"             }, {1,1}, {1,1}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a", "-b", "-c"       }, {1,1}, {1,1}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a", "-bc"            }, {1,1}, {1,1}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a", "--bc"           }, {1,1}, {0,0}, {0,0} ) ); // unknown option --bc
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a", "-cb"            }, {1,1}, {1,1}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a", "-bcb"           }, {1,1}, {1,1}, {1,1} ) ); // -b only allowed once
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a", "-bcc"           }, {1,1}, {1,1}, {2,1} ) ); // -b only allowed once
 }
 
 TEST(CmdLineTest, Grouping1)
 {
-    auto test = [](Argv argv, int cnt_a, int cnt_b, int cnt_c) -> bool
+    using Pair = std::pair<unsigned, int>;
+
+    auto test = [](bool result, Argv argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
     {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
         cl::CmdLine cmd("program");
 
         auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
         auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
         auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
 
-        if (!parse(cmd, std::move(argv)))
-            return false;
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a.getCount(), cnt_a);
-        EXPECT_EQ(b.getCount(), cnt_b);
-        EXPECT_EQ(c.getCount(), cnt_c);
-        return true;
+        EXPECT_EQ(a_val.first, a.getCount());
+        EXPECT_EQ(b_val.first, b.getCount());
+        EXPECT_EQ(c_val.first, c.getCount());
+
+        if (a.getCount())
+            EXPECT_EQ(a_val.second, +a.get());
+        if (b.getCount())
+            EXPECT_EQ(b_val.second, +b.get());
+        if (c.getCount())
+            EXPECT_EQ(c_val.second, +c.get());
     };
 
-    EXPECT_TRUE ( test({ "-a"                   }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=1"                 }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=true"              }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=0"                 }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a=false"             }, 1, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a0"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-a1"                  }, 0, 0, 0 ) );
-    EXPECT_FALSE( test({ "-ax"                  }, 0, 0, 0 ) );
-    EXPECT_TRUE ( test({ "-ab"                  }, 0, 0, 1 ) );
-    EXPECT_FALSE( test({ "-abb"                 }, 0, 0, 0 ) );
-    EXPECT_TRUE ( test({ "-abtrue"              }, 0, 0, 1 ) );
-    EXPECT_TRUE ( test({ "-abfalse"             }, 0, 0, 1 ) );
-    EXPECT_TRUE ( test({ "-ba"                  }, 1, 1, 0 ) );
-    EXPECT_FALSE( test({ "--ba"                 }, 1, 1, 0 ) ); // no check for option group
-    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) ); // check for option group
-    EXPECT_FALSE( test({ "--baa"                }, 2, 1, 0 ) ); // no check for option group
-    EXPECT_TRUE ( test({ "-ba", "-a"            }, 2, 1, 0 ) );
-    EXPECT_FALSE( test({ "--ba", "-a"           }, 2, 1, 0 ) ); // no check for option group
-    EXPECT_TRUE ( test({ "-ab", "-ba"           }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-ab1", "-ba"          }, 1, 1, 1 ) );
-    EXPECT_TRUE ( test({ "-ab=1", "-ba"         }, 1, 1, 1 ) );
-    EXPECT_FALSE( test({ "-ab", "1", "-ba"      }, 1, 1, 1 ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=1"                 }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=true"              }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=0"                 }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=false"             }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a0"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a0
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-a1"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a1
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ax"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -ax
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab"                  }, {0,0}, {0,0}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-abb"                 }, {0,0}, {0,0}, {0,0} ) ); // invalid value for -ab
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-abtrue"              }, {0,0}, {0,0}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-abfalse"             }, {0,0}, {0,0}, {1,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-ba"                  }, {1,1}, {1,1}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "--ba"                 }, {0,0}, {0,0}, {0,0} ) ); // no check for option group
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-baa"                 }, {2,1}, {1,1}, {0,0} ) ); // check for option group
+    EXPECT_NO_FATAL_FAILURE( test(false, { "--baa"                }, {0,0}, {0,0}, {0,0} ) ); // no check for option group
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-ba", "-a"            }, {2,1}, {1,1}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "--ba", "-a"           }, {1,1}, {0,0}, {0,0} ) ); // no check for option group
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab", "-ba"           }, {1,1}, {1,1}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab1", "-ba"          }, {1,1}, {1,1}, {1,1} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab=1", "-ba"         }, {1,1}, {1,1}, {0,0} ) ); // invalid value for -ab
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab", "1", "-ba"      }, {1,1}, {1,1}, {1,1} ) ); // unhandled positional
 }
 
-TEST(CmdLineTest, PrefixOptional)
+TEST(CmdLineTest, Prefix)
 {
-    auto test = [](Argv argv, std::string const& a_val) -> bool
+    using Pair = std::pair<unsigned, std::string>;
+
+    auto test = [](bool result, Argv argv, Pair const& r_val, Pair const& o_val)
     {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
         cl::CmdLine cmd("program");
 
-        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgOptional);
-        auto b = cl::makeOption<bool>(cmd, "b");
+        auto r = cl::makeOption<std::string>(cmd, "r", cl::Prefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cmd, "o", cl::Prefix, cl::ArgOptional);
 
-        if (!parse(cmd, std::move(argv)))
-            return false;
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
 
-        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
-        return true;
+        EXPECT_EQ(r_val.first, r.getCount());
+        EXPECT_EQ(o_val.first, o.getCount());
+
+        if (r.getCount())
+            EXPECT_EQ(r_val.second, r.get());
+        if (o.getCount())
+            EXPECT_EQ(o_val.second, o.get());
     };
 
-    EXPECT_TRUE ( test({ "-a"                   }, ""       ) );
-    EXPECT_TRUE ( test({ "-a", "-b"             }, ""       ) ); // "-b" is a valid option -> is not a valid argument for -a
-    EXPECT_TRUE ( test({ "-a-b"                 }, "-b"     ) );
-    EXPECT_TRUE ( test({ "-a=-b"                }, "-b"     ) );
-    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
-    EXPECT_TRUE ( test({ "-a=xxx"               }, "xxx"    ) );
-    EXPECT_FALSE( test({ "-a", "xxx"            }, ""       ) ); // [unhandled positional]
+    EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r"          }, {0,""        }, {0,""        }) ); // missing argument for r
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r", "x"     }, {0,""        }, {0,""        }) ); // unhandled positional arg
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-rx"         }, {1,"x"       }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r=x"        }, {1,"=x"      }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r-o"        }, {1,"-o"      }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r", "-o"    }, {0,""        }, {1,""        }) ); // -o is a valid option
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r", "-ox"   }, {0,""        }, {1,"x"       }) ); // -o is a valid option
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o"          }, {0,""        }, {1,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-o", "x"     }, {0,""        }, {1,""        }) ); // unhandled positional arg
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-ox"         }, {0,""        }, {1,"x"       }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o=x"        }, {0,""        }, {1,"=x"      }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o-r"        }, {0,""        }, {1,"-r"      }) );
 }
 
-TEST(CmdLineTest, PrefixRequired)
+TEST(CmdLineTest, MayPrefix)
 {
-    auto test = [](Argv argv, std::string const& a_val) -> bool
+    using Pair = std::pair<unsigned, std::string>;
+
+    auto test = [](bool result, Argv argv, Pair const& r_val, Pair const& o_val)
     {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
         cl::CmdLine cmd("program");
 
-        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
-        auto b = cl::makeOption<bool>(cmd, "b");
+        auto r = cl::makeOption<std::string>(cmd, "r", cl::MayPrefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cmd, "o", cl::MayPrefix, cl::ArgOptional);
 
-        if (!parse(cmd, std::move(argv)))
-            return false;
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
 
-        if (a.getCount()) EXPECT_EQ(a.get(), a_val);
-        return true;
+        EXPECT_EQ(r_val.first, r.getCount());
+        EXPECT_EQ(o_val.first, o.getCount());
+
+        if (r.getCount())
+            EXPECT_EQ(r_val.second, r.get());
+        if (o.getCount())
+            EXPECT_EQ(o_val.second, o.get());
     };
 
-    EXPECT_FALSE( test({ "-a"                   }, ""       ) );
-    EXPECT_FALSE( test({ "-a", "-b"             }, ""       ) ); // "-b" is a valid option -> is not a valid argument for -a
-    EXPECT_TRUE ( test({ "-a-b"                 }, "-b"     ) );
-    EXPECT_TRUE ( test({ "-a=-b"                }, "=-b"    ) );
-    EXPECT_TRUE ( test({ "-axxx"                }, "xxx"    ) );
-    EXPECT_TRUE ( test({ "-a=xxx"               }, "=xxx"   ) );
-    EXPECT_FALSE( test({ "-a", "xxx"            }, "xxx"    ) ); // [option 'a' expects and argument, unhandled positional]
+    EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r"          }, {0,""        }, {0,""        }) ); // missing argument for r
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r", "x"     }, {1,"x"       }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-rx"         }, {1,"x"       }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r=x"        }, {1,"=x"      }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r-o"        }, {1,"-o"      }, {0,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-r", "-o"    }, {0,""        }, {1,""        }) ); // -o is a valid option
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-r", "-ox"   }, {1,"-ox"     }, {0,""        }) ); // -ox is *NOT* a valid option (quick test)
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o"          }, {0,""        }, {1,""        }) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-o", "x"     }, {0,""        }, {1,""        }) ); // unhandled positional arg
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-ox"         }, {0,""        }, {1,"x"       }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o=x"        }, {0,""        }, {1,"=x"      }) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-o-r"        }, {0,""        }, {1,"-r"      }) );
 }
 
 TEST(CmdLineTest, Equals)
@@ -229,7 +281,7 @@ TEST(CmdLineTest, Equals)
     EXPECT_TRUE ( test({ "-b"                   }, ""       ) );
     EXPECT_FALSE( test({ "-b", "xxx"            }, ""       ) ); // unhandled positional xxx
     EXPECT_TRUE ( test({ "-bxxx"                }, "xxx"    ) );
-    EXPECT_TRUE ( test({ "-b=xxx"               }, "xxx"    ) );
+    EXPECT_TRUE ( test({ "-b=xxx"               }, "=xxx"   ) );
     EXPECT_FALSE( test({ "-c"                   }, ""       ) ); // -c expects an argument
     EXPECT_TRUE ( test({ "-c", "xxx"            }, "xxx"    ) );
     EXPECT_FALSE( test({ "-cxxx"                }, ""       ) ); // unknown option -cxxx

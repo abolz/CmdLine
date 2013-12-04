@@ -160,7 +160,7 @@ bool CmdLine::add(OptionBase* opt)
     }
 
     // Save the length of the longest prefix option
-    if (opt->formatting == Prefix && maxPrefixLength < opt->name.size())
+    if (opt->isPrefix() && maxPrefixLength < opt->name.size())
         maxPrefixLength = opt->name.size();
 
     return options.insert({ opt->name, opt }).second;
@@ -439,9 +439,9 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         }
         else
         {
-            // Include the equals sign in the value if an argument is required.
+            // Include the equals sign in the value if this option is a prefix option.
             // Discard otherwise.
-            if (opt->formatting != Prefix || opt->numArgs != ArgRequired)
+            if (!opt->isPrefix())
                 I++;
 
             success = addOccurrence(opt, opt_name, name.drop_front(I), i);
@@ -462,7 +462,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
     {
         auto opt = findOption(name.front(n));
 
-        if (opt && opt->formatting == Prefix)
+        if (opt && opt->isPrefix())
         {
             success = addOccurrence(opt, opt->name, name.drop_front(n), i);
             return true;
@@ -682,6 +682,11 @@ bool OptionBase::isUnbounded() const
 bool OptionBase::isOptional() const
 {
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
+}
+
+bool OptionBase::isPrefix() const
+{
+    return formatting == Prefix || formatting == MayPrefix;
 }
 
 void OptionBase::done()
