@@ -159,11 +159,19 @@ bool CmdLine::add(OptionBase* opt)
         return true;
     }
 
-    // Save the length of the longest prefix option
-    if (opt->isPrefix() && maxPrefixLength < opt->name.size())
-        maxPrefixLength = opt->name.size();
+    // Option name is not empty.
+    // Might be a list of different names.
+    for (auto const& name : strings::split(opt->name, "|"))
+    {
+        // Save the length of the longest prefix option
+        if (opt->isPrefix() && maxPrefixLength < name.size())
+            maxPrefixLength = name.size();
 
-    return options.insert({ opt->name, opt }).second;
+        if (!options.insert({ name, opt }).second)
+            return false;
+    }
+
+    return true;
 }
 
 bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
