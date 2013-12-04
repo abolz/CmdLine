@@ -378,7 +378,12 @@ class OptionBase
     unsigned count;
 
 protected:
+    // Constructor.
     explicit OptionBase();
+
+public:
+    // Destructor.
+    virtual ~OptionBase();
 
 public:
     // Returns the name of this option

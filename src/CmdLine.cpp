@@ -572,6 +572,10 @@ OptionBase::OptionBase()
 {
 }
 
+OptionBase::~OptionBase()
+{
+}
+
 std::string OptionBase::usage() const
 {
     if (formatting == Positional)
