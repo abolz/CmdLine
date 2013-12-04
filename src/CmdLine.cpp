@@ -24,6 +24,17 @@ const size_t kMaxWidth = 80;
 const size_t kIndentOverview = 2;
 const size_t kIndentDescription = 24;
 
+// Returns a string consisting of N spaces.
+StringRef Spaces(size_t N)
+{
+    static std::vector<char> str(kMaxWidth, ' ');
+
+    if (str.size() < N)
+        str.resize(N, ' ');
+
+    return { &str[0], N };
+}
+
 struct Wrapped
 {
     // The text to wrap
@@ -44,8 +55,6 @@ struct Wrapped
 
 std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
 {
-    const std::string sbreak = "\n" + std::string(x.Indent, ' ');
-
     bool first = true;
 
     for (auto par : strings::split(x.Text, "\n"))
@@ -55,7 +64,7 @@ std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
             if (first)
                 first = false;
             else
-                stream << sbreak;
+                stream << "\n" << Spaces(x.Indent);
 
             stream << line;
         }
@@ -84,12 +93,12 @@ std::ostream& operator<<(std::ostream& stream, Aligned const& x)
     {
         // Fits.
         // Print the text, then skip to indentation width
-        return stream << x.text << std::setw(x.indent - x.text.size()) << "";
+        return stream << x.text << Spaces(x.indent - x.text.size());
     }
 
     // Does not fit.
     // Print the text, move to next line, then move to indentation width
-    return stream << x.text << "\n" << std::setw(x.indent) << "";
+    return stream << x.text << "\n" << Spaces(x.indent);
 }
 
 template <class Range>
