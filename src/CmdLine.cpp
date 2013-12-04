@@ -204,7 +204,11 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         // Starts with a dash, must be an argument.
         auto name = arg.drop_front(1);
 
-        if (name.size() > 0 && name[0] == '-')
+        assert(!name.empty());
+
+        bool short_option = name[0] != '-';
+
+        if (!short_option)
             name = name.drop_front(1);
 
         assert(!name.empty());
@@ -215,11 +219,12 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
 
         // If it's not a standard option and there is no equals sign,
         // check for a prefix option.
+        // FIXME: Allow prefix only for short options?
         if (handlePrefix(ok, name, i))
             continue;
 
         // If it's not standard or prefix option, check for an option group
-        if (handleGroup(ok, name, i))
+        if (short_option && handleGroup(ok, name, i))
             continue;
 
         // Unknown option specified...

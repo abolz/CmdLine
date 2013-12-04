@@ -137,8 +137,13 @@ TEST(CmdLineTest, Grouping1)
     EXPECT_TRUE ( test({ "-abtrue"              }, 0, 0, 1 ) );
     EXPECT_TRUE ( test({ "-abfalse"             }, 0, 0, 1 ) );
     EXPECT_TRUE ( test({ "-ba"                  }, 1, 1, 0 ) );
-    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) );
+    EXPECT_FALSE( test({ "--ba"                 }, 1, 1, 0 ) ); // no check for option group
+    EXPECT_TRUE ( test({ "-baa"                 }, 2, 1, 0 ) ); // check for option group
+    EXPECT_FALSE( test({ "--baa"                }, 2, 1, 0 ) ); // no check for option group
     EXPECT_TRUE ( test({ "-ba", "-a"            }, 2, 1, 0 ) );
+    EXPECT_FALSE( test({ "--ba", "-a"           }, 2, 1, 0 ) ); // no check for option group
+    EXPECT_TRUE ( test({ "-ab", "-ba"           }, 1, 1, 1 ) );
+    EXPECT_TRUE ( test({ "-ab1", "-ba"          }, 1, 1, 1 ) );
     EXPECT_TRUE ( test({ "-ab=1", "-ba"         }, 1, 1, 1 ) );
     EXPECT_FALSE( test({ "-ab", "1", "-ba"      }, 1, 1, 1 ) );
 }
