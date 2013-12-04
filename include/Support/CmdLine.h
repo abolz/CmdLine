@@ -223,13 +223,13 @@ struct Parser<std::string>
 template <class T>
 struct MapParser
 {
-    using MapType = std::map<std::string, std::pair<T/*value*/, std::string/*desc*/>>;
-    using MapValueType = typename MapType::value_type;
+    using MapType       = std::map<std::string, std::pair<T, std::string>>;
+    using MapValueType  = typename MapType::value_type;
 
-    struct KeyValue : MapValueType
+    struct KeyValueDesc : MapValueType
     {
         template <class K, class V1, class V2>
-        KeyValue(K&& key, V1&& v1, V2&& v2)
+        KeyValueDesc(K&& key, V1&& v1, V2&& v2)
             : MapValueType(std::forward<K>(key), { std::forward<V1>(v1), std::forward<V2>(v2) })
         {
         }
@@ -241,7 +241,7 @@ struct MapParser
     {
     }
 
-    explicit MapParser(std::initializer_list<KeyValue> ilist)
+    explicit MapParser(std::initializer_list<KeyValueDesc> ilist)
         : map(ilist.begin(), ilist.end())
     {
     }
@@ -258,25 +258,27 @@ struct MapParser
 
         return false;
     }
-
-    // Returns the list of valid arguments for this parser
-    bool getValues(std::vector<StringRef>& vec) const
-    {
-        for (auto const& I : map)
-            vec.emplace_back(I.first);
-
-        return true;
-    }
-
-    // Returns the list of descriptions for the valid arguments.
-    bool getDescriptions(std::vector<StringRef>& vec) const
-    {
-        for (auto const& I : map)
-            vec.emplace_back(I.second.second);
-
-        return true;
-    }
 };
+
+template <class P>
+void getValues(P const&, std::vector<StringRef>&) {}
+
+template <class T>
+void getValues(MapParser<T> const& p, std::vector<StringRef>& v)
+{
+    for (auto const& I : p.map)
+        v.emplace_back(I.first);
+}
+
+template <class P>
+void getDescriptions(P const&, std::vector<StringRef>&) {}
+
+template <class T>
+void getDescriptions(MapParser<T> const& p, std::vector<StringRef>& v)
+{
+    for (auto const& I : p.map)
+        v.emplace_back(I.second.second);
+}
 
 //--------------------------------------------------------------------------------------------------
 // Traits
@@ -422,10 +424,10 @@ private:
     virtual bool parse(StringRef value, size_t i) = 0;
 
     // Returns a list of valid arguments for this option
-    virtual bool getValues(std::vector<StringRef>& vec) const = 0;
+    virtual void getValues(std::vector<StringRef>& vec) const = 0;
 
     // Returns a list of the descriptions for each valid argument
-    virtual bool getDescriptions(std::vector<StringRef>& vec) const = 0;
+    virtual void getDescriptions(std::vector<StringRef>& vec) const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -591,34 +593,16 @@ private:
         return parse(value, i, is_scalar());
     }
 
-    struct VectorsMeEat { // cannot pass objects of non-trivially-copyable type T through ...
-        VectorsMeEat(StringRefVector&) {}
-    };
-
-    template <class X = ParserT>
-    auto getValuesImpl(StringRefVector& vec) const -> decltype(std::declval<X>().getValues(vec)) {
-        return getParser().getValues(vec);
+    void getValues(StringRefVector& vec) const override
+    {
+        using cl::getValues;
+        getValues(getParser(), vec);
     }
 
-    bool getValuesImpl(VectorsMeEat) const {
-        return false;
-    }
-
-    bool getValues(StringRefVector& vec) const override {
-        return getValuesImpl(vec);
-    }
-
-    template <class X = ParserT>
-    auto getDescriptionsImpl(StringRefVector& vec) const -> decltype(std::declval<X>().getDescriptions(vec)) {
-        return getParser().getDescriptions(vec);
-    }
-
-    bool getDescriptionsImpl(VectorsMeEat) const {
-        return false;
-    }
-
-    bool getDescriptions(StringRefVector& vec) const override {
-        return getDescriptionsImpl(vec);
+    void getDescriptions(StringRefVector& vec) const override
+    {
+        using cl::getDescriptions;
+        getDescriptions(getParser(), vec);
     }
 };
 

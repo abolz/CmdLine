@@ -145,7 +145,9 @@ bool CmdLine::add(OptionBase* opt)
     {
         std::vector<StringRef> values;
 
-        if (!opt->getValues(values))
+        opt->getValues(values);
+
+        if (values.empty())
             return false;
 
         for (auto&& s : values)
@@ -599,7 +601,9 @@ void OptionBase::help() const
     std::vector<StringRef> values;
     std::vector<StringRef> descriptions;
 
-    if (!getValues(values))
+    getValues(values);
+
+    if (values.empty())
     {
         std::cout << Aligned("  -" + usage()) << Wrapped(desc, kIndentDescription) << "\n";
         return;
@@ -609,10 +613,9 @@ void OptionBase::help() const
     // Show all valid values.
 
     // Get the description for each value
-    if (!getDescriptions(descriptions) || descriptions.size() != values.size())
-    {
-        assert(0 && "not supported");
-    }
+    getDescriptions(descriptions);
+
+    assert(descriptions.size() == values.size() && "not supported");
 
     if (name.empty())
     {
@@ -675,10 +678,11 @@ void OptionBase::done()
     {
         std::vector<StringRef> values;
 
-        if (getValues(values))
-            argName = Join(values, "|");
+        getValues(values);
 
-        if (argName.empty())
+        argName = Join(values, "|");
+
+        if (argName.empty()) // values was empty...
             argName = "arg";
     }
 }
