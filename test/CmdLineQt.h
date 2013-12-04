@@ -16,7 +16,7 @@ namespace cl
 template <>
 struct Parser<QString>
 {
-    bool operator()(StringRef value, size_t /*i*/, QString& result) const
+    bool operator()(StringRef /*spec*/, StringRef value, size_t /*i*/, QString& result) const
     {
         result.fromUtf8(value.data(), value.size());
         return true;
@@ -28,7 +28,7 @@ struct Parser<QString>
 template <>
 struct Parser<QUrl>
 {
-    bool operator()(StringRef value, size_t /*i*/, QUrl& result) const
+    bool operator()(StringRef /*spec*/, StringRef value, size_t /*i*/, QUrl& result) const
     {
         result.setEncodedUrl(QByteArray(value.data(), value.size()), QUrl::StrictMode);
         return result.isValid();

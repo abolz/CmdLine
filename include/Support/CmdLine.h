@@ -122,12 +122,12 @@ private:
     bool expandResponseFile(StringVector& argv, size_t i);
     bool expandResponseFiles(StringVector& argv);
 
-    bool handlePositional(bool& success, StringRef name, size_t i, OptionVector::iterator& pos);
-    bool handleOption(bool& success, StringRef name, size_t& i, StringVector& argv);
-    bool handlePrefix(bool& success, StringRef name, size_t i);
-    bool handleGroup(bool& success, StringRef name, size_t i);
+    bool handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos);
+    bool handleOption(bool& success, StringRef arg, size_t& i, StringVector& argv);
+    bool handlePrefix(bool& success, StringRef arg, size_t i);
+    bool handleGroup(bool& success, StringRef arg, size_t i);
 
-    bool addOccurrence(OptionBase* opt, StringRef name, StringRef value, size_t i);
+    bool addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i);
 
     bool check();
     bool check(OptionBase* opt);
@@ -195,7 +195,7 @@ inline auto init(T&& value) -> Initializer<T&&>
 template <class T>
 struct Parser
 {
-    bool operator ()(StringRef value, size_t /*i*/, T& result) const
+    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, T& result) const
     {
         StringRefStream stream(value);
         return (stream >> std::setbase(0) >> result) && stream.eof();
@@ -205,7 +205,7 @@ struct Parser
 template <>
 struct Parser<bool>
 {
-    bool operator ()(StringRef value, size_t /*i*/, bool& result) const
+    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, bool& result) const
     {
         if (value == "" || value == "1" || value == "true")
             result = true;
@@ -221,7 +221,7 @@ struct Parser<bool>
 template <>
 struct Parser<std::string>
 {
-    bool operator ()(StringRef value, size_t /*i*/, std::string& result) const
+    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, std::string& result) const
     {
         result.assign(value.data(), value.size());
         return true;
@@ -254,9 +254,9 @@ struct MapParser
     {
     }
 
-    bool operator ()(StringRef value, size_t /*i*/, T& result) const
+    bool operator ()(StringRef spec, StringRef /*value*/, size_t /*i*/, T& result) const
     {
-        auto I = map.find(value.str());
+        auto I = map.find(spec.str());
 
         if (I != map.end())
         {
@@ -434,7 +434,7 @@ private:
     bool isPrefix() const;
 
     // Parses the given value and stores the result.
-    virtual bool parse(StringRef value, size_t i) = 0;
+    virtual bool parse(StringRef spec, StringRef value, size_t i) = 0;
 
     // Returns a list of valid arguments for this option
     virtual void getValues(std::vector<StringRef>& vec) const = 0;
@@ -583,11 +583,11 @@ private:
     }
 
     // Used when T is a container type
-    bool parse(StringRef value, size_t i, std::false_type)
+    bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
         value_type t;
 
-        if (parser(value, i, t))
+        if (parser(spec, value, i, t))
         {
             inserter_type()(this->get(), std::move(t));
             return true;
@@ -597,13 +597,13 @@ private:
     }
 
     // Used when T is a value type
-    bool parse(StringRef value, size_t i, std::true_type) {
-        return parser(value, i, this->get());
+    bool parse(StringRef spec, StringRef value, size_t i, std::true_type) {
+        return parser(spec, value, i, this->get());
     }
 
     // Parses the given value and stores the result.
-    bool parse(StringRef value, size_t i) override {
-        return parse(value, i, is_scalar());
+    bool parse(StringRef spec, StringRef value, size_t i) override {
+        return parse(spec, value, i, is_scalar());
     }
 
     void getValues(StringRefVector& vec) const override

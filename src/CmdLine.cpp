@@ -369,11 +369,11 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
     return true;
 }
 
-bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVector::iterator& pos)
+bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos)
 {
     if (pos == positionals.end())
     {
-        success = error("unhandled positional argument: '" + name + "'");
+        success = error("unhandled positional argument: '" + arg + "'");
         return true;
     }
 
@@ -382,7 +382,7 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
     // If the current positional argument does not allow any further
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
-        return handlePositional(success, name, i, ++pos);
+        return handlePositional(success, arg, i, ++pos);
 
     //
     // FIXME:
@@ -390,20 +390,22 @@ bool CmdLine::handlePositional(bool& success, StringRef name, size_t i, OptionVe
     // If the current positional is Optional and cannot handle the given value,
     // skip to next positional argument instead of reporting an error?!
     //
-    success = addOccurrence(opt, opt->name, name, i);
+
+    // The value of a positional option is the argument itself.
+    success = addOccurrence(opt, arg, arg, i);
     return true;
 }
 
 // If 'name' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
-bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVector& argv)
+bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector& argv)
 {
-    if (auto opt = findOption(name)) // Standard option?
+    if (auto opt = findOption(arg)) // Standard option?
     {
         // If the option name is empty, this option really is a map of option names
         if (opt->name.empty())
         {
-            success = addOccurrence(opt, name, name, i);
+            success = addOccurrence(opt, arg, {}, i);
             return true;
         }
 
@@ -415,32 +417,32 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
         {
             if (opt->formatting == Prefix || (i + 1 >= argv.size() || isPossibleOption(argv[i + 1])))
             {
-                success = error("option '" + name + "' expects an argument");
+                success = error("option '" + arg + "' expects an argument");
                 return true;
             }
 
             value = argv[++i];
         }
 
-        success = addOccurrence(opt, name, value, i);
+        success = addOccurrence(opt, arg, value, i);
         return true;
     }
 
     // Get the index of the first equals sign
-    auto I = name.find('=');
+    auto I = arg.find('=');
 
     if (I == StringRef::npos)
         return false;
 
     // Get the option name
-    auto opt_name = name.front(I);
+    auto spec = arg.front(I);
 
-    if (auto opt = findOption(opt_name))
+    if (auto opt = findOption(spec))
     {
         if (opt->numArgs == ArgDisallowed)
         {
             // An argument was specified, but this is not allowed
-            success = error("option '" + opt_name + "' does not allow an argument");
+            success = error("option '" + spec + "' does not allow an argument");
         }
         else
         {
@@ -449,7 +451,7 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
             if (!opt->isPrefix())
                 I++;
 
-            success = addOccurrence(opt, opt_name, name.drop_front(I), i);
+            success = addOccurrence(opt, spec, arg.drop_front(I), i);
         }
 
         return true;
@@ -459,17 +461,18 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 }
 
 // Handles prefix options which have an argument specified without an equals sign.
-bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
+bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
 {
-    assert(!name.empty());
+    assert(!arg.empty());
 
-    for (auto n = std::min(maxPrefixLength, name.size()); n != 0; --n)
+    for (auto n = std::min(maxPrefixLength, arg.size()); n != 0; --n)
     {
-        auto opt = findOption(name.front(n));
+        auto spec = arg.front(n);
+        auto opt = findOption(spec);
 
         if (opt && opt->isPrefix())
         {
-            success = addOccurrence(opt, opt->name, name.drop_front(n), i);
+            success = addOccurrence(opt, spec, arg.drop_front(n), i);
             return true;
         }
     }
@@ -503,36 +506,36 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
     return true;
 }
 
-bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef value, size_t i)
+bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i)
 {
     if (!opt->isOccurrenceAllowed())
     {
         if (opt->name.empty())
-            return error("option '" + name + "' not allowed here");
+            return error("option '" + spec + "' not allowed here");
 
         if (opt->numOccurrences == Optional)
-            return error("option '" + name + "' must occur at most once");
+            return error("option '" + spec + "' must occur at most once");
 
-        return error("option '" + name + "' must occur exactly once");
+        return error("option '" + spec + "' must occur exactly once");
     }
 
-    auto parse = [&](StringRef v)->bool
+    auto parse = [&](StringRef spec, StringRef value) -> bool
     {
-        if (!opt->parse(v, i))
-            return error("invalid argument '" + v + "' for option '" + name + "'");
+        if (!opt->parse(spec, value, i))
+            return error("invalid argument '" + value + "' for option '" + spec + "'");
 
         return true;
     };
 
     if (opt->miscFlags & CommaSeparated)
     {
-        for (auto s : strings::split(value, ","))
-            if (!parse(s))
+        for (auto v : strings::split(value, ","))
+            if (!parse(spec, v))
                 return false;
     }
     else
     {
-        if (!parse(value))
+        if (!parse(spec, value))
             return false;
     }
 
