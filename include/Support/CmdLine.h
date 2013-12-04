@@ -99,7 +99,7 @@ public:
     bool parse(StringVector argv, bool ignoreUnknowns = false);
 
     // Prints the help message
-    void help() const;
+    void help(bool showPositionals = false) const;
 
     // Returns the list of errors
     StringVector const& getErrors() const { return errors; }
@@ -360,7 +360,6 @@ class OptionBase
 {
     friend class CmdLine;
 
-protected:
     // The name of this option
     std::string name;
     // The name of the value of this option

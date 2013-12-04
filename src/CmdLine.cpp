@@ -21,8 +21,7 @@ namespace
 {
 
 const size_t kMaxWidth = 80;
-const size_t kIndentOverview = 2;
-const size_t kIndentDescription = 24;
+const size_t kIndentDescription = 20;
 
 // Returns a string consisting of N spaces.
 StringRef Spaces(size_t N)
@@ -236,16 +235,18 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
     return success;
 }
 
-void CmdLine::help() const
+void CmdLine::help(bool showPositionals) const
 {
     if (!overview.empty())
-        std::cout << "Overview:\n  " << Wrapped(overview, kIndentOverview) << "\n\n";
+        std::cout << "Overview:\n  " << Wrapped(overview, 2) << "\n\n";
 
     std::cout << "Usage:\n  " << program << " [options]";
 
-    if (!positionals.empty())
+    for (auto I : positionals)
     {
-        for (auto& I : positionals)
+        if (I->isOptional())
+            std::cout << " [" << I->usage() << "]";
+        else
             std::cout << " " << I->usage();
     }
 
@@ -253,6 +254,14 @@ void CmdLine::help() const
 
     for (auto I : getOptions())
         I->help();
+
+    if (showPositionals && !positionals.empty())
+    {
+        std::cout << "\nPositional options:\n";
+
+        for (auto I : positionals)
+            I->help();
+    }
 }
 
 CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
@@ -565,35 +574,21 @@ OptionBase::OptionBase()
 
 std::string OptionBase::usage() const
 {
-    std::string str;
-
     if (formatting == Positional)
-    {
-        str += "<" + name + ">" + (isUnbounded() ? " ..." : "");
+        return "<" + name + ">" + (isUnbounded() ? "..." : "");
 
-        if (isOptional())
-            str = "[" + str + "]";
-    }
-    else
-    {
-        if (numArgs != ArgDisallowed)
-        {
-            str = "<" + argName + ">";
+    if (numArgs == ArgDisallowed)
+        return name;
 
-            if (miscFlags & CommaSeparated)
-                str += ",...";
+    std::string str = "<" + argName + ">";
 
-            if (numArgs == ArgOptional)
-                str = "[" + str + "]";
+    if (numArgs == ArgOptional)
+        str = "[" + str + "]";
 
-            if (numArgs == ArgRequired && formatting != Prefix)
-                str = " " + str;
-        }
+    if (numArgs == ArgRequired && formatting != Prefix)
+        str = " " + str;
 
-        str = name + str;
-    }
-
-    return str;
+    return name + str;
 }
 
 void OptionBase::help() const
@@ -605,7 +600,8 @@ void OptionBase::help() const
 
     if (values.empty())
     {
-        std::cout << Aligned("  -" + usage()) << Wrapped(desc, kIndentDescription) << "\n";
+        auto prefix = formatting == Positional ? "  " : "  -";
+        std::cout << Aligned(prefix + usage()) << Wrapped(desc, kIndentDescription) << "\n";
         return;
     }
 
@@ -617,7 +613,13 @@ void OptionBase::help() const
 
     assert(descriptions.size() == values.size() && "not supported");
 
-    if (name.empty())
+    if (formatting == Positional)
+    {
+        // Print the name of the positional option and the description
+        std::cout << Aligned("  <" + name + ">")
+                  << Wrapped(desc + ":", kIndentDescription) << "\n";
+    }
+    else if (name.empty())
     {
         // Print the description
         std::cout << Wrapped("  " + desc + ":", 2) << "\n";
@@ -629,14 +631,16 @@ void OptionBase::help() const
         std::cout << Aligned("  -" + name) << Wrapped(desc + ":", kIndentDescription) << "\n";
     }
 
-    std::string prefix = name.empty() ? "    -" : "    =";
-    std::string suffix = name.empty() ? "" : "- ";
+    std::string prefix = "    ";
+
+    if (formatting != Positional)
+        prefix += name.empty() ? "-" : "=";
 
     // Print all the possible options
     for (size_t I = 0; I < values.size(); ++I)
     {
         std::cout << Aligned(prefix + values[I])
-                  << Wrapped(suffix + descriptions[I], kIndentDescription + suffix.size()) << "\n";
+                  << Wrapped("- " + descriptions[I], kIndentDescription + 2) << "\n";
     }
 }
 
@@ -668,6 +672,9 @@ bool OptionBase::isOptional() const
 
 void OptionBase::done()
 {
+    assert((formatting != Positional || !name.empty())
+        && "positional options need a name");
+
     if (formatting == Positional /*|| formatting == Prefix*/)
         numArgs = ArgRequired;
 
