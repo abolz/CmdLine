@@ -88,6 +88,8 @@ private:
     OptionVector positionals;
     // List of error message
     StringVector errors;
+    // The length of the longest prefix option
+    size_t maxPrefixLength;
 
 public:
     explicit CmdLine(std::string program, std::string overview = "");

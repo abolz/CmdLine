@@ -129,6 +129,7 @@ std::string Join(Range const& range, StringRef sep)
 CmdLine::CmdLine(std::string program, std::string overview)
     : program(std::move(program))
     , overview(std::move(overview))
+    , maxPrefixLength(0)
 {
 }
 
@@ -157,6 +158,10 @@ bool CmdLine::add(OptionBase* opt)
 
         return true;
     }
+
+    // Save the length of the longest prefix option
+    if (opt->formatting == Prefix && maxPrefixLength < opt->name.size())
+        maxPrefixLength = opt->name.size();
 
     return options.insert({ opt->name, opt }).second;
 }
@@ -451,9 +456,9 @@ bool CmdLine::handleOption(bool& success, StringRef name, size_t& i, StringVecto
 // Handles prefix options which have an argument specified without an equals sign.
 bool CmdLine::handlePrefix(bool& success, StringRef name, size_t i)
 {
-    assert(name.size() != 0);
+    assert(!name.empty());
 
-    for (auto n = name.size() - 1; n != 0; --n)
+    for (auto n = std::min(maxPrefixLength, name.size()); n != 0; --n)
     {
         auto opt = findOption(name.front(n));
 
