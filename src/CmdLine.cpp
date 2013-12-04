@@ -246,9 +246,14 @@ void CmdLine::help() const
 
 CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
 {
-    // Get the list of all options
-    auto opts = OptionVector(mapIterator(options.begin(), GetSecond()),
-                             mapIterator(options.end(), GetSecond()));
+    OptionVector opts;
+
+    // Get the list of all (visible) options
+    for (auto const& I : options)
+    {
+        if (!SkipHidden || (I.second->miscFlags & Hidden) == 0)
+            opts.emplace_back(I.second);
+    }
 
     // Sort by name
     std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {
@@ -256,18 +261,7 @@ CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
     });
 
     // Remove duplicates
-    auto E = std::unique(opts.begin(), opts.end());
-
-    // Remove hidden options
-    if (!SkipHidden)
-    {
-        E = std::remove_if(opts.begin(), E, [](OptionBase* opt) {
-            return opt->miscFlags & Hidden;
-        });
-    }
-
-    // Actually erase unused options
-    opts.erase(E, opts.end());
+    opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
 
     return opts;
 }

@@ -280,22 +280,18 @@ struct MapParser
     // Returns the list of valid arguments for this parser
     bool getValues(std::vector<StringRef>& vec) const
     {
-        auto convert = [](MapValueType const& x) -> StringRef {
-            return x.first;
-        };
+        for (auto const& I : map)
+            vec.emplace_back(I.first);
 
-        vec.assign(mapIterator(map.begin(), convert), mapIterator(map.end(), convert));
         return true;
     }
 
     // Returns the list of descriptions for the valid arguments.
     bool getDescriptions(std::vector<StringRef>& vec) const
     {
-        auto convert = [](MapValueType const& x) -> StringRef {
-            return x.second.second;
-        };
+        for (auto const& I : map)
+            vec.emplace_back(I.second.second);
 
-        vec.assign(mapIterator(map.begin(), convert), mapIterator(map.end(), convert));
         return true;
     }
 };
