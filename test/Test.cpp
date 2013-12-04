@@ -22,12 +22,12 @@ namespace cl
     template <class T, class U>
     struct Parser<std::pair<T, U>>
     {
-        bool operator ()(StringRef value, size_t i, std::pair<T, U>& result) const
+        bool operator ()(StringRef spec, StringRef value, size_t i, std::pair<T, U>& result) const
         {
             auto p = strings::split(value, ":")();
 
-            return Parser<T>()(p.first.trim(), i, result.first)
-                   && Parser<U>()(p.second.trim(), i, result.second);
+            return Parser<T>()(spec, p.first, i, result.first)
+                && Parser<U>()(spec, p.second, i, result.second);
         }
     };
 
@@ -47,6 +47,21 @@ namespace cl
 
 } // namespace cl
 } // namespace support
+
+struct WFlagParser
+{
+    bool operator ()(StringRef spec, StringRef /*value*/, size_t /*i*/, bool& result) const
+    {
+        result = !spec.starts_with("Wno-");
+        return true;
+    }
+};
+
+template <class... A>
+inline cl::Option<bool, WFlagParser> makeWFlag(A&&... args)
+{
+    return cl::makeOptionWithParser<bool>(WFlagParser(), std::forward<A>(args)..., cl::ArgDisallowed, cl::ZeroOrMore);
+}
 
 int main(int argc, char* argv[])
 {
@@ -192,6 +207,27 @@ int main(int argc, char* argv[])
         cl::ArgOptional
         );
 
+                    //------------------------------------------------------------------------------
+
+    auto debug_level = cl::makeOption<int>(cmd, "debug-level|d",
+        cl::Desc("Specify a debug-level"),
+        cl::Optional,
+        cl::ArgRequired
+        );
+
+                    //------------------------------------------------------------------------------
+
+    auto Wsign_conversion = makeWFlag(
+        cmd, "Wsign-conversion|Wno-sign-conversion",
+        cl::Desc("Warn for implicit conversions that may change the sign of an integer value.")
+        );
+
+    auto Wsign_compare = makeWFlag(
+        cmd, "Wsign-compare|Wno-sign-compare",
+        cl::Desc("Warn when a comparison between signed and unsigned values could produce "
+                 "an incorrect result when the signed value is converted to unsigned.")
+        );
+
     //----------------------------------------------------------------------------------------------
 
     bool success = cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false);
@@ -221,6 +257,9 @@ int main(int argc, char* argv[])
     std::cout << pretty(simpson) << std::endl;
     std::cout << pretty(y_ref) << std::endl;
     std::cout << pretty(z) << std::endl;
+    std::cout << pretty(debug_level) << std::endl;
+    std::cout << pretty(Wsign_conversion) << std::endl;
+    std::cout << pretty(Wsign_compare) << std::endl;
 
     std::cout << "files:\n";
     for (auto& s : files.get())
