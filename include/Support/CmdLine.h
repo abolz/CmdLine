@@ -254,9 +254,13 @@ struct MapParser
     {
     }
 
-    bool operator ()(StringRef spec, StringRef /*value*/, size_t /*i*/, T& result) const
+    bool operator ()(StringRef spec, StringRef value, size_t /*i*/, T& result) const
     {
-        auto I = map.find(spec.str());
+        // If the value is null, the option is specified by spec
+        if (value.data() == nullptr)
+            value = spec;
+
+        auto I = map.find(value.str());
 
         if (I != map.end())
         {

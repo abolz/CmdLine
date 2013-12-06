@@ -141,6 +141,18 @@ bool CmdLine::add(OptionBase* opt)
         return true;
     }
 
+    auto insert = [&](StringRef s, OptionBase* opt) -> bool
+    {
+        // Save the length of the longest prefix option
+        if (opt->isPrefix()) {
+            if (maxPrefixLength < s.size())
+                maxPrefixLength = s.size();
+        }
+
+        // Insert the option into the map
+        return options.insert({ s, opt }).second;
+    };
+
     if (opt->name.empty())
     {
         std::vector<StringRef> values;
@@ -152,7 +164,7 @@ bool CmdLine::add(OptionBase* opt)
 
         for (auto&& s : values)
         {
-            if (!options.insert({ s, opt }).second)
+            if (!insert(s, opt))
                 return false;
         }
 
@@ -161,13 +173,9 @@ bool CmdLine::add(OptionBase* opt)
 
     // Option name is not empty.
     // Might be a list of different names.
-    for (auto const& name : strings::split(opt->name, "|"))
+    for (auto const& s : strings::split(opt->name, "|"))
     {
-        // Save the length of the longest prefix option
-        if (opt->isPrefix() && maxPrefixLength < name.size())
-            maxPrefixLength = name.size();
-
-        if (!options.insert({ name, opt }).second)
+        if (!insert(s, opt))
             return false;
     }
 
@@ -410,13 +418,6 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
 {
     if (auto opt = findOption(arg)) // Standard option?
     {
-        // If the option name is empty, this option really is a map of option names
-        if (opt->name.empty())
-        {
-            success = addOccurrence(opt, arg, {}, i);
-            return true;
-        }
-
         StringRef value;
 
         // If the option requires an argument, "steal" the next argument from the
@@ -613,9 +614,9 @@ std::string OptionBase::usage() const
     std::string str = "<" + argName + ">";
 
     if (numArgs == ArgOptional)
-        str = "[" + str + "]";
+        str = "[=" + str + "]";
 
-    if (numArgs == ArgRequired && formatting != Prefix)
+    if (numArgs == ArgRequired && !isPrefix())
         str = " " + str;
 
     return name + str;

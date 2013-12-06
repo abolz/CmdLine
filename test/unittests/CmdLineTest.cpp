@@ -20,8 +20,8 @@ bool parse(cl::CmdLine& cmd, Argv argv)
 {
     if (!cmd.parse(std::move(argv)))
     {
-        for (auto const& s : cmd.getErrors())
-            std::cout << "NOTE : " << s << "\n";
+        //for (auto const& s : cmd.getErrors())
+        //    std::cout << "NOTE : " << s << "\n";
         return false;
     }
 
@@ -363,4 +363,162 @@ TEST(CmdLineTest, Consume2)
     EXPECT_TRUE ( test( { "-a", "script", "x", "-a" }, {"script", "x", "-a"     } ) ); // the first -a is an argument for <program>
     EXPECT_TRUE ( test( { "script", "-a", "x"       }, {"script", "-a", "x"     } ) );
     EXPECT_TRUE ( test( { "script", "x", "-a"       }, {"script", "x", "-a"     } ) ); // -a is an argument for <s>
+}
+
+TEST(CmdLineTest, Map1)
+{
+    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto x = cl::makeOption<int>(
+            {   { "none",          0, "Guess source file type" },
+                { "c",             1, "C source file" },
+                { "c++",           2, "C++ source file" },
+            },
+            cmd, "x",
+            cl::ArgRequired,
+            cl::ArgName("lang"),
+            cl::Desc("Specifiy source file type"),
+            cl::ZeroOrMore,
+            cl::init(0)
+            );
+
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
+
+        EXPECT_EQ(x_val.first, x.getCount());
+
+        if (x.getCount())
+            EXPECT_EQ(x_val.second, x.get());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(true,  {                  }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-x"              }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "none"      }, {1,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x=none"         }, {1,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "c++"       }, {1,2}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x=c++"          }, {1,2}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "cxx"       }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-x=cxx"          }, {0,0}) );
+}
+
+TEST(CmdLineTest, Map2)
+{
+    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto x = cl::makeOption<int>(
+            {   { "O0", 0, "No optimizations"             },
+                { "O1", 1, "Enable trivial optimizations" },
+                { "O2", 2, "Enable some optimizations"    },
+                { "O3", 3, "Enable all optimizations"     }
+            },
+            cmd,
+            cl::Required,
+            cl::ArgDisallowed,
+            cl::Desc("Choose an optimization level")
+            );
+
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
+
+        EXPECT_EQ(x_val.first, x.getCount());
+
+        if (x.getCount())
+            EXPECT_EQ(x_val.second, x.get());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O"              }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-O1"             }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-Ox"             }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O=1"            }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O", "1"         }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O1", "-O1"      }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O2", "-O1"      }, {1,2}) );
+}
+
+TEST(CmdLineTest, Map3)
+{
+    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto x = cl::makeOption<int>(
+            {   { "O0", 0, "No optimizations"             },
+                { "O1", 1, "Enable trivial optimizations" },
+                { "O2", 2, "Enable some optimizations"    },
+                { "O3", 3, "Enable all optimizations"     }
+            },
+            cmd,
+            cl::Required,
+            cl::Prefix,
+            cl::ArgOptional,
+            cl::Desc("Choose an optimization level")
+            );
+
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
+
+        EXPECT_EQ(x_val.first, x.getCount());
+
+        if (x.getCount())
+            EXPECT_EQ(x_val.second, x.get());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O"              }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-O1"             }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O1=O1"          }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-O1O1"           }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-O1O2"           }, {1,2}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O1Ox"           }, {0,0}) );
+}
+
+TEST(CmdLineTest, Map4)
+{
+    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto x = cl::makeOption<int>(
+            {   { "0", 0, "No optimizations"             },
+                { "1", 1, "Enable trivial optimizations" },
+                { "2", 2, "Enable some optimizations"    },
+                { "3", 3, "Enable all optimizations"     }
+            },
+            cmd, "O",
+            cl::Required,
+            cl::Prefix,
+            cl::ArgRequired,
+            cl::Desc("Choose an optimization level")
+            );
+
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
+
+        EXPECT_EQ(x_val.first, x.getCount());
+
+        if (x.getCount())
+            EXPECT_EQ(x_val.second, x.get());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O"              }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-O1"             }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-Ox"             }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O=1"            }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O", "1"         }, {0,0}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O1", "-O1"      }, {1,1}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-O2", "-O1"      }, {1,2}) );
 }
