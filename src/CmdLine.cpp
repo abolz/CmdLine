@@ -2,13 +2,10 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
 
 #include <algorithm>
-#include <fstream>
 #include <iostream>
-#include <sstream>
 
 using namespace support;
 using namespace support::cl;
@@ -100,26 +97,6 @@ std::ostream& operator<<(std::ostream& stream, Aligned const& x)
     return stream << x.text << "\n" << Spaces(x.indent);
 }
 
-template <class Range>
-std::string Join(Range const& range, StringRef sep)
-{
-    std::ostringstream result;
-
-    bool first = true;
-
-    for (auto const& s : range)
-    {
-        if (first)
-            first = false;
-        else
-            result << sep;
-
-        result << s;
-    }
-
-    return result.str();
-}
-
 } // namespace
 
 //--------------------------------------------------------------------------------------------------
@@ -182,17 +159,11 @@ bool CmdLine::add(OptionBase* opt)
     return true;
 }
 
-bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
+bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
 {
-    // Expand response files
-    if (!expandResponseFiles(argv))
-        return false;
-
     bool success = true;
     bool ok = true;
-
-    // "--" seen?
-    bool dashdash = false;
+    bool dashdash = false; // "--" seen?
 
     // The current positional argument - if any
     auto pos = positionals.begin();
@@ -348,50 +319,6 @@ bool CmdLine::isPossibleOption(StringRef name) const
     return findOption(name.drop_front(1)) != nullptr;
 }
 
-// Recursively expand response files.
-// Returns true on success, false otherwise.
-bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
-{
-    std::ifstream file(argv[i].substr(1));
-
-    if (!file)
-        return error("no such file or directory: \"" + argv[i] + "\"");
-
-    // Erase the i-th argument (@file)
-    argv.erase(argv.begin() + i);
-
-    // Parse the file while inserting new command line arguments before the erased argument
-    auto I = std::istreambuf_iterator<char>(file.rdbuf());
-    auto E = std::istreambuf_iterator<char>();
-
-    tokenizeCommandLineUnix(I, E, std::inserter(argv, argv.begin() + i));
-
-    return true;
-}
-
-bool CmdLine::expandResponseFiles(StringVector& argv)
-{
-    // Response file counter to prevent infinite recursion...
-    size_t responseFilesLeft = 100;
-
-    for (size_t i = 0; i < argv.size();)
-    {
-        if (argv[i][0] != '@')
-        {
-            i++;
-            continue;
-        }
-
-        if (!expandResponseFile(argv, i))
-            return false;
-
-        if (--responseFilesLeft == 0)
-            return error("too many response files encountered");
-    }
-
-    return true;
-}
-
 bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos)
 {
     if (pos == positionals.end())
@@ -421,7 +348,7 @@ bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVec
 
 // If 'name' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
-bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector& argv)
+bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv)
 {
     if (auto opt = findOption(arg)) // Standard option?
     {

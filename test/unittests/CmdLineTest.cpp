@@ -16,9 +16,9 @@ using namespace support;
 
 typedef std::vector<std::string> Argv;
 
-bool parse(cl::CmdLine& cmd, Argv argv)
+bool parse(cl::CmdLine& cmd, Argv const& argv)
 {
-    if (!cmd.parse(std::move(argv)))
+    if (!cmd.parse(argv))
     {
         //for (auto const& s : cmd.getErrors())
         //    std::cout << "NOTE : " << s << "\n";
@@ -75,7 +75,7 @@ TEST(CmdLineTest, Flags1)
 {
     using Pair = std::pair<unsigned, int>;
 
-    auto test = [](bool result, Argv argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
+    auto test = [](bool result, Argv const& argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -121,7 +121,7 @@ TEST(CmdLineTest, Grouping1)
 {
     using Pair = std::pair<unsigned, int>;
 
-    auto test = [](bool result, Argv argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
+    auto test = [](bool result, Argv const& argv, Pair const& a_val, Pair const& b_val, Pair const& c_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -174,7 +174,7 @@ TEST(CmdLineTest, Prefix)
 {
     using Pair = std::pair<unsigned, std::string>;
 
-    auto test = [](bool result, Argv argv, Pair const& r_val, Pair const& o_val)
+    auto test = [](bool result, Argv const& argv, Pair const& r_val, Pair const& o_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -214,7 +214,7 @@ TEST(CmdLineTest, MayPrefix)
 {
     using Pair = std::pair<unsigned, std::string>;
 
-    auto test = [](bool result, Argv argv, Pair const& r_val, Pair const& o_val)
+    auto test = [](bool result, Argv const& argv, Pair const& r_val, Pair const& o_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -252,7 +252,7 @@ TEST(CmdLineTest, MayPrefix)
 
 TEST(CmdLineTest, Equals)
 {
-    auto test = [](Argv argv, std::string const& val) -> bool
+    auto test = [](Argv const& argv, std::string const& val) -> bool
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -263,7 +263,7 @@ TEST(CmdLineTest, Equals)
         auto c = cl::makeOption<std::string>(cmd, "c", cl::ArgRequired);
         auto d = cl::makeOption<std::string>(cmd, "d", cl::ArgOptional);
 
-        if (!parse(cmd, std::move(argv)))
+        if (!parse(cmd, argv))
             return false;
 
         if (a.getCount()) EXPECT_EQ(a.get(), val);
@@ -294,7 +294,7 @@ TEST(CmdLineTest, Equals)
 
 TEST(CmdLineTest, Consume1)
 {
-    auto test = [](Argv argv, std::string const& s_val, std::vector<std::string> const& x_val) -> bool
+    auto test = [](Argv const& argv, std::string const& s_val, std::vector<std::string> const& x_val) -> bool
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -304,7 +304,7 @@ TEST(CmdLineTest, Consume1)
         auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
         auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional);
 
-        if (!parse(cmd, std::move(argv)))
+        if (!parse(cmd, argv))
             return false;
 
         if (s.getCount())
@@ -335,7 +335,7 @@ TEST(CmdLineTest, Consume2)
     // same as Consume1, but
     // merge script name and arguments...
 
-    auto test = [](Argv argv, std::vector<std::string> const& s_val)
+    auto test = [](Argv const& argv, std::vector<std::string> const& s_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -344,7 +344,7 @@ TEST(CmdLineTest, Consume2)
         auto a = cl::makeOption<std::string>(cmd, "a");
         auto s = cl::makeOption<std::vector<std::string>>(cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
 
-        if (!parse(cmd, std::move(argv)))
+        if (!parse(cmd, argv))
             return false;
 
         if (s.getCount())
@@ -367,7 +367,7 @@ TEST(CmdLineTest, Consume2)
 
 TEST(CmdLineTest, Map1)
 {
-    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    auto test = [](bool result, Argv const& argv, std::pair<unsigned, int> x_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -407,7 +407,7 @@ TEST(CmdLineTest, Map1)
 
 TEST(CmdLineTest, Map2)
 {
-    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    auto test = [](bool result, Argv const& argv, std::pair<unsigned, int> x_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -446,7 +446,7 @@ TEST(CmdLineTest, Map2)
 
 TEST(CmdLineTest, Map3)
 {
-    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    auto test = [](bool result, Argv const& argv, std::pair<unsigned, int> x_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -485,7 +485,7 @@ TEST(CmdLineTest, Map3)
 
 TEST(CmdLineTest, Map4)
 {
-    auto test = [](bool result, Argv argv, std::pair<unsigned, int> x_val)
+    auto test = [](bool result, Argv const& argv, std::pair<unsigned, int> x_val)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -525,7 +525,7 @@ TEST(CmdLineTest, Map4)
 
 TEST(CmdLineTest, Ignore1)
 {
-    auto test = [](bool result, Argv argv, std::vector<std::string> const& unknowns)
+    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
@@ -550,7 +550,7 @@ TEST(CmdLineTest, Ignore1)
 
 TEST(CmdLineTest, Ignore2)
 {
-    auto test = [](bool result, Argv argv, std::vector<std::string> const& unknowns)
+    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 

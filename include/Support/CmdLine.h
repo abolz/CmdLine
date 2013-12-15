@@ -96,7 +96,7 @@ public:
     bool add(OptionBase* opt);
 
     // Parse the given command line arguments
-    bool parse(StringVector argv, bool ignoreUnknowns = false);
+    bool parse(StringVector const& argv, bool ignoreUnknowns = false);
 
     // Prints the help message
     void help(bool showPositionals = false) const;
@@ -114,11 +114,8 @@ private:
 
     bool isPossibleOption(StringRef name) const;
 
-    bool expandResponseFile(StringVector& argv, size_t i);
-    bool expandResponseFiles(StringVector& argv);
-
     bool handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos);
-    bool handleOption(bool& success, StringRef arg, size_t& i, StringVector& argv);
+    bool handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv);
     bool handlePrefix(bool& success, StringRef arg, size_t i);
     bool handleGroup(bool& success, StringRef arg, size_t i);
 
