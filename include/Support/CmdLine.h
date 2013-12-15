@@ -195,10 +195,31 @@ inline auto init(T&& value) -> Initializer<T&&>
 template <class T>
 struct Parser
 {
-    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, T& result) const
+    struct R3      {};
+    struct R2 : R3 {};
+    struct R1 : R2 {};
+
+//  template <class X>
+//  auto Run(R1, StringRef spec, StringRef value, size_t i, X& result) const -> decltype(parse(spec, value, i, result))
+//  {
+//      return parse(spec, value, i, result);
+//  }
+
+    template <class X>
+    auto Run(R2, StringRef spec, StringRef value, size_t i, X& result) const -> decltype(result.parse(spec, value, i))
+    {
+        return result.parse(spec, value, i);
+    }
+
+    bool Run(R3, StringRef /*spec*/, StringRef value, size_t /*i*/, T& result) const
     {
         StringRefStream stream(value);
         return (stream >> std::setbase(0) >> result) && stream.eof();
+    }
+
+    bool operator ()(StringRef spec, StringRef value, size_t i, T& result) const
+    {
+        return Run(R1(), spec, value, i, result);
     }
 };
 

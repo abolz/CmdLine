@@ -228,6 +228,33 @@ int main(int argc, char* argv[])
                  "an incorrect result when the signed value is converted to unsigned.")
         );
 
+                    //------------------------------------------------------------------------------
+
+    struct Targets
+    {
+        std::set<std::string> value{{"x", "y", "z"}};
+
+        bool parse(StringRef name, StringRef arg, size_t /*i*/)
+        {
+            if (name.starts_with("without-"))
+                value.erase(arg.str());
+            else
+                value.insert(arg.str());
+
+            return true;
+        }
+    };
+
+    auto targets = cl::makeOption<Targets>(
+        cmd, "without-|with-",
+        cl::Desc("Specifiy which targets to build"),
+        cl::ArgName("target"),
+        cl::Prefix,
+        cl::ArgRequired,
+        cl::CommaSeparated,
+        cl::ZeroOrMore
+        );
+
     //----------------------------------------------------------------------------------------------
 
     bool success = cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false);
@@ -260,6 +287,8 @@ int main(int argc, char* argv[])
     std::cout << pretty(debug_level) << std::endl;
     std::cout << pretty(Wsign_conversion) << std::endl;
     std::cout << pretty(Wsign_compare) << std::endl;
+
+    std::cout << "Targets: " << pretty(targets.get().value) << std::endl;
 
     std::cout << "files:\n";
     for (auto& s : files.get())
