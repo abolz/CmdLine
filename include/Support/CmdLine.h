@@ -540,6 +540,7 @@ class Option : public BasicOption<T>
     ParserT parser;
 
 public:
+    using parser_type = ParserT;
     using traits_type = Traits<T>;
 
     using value_type        = typename traits_type::value_type;
@@ -550,20 +551,10 @@ public:
         "Elements of containers must be default constructible");
 
 public:
-    struct WithParser {};
-
     template <class P, class... An>
-    explicit Option(WithParser, P&& p, An&&... an)
+    explicit Option(P&& p, An&&... an)
         : BaseType(std::forward<An>(an)...)
         , parser(std::forward<P>(p))
-    {
-        applyRec(is_scalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
-    }
-
-    template <class... An>
-    explicit Option(An&&... an)
-        : BaseType(std::forward<An>(an)...)
-        , parser()
     {
         applyRec(is_scalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
@@ -637,7 +628,8 @@ private:
 template <class T, class... An>
 auto makeOption(An&&... an) -> Option<T>
 {
-    return Option<T>(std::forward<An>(an)...);
+    using R = Option<T>;
+    return R(typename R::parser_type(), std::forward<An>(an)...);
 }
 
 // Construct a new Option with a MapParser
@@ -645,7 +637,7 @@ template <class T, class... An>
 auto makeOption(std::initializer_list<typename MapParser<T>::Init> ilist, An&&... an) -> Option<T, MapParser<T>>
 {
     using R = Option<T, MapParser<T>>;
-    return R(typename R::WithParser(), ilist, std::forward<An>(an)...);
+    return R(ilist, std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
@@ -653,7 +645,7 @@ template <class T, class P, class... An>
 auto makeOptionWithParser(P&& p, An&&... an) -> Option<T, Decay<P>>
 {
     using R = Option<T, Decay<P>>;
-    return R(typename R::WithParser(), std::forward<P>(p), std::forward<An>(an)...);
+    return R(std::forward<P>(p), std::forward<An>(an)...);
 }
 
 } // namespace cl
