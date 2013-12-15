@@ -255,22 +255,17 @@ struct MapParser
     using MapType       = std::map<std::string, std::pair<T, std::string>>;
     using MapValueType  = typename MapType::value_type;
 
-    struct KeyValueDesc : MapValueType
+    struct Init : MapValueType
     {
-        template <class K, class V1, class V2>
-        KeyValueDesc(K&& key, V1&& v1, V2&& v2)
-            : MapValueType(std::forward<K>(key), { std::forward<V1>(v1), std::forward<V2>(v2) })
+        Init(std::string name, T value, std::string desc = "")
+            : MapValueType(std::move(name), {std::move(value), std::move(desc)})
         {
         }
     };
 
     MapType map;
 
-    explicit MapParser()
-    {
-    }
-
-    explicit MapParser(std::initializer_list<KeyValueDesc> ilist)
+    explicit MapParser(std::initializer_list<Init> ilist)
         : map(ilist.begin(), ilist.end())
     {
     }
@@ -294,23 +289,27 @@ struct MapParser
 };
 
 template <class P>
-void getValues(P const&, std::vector<StringRef>&) {}
+void allowedValues(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
+{
+}
 
 template <class T>
-void getValues(MapParser<T> const& p, std::vector<StringRef>& v)
+void allowedValues(MapParser<T> const& parser, std::vector<StringRef>& vec)
 {
-    for (auto const& I : p.map)
-        v.emplace_back(I.first);
+    for (auto const& I : parser.map)
+        vec.emplace_back(I.first);
 }
 
 template <class P>
-void getDescriptions(P const&, std::vector<StringRef>&) {}
+void descriptions(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
+{
+}
 
 template <class T>
-void getDescriptions(MapParser<T> const& p, std::vector<StringRef>& v)
+void descriptions(MapParser<T> const& parser, std::vector<StringRef>& vec)
 {
-    for (auto const& I : p.map)
-        v.emplace_back(I.second.second);
+    for (auto const& I : parser.map)
+        vec.emplace_back(I.second.second);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -465,10 +464,10 @@ private:
     virtual bool parse(StringRef spec, StringRef value, size_t i) = 0;
 
     // Returns a list of valid arguments for this option
-    virtual void getValues(std::vector<StringRef>& vec) const = 0;
+    virtual void allowedValues(std::vector<StringRef>& vec) const = 0;
 
     // Returns a list of the descriptions for each valid argument
-    virtual void getDescriptions(std::vector<StringRef>& vec) const = 0;
+    virtual void descriptions(std::vector<StringRef>& vec) const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -634,16 +633,16 @@ private:
         return parse(spec, value, i, is_scalar());
     }
 
-    void getValues(StringRefVector& vec) const override
+    void allowedValues(StringRefVector& vec) const override
     {
-        using cl::getValues;
-        getValues(getParser(), vec);
+        using cl::allowedValues;
+        allowedValues(getParser(), vec);
     }
 
-    void getDescriptions(StringRefVector& vec) const override
+    void descriptions(StringRefVector& vec) const override
     {
-        using cl::getDescriptions;
-        getDescriptions(getParser(), vec);
+        using cl::descriptions;
+        descriptions(getParser(), vec);
     }
 };
 
@@ -656,7 +655,7 @@ auto makeOption(An&&... an) -> Option<T>
 
 // Construct a new Option with a MapParser
 template <class T, class... An>
-auto makeOption(std::initializer_list<typename MapParser<T>::KeyValueDesc> ilist, An&&... an) -> Option<T, MapParser<T>>
+auto makeOption(std::initializer_list<typename MapParser<T>::Init> ilist, An&&... an) -> Option<T, MapParser<T>>
 {
     using R = Option<T, MapParser<T>>;
     return R(typename R::WithParser(), ilist, std::forward<An>(an)...);

@@ -157,7 +157,7 @@ bool CmdLine::add(OptionBase* opt)
     {
         std::vector<StringRef> values;
 
-        opt->getValues(values);
+        opt->allowedValues(values);
 
         if (values.empty())
             return false;
@@ -528,9 +528,6 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
 
     if (!opt->isOccurrenceAllowed())
     {
-        if (opt->name.empty())
-            return error("option '" + name + "' not allowed here");
-
         if (opt->numOccurrences == Optional)
             return error("option '" + name + "' must occur at most once");
 
@@ -632,9 +629,9 @@ std::string OptionBase::usage() const
 void OptionBase::help() const
 {
     std::vector<StringRef> values;
-    std::vector<StringRef> descriptions;
+    std::vector<StringRef> descr;
 
-    getValues(values);
+    allowedValues(values);
 
     if (values.empty())
     {
@@ -647,9 +644,9 @@ void OptionBase::help() const
     // Show all valid values.
 
     // Get the description for each value
-    getDescriptions(descriptions);
+    descriptions(descr);
 
-    assert(descriptions.size() == values.size() && "not supported");
+    assert(descr.size() == values.size() && "not supported");
 
     if (formatting == Positional)
     {
@@ -678,7 +675,7 @@ void OptionBase::help() const
     for (size_t I = 0; I < values.size(); ++I)
     {
         std::cout << Aligned(prefix + values[I])
-                  << Wrapped("- " + descriptions[I], kIndentDescription + 2) << "\n";
+                  << Wrapped("- " + descr[I], kIndentDescription + 2) << "\n";
     }
 }
 
@@ -687,12 +684,7 @@ StringRef OptionBase::displayName() const
     if (name.empty())
         return argName;
 
-#if 1
     return name;
-#else
-    StringRef x = name;
-    return x.front(x.find('|'));
-#endif
 }
 
 bool OptionBase::isOccurrenceAllowed() const
