@@ -214,10 +214,21 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
         {
             handlePositional(ok, arg, i, pos);
 
-            // If the current positional argument has the ConsumeAfter flag set, parse
-            // all following command-line arguments as positional options.
-            if (ok && ((*pos)->miscFlags & ConsumeAfter) != 0)
-                dashdash = true;
+            if (ok)
+            {
+                // If the current positional argument has the ConsumeAfter flag set, parse
+                // all following command-line arguments as positional options.
+                if ((*pos)->miscFlags & ConsumeAfter)
+                    dashdash = true;
+            }
+            else
+            {
+                unknowns.emplace_back(arg.str());
+
+                ok = ignoreUnknowns;
+                if (!ok)
+                    error("unhandled positional argument: '" + arg + "'");
+            }
 
             continue;
         }
@@ -249,15 +260,11 @@ bool CmdLine::parse(StringVector argv, bool ignoreUnknowns)
             continue;
 
         // Unknown option specified...
-        if (ignoreUnknowns)
-        {
-            unknowns.emplace_back(arg);
-            ok = false;
-        }
-        else
-        {
-            ok = error("unknown option '" + arg + "'");
-        }
+        unknowns.emplace_back(arg);
+
+        ok = ignoreUnknowns;
+        if (!ok)
+            error("unknown option '" + arg + "'");
     }
 
     // Check if all required options have been successfully parsed
@@ -389,7 +396,7 @@ bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVec
 {
     if (pos == positionals.end())
     {
-        success = error("unhandled positional argument: '" + arg + "'");
+        success = false;
         return true;
     }
 

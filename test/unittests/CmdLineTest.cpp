@@ -522,3 +522,52 @@ TEST(CmdLineTest, Map4)
     EXPECT_NO_FATAL_FAILURE( test(false, {"-O1", "-O1"      }, {1,1}) );
     EXPECT_NO_FATAL_FAILURE( test(false, {"-O2", "-O1"      }, {1,2}) );
 }
+
+TEST(CmdLineTest, Ignore1)
+{
+    auto test = [](bool result, Argv argv, std::vector<std::string> const& unknowns)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
+            cl::Positional, cl::ZeroOrMore
+            );
+
+        auto y = cl::makeOption<bool>(cmd, "y");
+
+        bool actual_result = cmd.parse(argv, true/*IgnoreUnknowns*/);
+        EXPECT_EQ(result, actual_result);
+        EXPECT_EQ(unknowns, cmd.getUnknowns());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
+}
+
+TEST(CmdLineTest, Ignore2)
+{
+    auto test = [](bool result, Argv argv, std::vector<std::string> const& unknowns)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd("program");
+
+        auto y = cl::makeOption<bool>(cmd, "y");
+
+        bool actual_result = cmd.parse(argv, true/*IgnoreUnknowns*/);
+        EXPECT_EQ(result, actual_result);
+        EXPECT_EQ(unknowns, cmd.getUnknowns());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"x"}, {"x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"x", "y"}, {"x", "y"}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y=1"}, {"-x"}) );
+    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
+}
