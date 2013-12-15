@@ -301,24 +301,6 @@ OptionBase* CmdLine::findOption(StringRef name) const
     return I == options.end() ? 0 : I->second;
 }
 
-bool CmdLine::isPossibleOption(StringRef name) const
-{
-    if (name.size() < 2)
-        return false;
-
-    // If name does not start with a dash, it's not an option
-    if (name[0] != '-')
-        return false;
-
-    // If the name does start with two (or more...) dashes it might be an option
-    if (name[1] == '-')
-        return true;
-
-    // If name starts with a single dash, check if there is an option
-    // with the given name.
-    return findOption(name.drop_front(1)) != nullptr;
-}
-
 bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos)
 {
     if (pos == positionals.end())
@@ -358,7 +340,7 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
         // command line, so that "-o file" is possible instead of "-o=file"
         if (opt->numArgs == ArgRequired)
         {
-            if (opt->formatting == Prefix || (i + 1 >= argv.size() || isPossibleOption(argv[i + 1])))
+            if (opt->formatting == Prefix || i + 1 >= argv.size())
             {
                 success = error("option '" + opt->displayName() + "' expects an argument");
                 return true;

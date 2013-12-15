@@ -112,8 +112,6 @@ private:
 
     OptionBase* findOption(StringRef name) const;
 
-    bool isPossibleOption(StringRef name) const;
-
     bool handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos);
     bool handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv);
     bool handlePrefix(bool& success, StringRef arg, size_t i);
