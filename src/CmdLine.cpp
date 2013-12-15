@@ -448,6 +448,8 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
         if (!opt->parse(spec, value, i))
             return error("invalid argument '" + value + "' for option '" + name + "'");
 
+        opt->count++;
+
         return true;
     };
 
@@ -462,8 +464,6 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
         if (!parse(spec, value))
             return false;
     }
-
-    opt->count++;
 
     return true;
 }
