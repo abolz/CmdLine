@@ -52,15 +52,10 @@ enum Formatting : unsigned char {
 };
 
 enum MiscFlags : unsigned char {
-    None                = 0,
-    CommaSeparated      = 0x01, // Should this list split between commas?
-    Hidden              = 0x02, // Do not show this option in the usage
-    // If this flag is specified for a positional option, command line
-    // processing is stopped once this option is parsed and any following
-    // argument is treated as a positional argument. This has the same
-    // effect as specifying "--" after the given option.
-    // This flag is ignored for non-positional command line options.
-    ConsumeAfter        = 0x04,
+    None = 0,
+    CommaSeparated = 0x01,  // Should this list split between commas?
+    Hidden = 0x02,          // Do not show this option in the usage
+    ConsumeAfter = 0x04,    // Handle all following arguments as positional arguments
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -532,12 +527,6 @@ public:
 
     // Returns a pointer to the value
     stored_type const* operator ->() const { return std::addressof(value); }
-
-    // Explicitly convert to the stored type
-    explicit operator stored_type&() { return get(); }
-
-    // Explicitly convert to the stored type
-    explicit operator stored_type const&() const { return get(); }
 };
 
 //--------------------------------------------------------------------------------------------------
