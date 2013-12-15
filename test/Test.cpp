@@ -154,6 +154,7 @@ int main(int argc, char* argv[])
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
         optParser,
         cmd,
+        cl::ArgName("optimization level"),
         cl::Required,
         cl::ArgDisallowed,
         cl::Desc("Choose an optimization level"),

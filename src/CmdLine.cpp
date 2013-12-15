@@ -433,7 +433,7 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
         {
             if (opt->formatting == Prefix || (i + 1 >= argv.size() || isPossibleOption(argv[i + 1])))
             {
-                success = error("option '" + arg + "' expects an argument");
+                success = error("option '" + opt->displayName() + "' expects an argument");
                 return true;
             }
 
@@ -458,7 +458,7 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
         if (opt->numArgs == ArgDisallowed)
         {
             // An argument was specified, but this is not allowed
-            success = error("option '" + spec + "' does not allow an argument");
+            success = error("option '" + opt->displayName() + "' does not allow an argument");
         }
         else
         {
@@ -524,21 +524,23 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 
 bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i)
 {
+    StringRef name = opt->displayName();
+
     if (!opt->isOccurrenceAllowed())
     {
         if (opt->name.empty())
-            return error("option '" + spec + "' not allowed here");
+            return error("option '" + name + "' not allowed here");
 
         if (opt->numOccurrences == Optional)
-            return error("option '" + spec + "' must occur at most once");
+            return error("option '" + name + "' must occur at most once");
 
-        return error("option '" + spec + "' must occur exactly once");
+        return error("option '" + name + "' must occur exactly once");
     }
 
     auto parse = [&](StringRef spec, StringRef value) -> bool
     {
         if (!opt->parse(spec, value, i))
-            return error("invalid argument '" + value + "' for option '" + spec + "'");
+            return error("invalid argument '" + value + "' for option '" + name + "'");
 
         return true;
     };
@@ -578,9 +580,7 @@ bool CmdLine::check(OptionBase* opt)
     if (!opt->isOccurrenceRequired())
         return true;
 
-    std::string name = opt->name.empty() ? opt->argName : opt->name;
-
-    return error("option '" + name + "' missing");
+    return error("option '" + opt->displayName() + "' missing");
 }
 
 // Adds an error message. Returns false.
@@ -682,6 +682,19 @@ void OptionBase::help() const
     }
 }
 
+StringRef OptionBase::displayName() const
+{
+    if (name.empty())
+        return argName;
+
+#if 1
+    return name;
+#else
+    StringRef x = name;
+    return x.front(x.find('|'));
+#endif
+}
+
 bool OptionBase::isOccurrenceAllowed() const
 {
     if (numOccurrences == Optional || numOccurrences == Required)
@@ -725,14 +738,5 @@ void OptionBase::done()
         numArgs = ArgDisallowed;
 
     if (argName.empty())
-    {
-        std::vector<StringRef> values;
-
-        getValues(values);
-
-        argName = Join(values, "|");
-
-        if (argName.empty()) // values was empty...
-            argName = "arg";
-    }
+        argName = "arg";
 }

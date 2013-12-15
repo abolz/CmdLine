@@ -452,6 +452,9 @@ private:
 
     void help() const;
 
+    // Returns the name of this option for use in error messages
+    StringRef displayName() const;
+
     bool isOccurrenceAllowed() const;
     bool isOccurrenceRequired() const;
     bool isUnbounded() const;
