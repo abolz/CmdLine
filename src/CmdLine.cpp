@@ -162,86 +162,22 @@ bool CmdLine::add(OptionBase* opt)
 bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
 {
     bool success = true;
-    bool ok = true;
     bool dashdash = false; // "--" seen?
 
     // The current positional argument - if any
     auto pos = positionals.begin();
 
-    for (size_t i = 0, e = argv.size(); i != e; ++i, success = success && ok)
+    // Handle all arguments...
+    for (size_t N = 0; N < argv.size(); ++N)
     {
-        StringRef arg = argv[i];
-
-        // Stop parsing if "--" has been found
-        if (arg == "--" && !dashdash)
+        if (!handleArg(argv, N, pos, dashdash, ignoreUnknowns))
         {
-            dashdash = true;
-            continue;
+            success = false;
         }
-
-        // This argument is considered to be positional if it doesn't start with '-', if it is "-"
-        // itself, or if we have seen "--" already.
-        if (arg[0] != '-' || arg == "-" || dashdash)
-        {
-            handlePositional(ok, arg, i, pos);
-
-            if (ok)
-            {
-                // If the current positional argument has the ConsumeAfter flag set, parse
-                // all following command-line arguments as positional options.
-                if ((*pos)->miscFlags & ConsumeAfter)
-                    dashdash = true;
-            }
-            else
-            {
-                unknowns.emplace_back(arg.str());
-
-                ok = ignoreUnknowns;
-                if (!ok)
-                    error("unhandled positional argument: '" + arg + "'");
-            }
-
-            continue;
-        }
-
-        // Starts with a dash, must be an argument.
-        auto name = arg.drop_front(1);
-
-        assert(!name.empty());
-
-        bool short_option = name[0] != '-';
-
-        if (!short_option)
-            name = name.drop_front(1);
-
-        assert(!name.empty());
-
-        // Try to process this argument as a standard option.
-        if (handleOption(ok, name, i, argv))
-            continue;
-
-        // If it's not a standard option and there is no equals sign,
-        // check for a prefix option.
-        // FIXME: Allow prefix only for short options?
-        if (handlePrefix(ok, name, i))
-            continue;
-
-        // If it's not standard or prefix option, check for an option group
-        if (short_option && handleGroup(ok, name, i))
-            continue;
-
-        // Unknown option specified...
-        unknowns.emplace_back(arg);
-
-        ok = ignoreUnknowns;
-        if (!ok)
-            error("unknown option '" + arg + "'");
     }
 
     // Check if all required options have been successfully parsed
-    success = check() && success;
-
-    return success;
+    return check() && success;
 }
 
 void CmdLine::help(bool showPositionals) const
@@ -301,35 +237,103 @@ OptionBase* CmdLine::findOption(StringRef name) const
     return I == options.end() ? 0 : I->second;
 }
 
-bool CmdLine::handlePositional(bool& success, StringRef arg, size_t i, OptionVector::iterator& pos)
+//
+// Process a single command line argument.
+// Returns true on success, false otherwise.
+//
+bool CmdLine::handleArg(StringVector const& argv,
+                        size_t& i,
+                        OptionVector::iterator& pos,
+                        bool& dashdash,
+                        bool ignoreUnknowns
+                        )
 {
-    if (pos == positionals.end())
+    StringRef arg = argv[i];
+
+    // Stop parsing if "--" has been found
+    if (arg == "--" && !dashdash)
     {
-        success = false;
+        dashdash = true;
         return true;
     }
+
+    // This argument is considered to be positional if it doesn't start with '-', if it is "-"
+    // itself, or if we have seen "--" already.
+    if (arg[0] != '-' || arg == "-" || dashdash)
+    {
+        if (handlePositional(arg, i, pos))
+        {
+            // If the current positional argument has the ConsumeAfter flag set, parse
+            // all following command-line arguments as positional options.
+            if ((*pos)->miscFlags & ConsumeAfter)
+                dashdash = true;
+
+            return true;
+        }
+
+        // Unhandled positional argument...
+        unknowns.emplace_back(arg.str());
+
+        return ignoreUnknowns || error("unhandled positional argument: '" + arg + "'");
+    }
+
+    // Starts with a dash, must be an argument.
+    auto name = arg.drop_front(1);
+
+    bool short_option = name[0] != '-';
+
+    if (!short_option)
+        name = name.drop_front(1);
+
+    bool success = true;
+
+    // Try to process this argument as a standard option.
+    if (handleOption(success, name, i, argv))
+        return success;
+
+    // If it's not a standard option and there is no equals sign,
+    // check for a prefix option.
+    // FIXME: Allow prefix only for short options?
+    if (handlePrefix(success, name, i))
+        return success;
+
+    // If it's not standard or prefix option, check for an option group
+    if (short_option && handleGroup(success, name, i))
+        return success;
+
+    // Unknown option specified...
+    unknowns.emplace_back(arg);
+
+    return ignoreUnknowns || error("unknown option '" + arg + "'");
+}
+
+//
+// Process a positional argument.
+// Returns true on success, false otherwise.
+//
+bool CmdLine::handlePositional(StringRef arg, size_t i, OptionVector::iterator& pos)
+{
+    if (pos == positionals.end())
+        return false;
 
     auto opt = *pos;
 
     // If the current positional argument does not allow any further
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
-        return handlePositional(success, arg, i, ++pos);
-
-    //
-    // FIXME:
-    //
-    // If the current positional is Optional and cannot handle the given value,
-    // skip to next positional argument instead of reporting an error?!
-    //
+        return handlePositional(arg, i, ++pos);
 
     // The value of a positional option is the argument itself.
-    success = addOccurrence(opt, arg, arg, i);
-    return true;
+    return addOccurrence(opt, arg, arg, i);
 }
 
-// If 'name' is the name of an option, process the option immediately.
+//
+// If 'arg' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
+//
+// Returns true if the option was handled, returns in 'success' whether the option was
+// successfully handled.
+//
 bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv)
 {
     if (auto opt = findOption(arg)) // Standard option?
@@ -385,7 +389,12 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
     return false;
 }
 
+//
 // Handles prefix options which have an argument specified without an equals sign.
+//
+// Returns true if the option was handled, returns in 'success' whether the option was
+// successfully handled.
+//
 bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
 {
     assert(!arg.empty());
@@ -405,6 +414,12 @@ bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
     return false;
 }
 
+//
+// Process an option group.
+//
+// Returns true if the option was handled, returns in 'success' whether the option was
+// successfully handled.
+//
 bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 {
     OptionVector group;
@@ -439,8 +454,8 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
     {
         if (opt->numOccurrences == Optional)
             return error("option '" + name + "' must occur at most once");
-
-        return error("option '" + name + "' must occur exactly once");
+        else
+            return error("option '" + name + "' must occur exactly once");
     }
 
     auto parse = [&](StringRef spec, StringRef value) -> bool
