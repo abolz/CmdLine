@@ -373,11 +373,14 @@ TEST(CmdLineTest, Map1)
 
         cl::CmdLine cmd("program");
 
-        auto x = cl::makeOption<int>(
-            {   { "none",          0, "Guess source file type" },
-                { "c",             1, "C source file" },
-                { "c++",           2, "C++ source file" },
-            },
+        auto xParser = cl::MapParser<int>({
+            { "none", 0 },
+            { "c",    1 },
+            { "c++",  2 },
+        });
+
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
@@ -413,12 +416,15 @@ TEST(CmdLineTest, Map2)
 
         cl::CmdLine cmd("program");
 
-        auto x = cl::makeOption<int>(
-            {   { "O0", 0, "No optimizations"             },
-                { "O1", 1, "Enable trivial optimizations" },
-                { "O2", 2, "Enable some optimizations"    },
-                { "O3", 3, "Enable all optimizations"     }
-            },
+        auto xParser = cl::MapParser<int>({
+            { "O0", 0 },
+            { "O1", 1 },
+            { "O2", 2 },
+            { "O3", 3 },
+        });
+
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cmd,
             cl::Required,
             cl::ArgDisallowed,
@@ -452,12 +458,15 @@ TEST(CmdLineTest, Map3)
 
         cl::CmdLine cmd("program");
 
-        auto x = cl::makeOption<int>(
-            {   { "O0", 0, "No optimizations"             },
-                { "O1", 1, "Enable trivial optimizations" },
-                { "O2", 2, "Enable some optimizations"    },
-                { "O3", 3, "Enable all optimizations"     }
-            },
+        auto xParser = cl::MapParser<int>({
+            { "O0", 0, "No optimizations"             },
+            { "O1", 1, "Enable trivial optimizations" },
+            { "O2", 2, "Enable some optimizations"    },
+            { "O3", 3, "Enable all optimizations"     },
+        });
+
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cmd,
             cl::Required,
             cl::Prefix,
@@ -491,12 +500,15 @@ TEST(CmdLineTest, Map4)
 
         cl::CmdLine cmd("program");
 
-        auto x = cl::makeOption<int>(
-            {   { "0", 0, "No optimizations"             },
-                { "1", 1, "Enable trivial optimizations" },
-                { "2", 2, "Enable some optimizations"    },
-                { "3", 3, "Enable all optimizations"     }
-            },
+        auto xParser = cl::MapParser<int>({
+            { "0", 0, "No optimizations"             },
+            { "1", 1, "Enable trivial optimizations" },
+            { "2", 2, "Enable some optimizations"    },
+            { "3", 3, "Enable all optimizations"     },
+        });
+
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cmd, "O",
             cl::Required,
             cl::Prefix,

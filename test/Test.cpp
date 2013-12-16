@@ -167,15 +167,18 @@ int main(int argc, char* argv[])
         Homer, Marge, Bart, Lisa, Maggie, SideshowBob
     };
 
-    auto simpson = cl::makeOption<Simpson>(
-        {   { "homer",        Homer,       "Homer Jay Simpson"            },
-            { "marge",        Marge,       "Marjorie Simpson"             },
-            { "bart",         Bart,        "Bartholomew JoJo Simpson"     },
-            { "el barto",     Bart,        "?"                            },
-            { "lisa",         Lisa,        "Lisa Marie Simpson"           },
-            { "maggie",       Maggie,      "Margaret Simpson"             },
-//          { "sideshow bob", SideshowBob, "Robert Underdunk Terwilliger" },
-        },
+    auto simpsonParser = cl::MapParser<Simpson>({
+        { "homer",        Homer,       "Homer Jay Simpson"            },
+        { "marge",        Marge,       "Marjorie Simpson"             },
+        { "bart",         Bart,        "Bartholomew JoJo Simpson"     },
+        { "el barto",     Bart,        "?"                            },
+        { "lisa",         Lisa,        "Lisa Marie Simpson"           },
+        { "maggie",       Maggie,      "Margaret Simpson"             },
+//      { "sideshow bob", SideshowBob, "Robert Underdunk Terwilliger" },
+    });
+
+    auto simpson = cl::makeOptionWithParser<Simpson>(
+        simpsonParser,
         cmd, "simpson",
         cl::Desc("Choose a Simpson"),
         cl::ArgRequired,
