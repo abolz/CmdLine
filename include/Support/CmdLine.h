@@ -230,7 +230,7 @@ struct MapParser
     struct Init : MapValueType
     {
         Init(std::string name, T value, std::string desc = "")
-            : MapValueType(std::move(name), {std::move(value), std::move(desc)})
+            : MapValueType{std::move(name), {std::move(value), std::move(desc)}}
         {
         }
     };
