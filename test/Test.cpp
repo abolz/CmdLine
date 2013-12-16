@@ -236,20 +236,21 @@ int main(int argc, char* argv[])
 
     struct Targets
     {
-        std::set<std::string> value{{"x", "y", "z"}};
-
-        bool parse(StringRef name, StringRef arg, size_t /*i*/)
-        {
-            if (name.starts_with("without-"))
-                value.erase(arg.str());
-            else
-                value.insert(arg.str());
-
-            return true;
-        }
+        std::set<std::string> list{{"x", "y", "z"}};
     };
 
-    auto targets = cl::makeOption<Targets>(
+    auto targetsParser = [](StringRef name, StringRef arg, size_t /*i*/, Targets& value)
+    {
+        if (name.starts_with("without-"))
+            value.list.erase(arg.str());
+        else
+            value.list.insert(arg.str());
+
+        return true;
+    };
+
+    auto targets = cl::makeOptionWithParser<Targets>(
+        targetsParser,
         cmd, "without-|with-",
         cl::Desc("Specifiy which targets to build"),
         cl::ArgName("target"),
@@ -292,7 +293,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(Wsign_conversion) << std::endl;
     std::cout << pretty(Wsign_compare) << std::endl;
 
-    std::cout << "Targets: " << pretty(targets.get().value) << std::endl;
+    std::cout << "Targets: " << pretty(targets.get().list) << std::endl;
 
     std::cout << "files:\n";
     for (auto& s : files.get())
