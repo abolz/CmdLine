@@ -63,13 +63,16 @@ enum MiscFlags : unsigned char {
 //
 
 class OptionBase;
+class OptionGroup;
 
 class CmdLine
 {
     friend class OptionBase;
+    friend class OptionGroup;
 
 public:
     using OptionMap         = std::map<StringRef, OptionBase*>;
+    using OptionGroups      = std::map<StringRef, OptionGroup*>;
     using OptionVector      = std::vector<OptionBase*>;
     using ConstOptionVector = std::vector<OptionBase const*>;
     using StringVector      = std::vector<std::string>;
@@ -81,6 +84,8 @@ private:
     std::string overview;
     // List of options
     OptionMap options;
+    // List of option groups and associated options
+    OptionGroups groups;
     // List of positional options
     OptionVector positionals;
     // List of error message
@@ -129,6 +134,7 @@ private:
 
     bool check();
     bool check(OptionBase const* opt);
+    bool check(OptionGroup const* g);
 
     bool error(std::string str);
 };
@@ -362,6 +368,43 @@ struct Traits<std::string> : TraitsBase<std::string, void>
 };
 
 //--------------------------------------------------------------------------------------------------
+// OptionGroup
+//
+
+class OptionGroup
+{
+    friend class OptionBase;
+
+public:
+    enum Type {
+        Default,    // No restrictions (zero or more...)
+        Zero,       // No options in this group may be specified
+        ZeroOrOne,  // At most one option of this group must be specified
+        One,        // Exactly one option of this group must be specified
+        OneOrMore,  // At least one option must be specified
+        All,        // All options of this group must be specified
+        ZeroOrAll,  // If any option in this group is specified, the others must be specified, too.
+    };
+
+public:
+    explicit OptionGroup(CmdLine& cmd, std::string name, Type type = Default);
+
+    // Checks whether this group is valid
+    bool check() const;
+
+    // Returns a description for this group
+    std::string desc() const;
+
+private:
+    // The name of this option group
+    std::string name;
+    // The type of this group
+    Type type;
+    // The list of options in this group
+    std::vector<OptionBase*> options;
+};
+
+//--------------------------------------------------------------------------------------------------
 // OptionBase
 //
 
@@ -415,6 +458,11 @@ protected:
     void apply(NumArgs x)           { numArgs = x; }
     void apply(Formatting x)        { formatting = x; }
     void apply(MiscFlags x)         { miscFlags = static_cast<MiscFlags>(miscFlags | x); }
+
+    void apply(OptionGroup& x) {
+        // FIXME: Check for duplicates
+        x.options.push_back(this);
+    }
 
     template <class U>
     void apply(Initializer<U>) {

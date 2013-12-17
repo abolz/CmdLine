@@ -501,6 +501,9 @@ bool CmdLine::check()
     for (auto& I : positionals)
         success = check(I) && success;
 
+    for (auto& I : groups)
+        success = check(I.second) && success;
+
     return success;
 }
 
@@ -512,11 +515,90 @@ bool CmdLine::check(OptionBase const* opt)
     return error("option '" + opt->displayName() + "' missing");
 }
 
+bool CmdLine::check(OptionGroup const* g)
+{
+    if (g->check())
+        return true;
+
+    return error(g->desc());
+}
+
 // Adds an error message. Returns false.
 bool CmdLine::error(std::string str)
 {
     errors.push_back(std::move(str));
     return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+// OptionGroup
+//
+
+OptionGroup::OptionGroup(CmdLine& cmd, std::string name, Type type)
+    : name(std::move(name))
+    , type(type)
+{
+    if (!cmd.groups.insert({this->name, this}).second)
+    {
+    }
+}
+
+bool OptionGroup::check() const
+{
+    if (type == OptionGroup::Default)
+        return true;
+
+    // Count the number of options in this group which have been specified on the command-line
+    size_t N = std::count_if(options.begin(), options.end(),
+        [](OptionBase const* x)
+        {
+            return x->getCount() > 0;
+        }
+    );
+
+    switch (type)
+    {
+    case OptionGroup::Default: // prevent warning
+        return true;
+    case OptionGroup::Zero:
+        return N == 0;
+    case OptionGroup::ZeroOrOne:
+        return N == 0 || N == 1;
+    case OptionGroup::One:
+        return N == 1;
+    case OptionGroup::OneOrMore:
+        return N >= 1;
+    case OptionGroup::All:
+        return N == options.size();
+    case OptionGroup::ZeroOrAll:
+        return N == 0 || N == options.size();
+    }
+
+    return true; // prevent warning
+}
+
+std::string OptionGroup::desc() const
+{
+    switch (type)
+    {
+    case OptionGroup::Default:
+        return "any number of options in group '" + name + "' may be specified";
+    case OptionGroup::Zero:
+        return "no options in group '" + name + "' may be specified";
+    case OptionGroup::ZeroOrOne:
+        return "at most one option in group '" + name + "' may be specified";
+    case OptionGroup::One:
+        return "exactly one option in group '" + name + "' must be specified";
+    case OptionGroup::OneOrMore:
+        return "at least on option in group '" + name + "' must be specified";
+    case OptionGroup::All:
+        return "all options in group '" + name + "' must be specified";
+    case OptionGroup::ZeroOrAll:
+        return "none or all options in group '" + name + "' must be specified";
+    }
+
+    assert(!"internal error");
+    return "xxx";
 }
 
 //--------------------------------------------------------------------------------------------------
