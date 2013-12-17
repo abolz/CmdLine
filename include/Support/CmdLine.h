@@ -69,9 +69,10 @@ class CmdLine
     friend class OptionBase;
 
 public:
-    using OptionMap     = std::map<StringRef, OptionBase*>;
-    using OptionVector  = std::vector<OptionBase*>;
-    using StringVector  = std::vector<std::string>;
+    using OptionMap         = std::map<StringRef, OptionBase*>;
+    using OptionVector      = std::vector<OptionBase*>;
+    using ConstOptionVector = std::vector<OptionBase const*>;
+    using StringVector      = std::vector<std::string>;
 
 private:
     // The name of the program
@@ -107,9 +108,13 @@ public:
     // Returns the list of unknown command line arguments
     StringVector const& getUnknowns() const { return unknowns; }
 
-private:
-    OptionVector getOptions(bool SkipHidden = true) const;
+    // Returns the list of (unique) options, sorted by name.
+    ConstOptionVector getOptions(bool SkipHidden = true) const;
 
+    // Returns a list of the positional options.
+    ConstOptionVector getPositionalOptions() const;
+
+private:
     OptionBase* findOption(StringRef name) const;
 
     bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash, bool ignoreUnknowns);
@@ -123,7 +128,7 @@ private:
     bool addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i);
 
     bool check();
-    bool check(OptionBase* opt);
+    bool check(OptionBase const* opt);
 
     bool error(std::string str);
 };
@@ -430,6 +435,7 @@ private:
     bool isOccurrenceRequired() const;
     bool isUnbounded() const;
     bool isOptional() const;
+    bool isRequired() const;
     bool isPrefix() const;
 
     // Parses the given value and stores the result.

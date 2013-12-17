@@ -209,9 +209,9 @@ void CmdLine::help(bool showPositionals) const
     }
 }
 
-CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
+CmdLine::ConstOptionVector CmdLine::getOptions(bool SkipHidden) const
 {
-    OptionVector opts;
+    ConstOptionVector opts;
 
     // Get the list of all (visible) options
     for (auto const& I : options)
@@ -221,14 +221,22 @@ CmdLine::OptionVector CmdLine::getOptions(bool SkipHidden) const
     }
 
     // Sort by name
-    std::stable_sort(opts.begin(), opts.end(), [](OptionBase* LHS, OptionBase* RHS) {
-        return LHS->name < RHS->name;
-    });
+    std::stable_sort(opts.begin(), opts.end(),
+        [](OptionBase const* LHS, OptionBase const* RHS)
+        {
+            return LHS->name < RHS->name;
+        }
+    );
 
     // Remove duplicates
     opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
 
     return opts;
+}
+
+CmdLine::ConstOptionVector CmdLine::getPositionalOptions() const
+{
+    return ConstOptionVector(positionals.begin(), positionals.end());
 }
 
 OptionBase* CmdLine::findOption(StringRef name) const
@@ -496,7 +504,7 @@ bool CmdLine::check()
     return success;
 }
 
-bool CmdLine::check(OptionBase* opt)
+bool CmdLine::check(OptionBase const* opt)
 {
     if (!opt->isOccurrenceRequired())
         return true;
@@ -635,6 +643,11 @@ bool OptionBase::isUnbounded() const
 bool OptionBase::isOptional() const
 {
     return numOccurrences == Optional || numOccurrences == ZeroOrMore;
+}
+
+bool OptionBase::isRequired() const
+{
+    return numOccurrences == Required || numOccurrences == OneOrMore;
 }
 
 bool OptionBase::isPrefix() const
