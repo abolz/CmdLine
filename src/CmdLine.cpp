@@ -195,16 +195,35 @@ void CmdLine::help(bool showPositionals) const
             std::cout << " " << I->usage();
     }
 
-    std::cout << "\n\nOptions:\n";
+    std::cout << "\n";
 
-    for (auto I : getOptions())
-        I->help();
+    auto opts = getOptions();
 
+    // Move required options to the front
+    auto E = std::stable_partition(opts.begin(), opts.end(),
+                                   [](OptionBase const* x) { return x->isRequired(); });
+
+    // Print required options - if any
+    if (E != opts.begin())
+    {
+        std::cout << "\nRequired Options:\n";
+
+        for (auto I = opts.begin(); I != E; ++I)
+            (*I)->help();
+    }
+
+    // Print options
+    std::cout << "\nOptions:\n";
+
+    for (auto I = E; I != opts.end(); ++I)
+        (*I)->help();
+
+    // Print positionals - if required
     if (showPositionals && !positionals.empty())
     {
         std::cout << "\nPositional options:\n";
 
-        for (auto I : positionals)
+        for (auto const& I : positionals)
             I->help();
     }
 }
