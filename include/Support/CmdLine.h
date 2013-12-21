@@ -458,7 +458,7 @@ class OptionBase
 
 protected:
     // Constructor.
-    explicit OptionBase();
+    OptionBase();
 
 public:
     // Destructor.
@@ -563,39 +563,30 @@ class BasicOption : public OptionBase
 
     T value_;
 
-private:
-    struct Tag {};
-
-    explicit BasicOption(Tag)
+protected:
+    BasicOption()
         : BaseType()
         , value_{} // NOTE: error here if T is a reference type and not initialized using init(T)
     {
     }
 
     template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
-    explicit BasicOption(Tag, Initializer<T> x, An&&...)
+    BasicOption(Initializer<T> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
-    explicit BasicOption(Tag, Initializer<U> x, An&&...)
+    BasicOption(Initializer<U> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class A, class... An>
-    explicit BasicOption(Tag tag, A&&, An&&... an)
-        : BasicOption(tag, std::forward<An>(an)...)
-    {
-    }
-
-protected:
-    template <class... An>
-    explicit BasicOption(An&&... an)
-        : BasicOption(Tag(), std::forward<An>(an)...)
+    BasicOption(A&&, An&&... an)
+        : BasicOption(std::forward<An>(an)...)
     {
     }
 
