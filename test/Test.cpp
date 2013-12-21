@@ -2,6 +2,7 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
+#include "Support/CmdLineHelp.h"
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
@@ -68,6 +69,15 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
 
     cl::CmdLine cmd;
+
+                    //------------------------------------------------------------------------------
+
+    auto help = cl::makeOption<std::string>(
+        cmd, "help",
+        cl::ArgName("option"),
+        cl::ArgOptional,
+        cl::Hidden
+        );
 
                     //------------------------------------------------------------------------------
 
@@ -237,6 +247,12 @@ int main(int argc, char* argv[])
     //----------------------------------------------------------------------------------------------
 
     bool success = cmd.parse({ argv + 1, argv + argc });
+
+    if (help.count() || !success)
+    {
+        cl::help(std::cout, cmd);
+        return 0;
+    }
 
     if (!success)
     {
