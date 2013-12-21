@@ -189,22 +189,22 @@ inline auto init(T&& value) -> Initializer<T&&>
 template <class T>
 struct Parser
 {
-    bool operator()(StringRef /*spec*/, StringRef value, size_t /*i*/, T& result) const
+    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, T& value) const
     {
-        StringRefStream stream(value);
-        return (stream >> std::setbase(0) >> result) && stream.eof();
+        StringRefStream stream(arg);
+        return (stream >> std::setbase(0) >> value) && stream.eof();
     }
 };
 
 template <>
 struct Parser<bool>
 {
-    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, bool& result) const
+    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, bool& value) const
     {
-        if (value == "" || value == "1" || value == "true")
-            result = true;
-        else if (value == "0" || value == "false")
-            result = false;
+        if (arg == "" || arg == "1" || arg == "true")
+            value = true;
+        else if (arg == "0" || arg == "false")
+            value = false;
         else
             return false;
 
@@ -215,9 +215,9 @@ struct Parser<bool>
 template <>
 struct Parser<std::string>
 {
-    bool operator ()(StringRef /*spec*/, StringRef value, size_t /*i*/, std::string& result) const
+    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, std::string& value) const
     {
-        result.assign(value.data(), value.size());
+        value.assign(arg.data(), arg.size());
         return true;
     }
 };
@@ -269,14 +269,14 @@ struct MapParser
     {
     }
 
-    bool operator ()(StringRef spec, StringRef value, size_t /*i*/, T& result) const
+    bool operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
     {
-        // If the value is null, the option is specified by spec
-        auto I = map.find(value.data() ? value.str() : spec.str());
+        // If the arg is null, the option is specified by name
+        auto I = map.find(arg.data() ? arg.str() : name.str());
 
         if (I != map.end())
         {
-            result = I->second.first;
+            value = I->second.first;
             return true;
         }
 

@@ -16,9 +16,9 @@ namespace cl
 template <>
 struct Parser<QString>
 {
-    bool operator()(StringRef /*spec*/, StringRef value, size_t /*i*/, QString& result) const
+    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QString& value) const
     {
-        result.fromUtf8(value.data(), value.size());
+        value.fromUtf8(arg.data(), arg.size());
         return true;
     }
 };
@@ -28,10 +28,10 @@ struct Parser<QString>
 template <>
 struct Parser<QUrl>
 {
-    bool operator()(StringRef /*spec*/, StringRef value, size_t /*i*/, QUrl& result) const
+    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QUrl& value) const
     {
-        result.setEncodedUrl(QByteArray(value.data(), value.size()), QUrl::StrictMode);
-        return result.isValid();
+        value.setEncodedUrl(QByteArray(arg.data(), arg.size()), QUrl::StrictMode);
+        return value.isValid();
     }
 };
 #endif

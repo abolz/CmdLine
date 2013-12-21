@@ -22,12 +22,12 @@ namespace cl
     template <class T, class U>
     struct Parser<std::pair<T, U>>
     {
-        bool operator ()(StringRef spec, StringRef value, size_t i, std::pair<T, U>& result) const
+        bool operator ()(StringRef name, StringRef arg, size_t i, std::pair<T, U>& value) const
         {
-            auto p = strings::split(value, ":")();
+            auto p = strings::split(arg, ":")();
 
-            return Parser<T>()(spec, p.first, i, result.first)
-                && Parser<U>()(spec, p.second, i, result.second);
+            return Parser<T>()(name, p.first, i, value.first)
+                && Parser<U>()(name, p.second, i, value.second);
         }
     };
 
@@ -50,9 +50,9 @@ namespace cl
 
 struct WFlagParser
 {
-    bool operator ()(StringRef spec, StringRef /*value*/, size_t /*i*/, bool& result) const
+    bool operator ()(StringRef name, StringRef /*arg*/, size_t /*i*/, bool& value) const
     {
-        result = !spec.starts_with("Wno-");
+        value = !name.starts_with("Wno-");
         return true;
     }
 };
