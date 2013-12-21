@@ -11,102 +11,11 @@ using namespace support;
 using namespace support::cl;
 
 //--------------------------------------------------------------------------------------------------
-// Misc.
-//
-
-namespace
-{
-
-const size_t kMaxWidth = 80;
-const size_t kIndentDescription = 20;
-
-// Returns a string consisting of N spaces.
-StringRef Spaces(size_t N)
-{
-    static std::vector<char> str(kMaxWidth, ' ');
-
-    if (str.size() < N)
-        str.resize(N, ' ');
-
-    return { &str[0], N };
-}
-
-struct Wrapped
-{
-    // The text to wrap
-    StringRef Text;
-    // Indentation for all but the first line
-    // FIXME: Make this a string?
-    size_t Indent;
-    // The maximum width of a single line of text
-    size_t MaxWidth;
-
-    explicit Wrapped(StringRef Text, size_t Indent = 0, size_t MaxWidth = kMaxWidth)
-        : Text(Text)
-        , Indent(Indent)
-        , MaxWidth(MaxWidth)
-    {
-    }
-};
-
-std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
-{
-    bool first = true;
-
-    for (auto par : strings::split(x.Text, "\n"))
-    {
-        for (auto line : strings::split(par, strings::wrap(x.MaxWidth - x.Indent)))
-        {
-            if (first)
-                first = false;
-            else
-                stream << "\n" << Spaces(x.Indent);
-
-            stream << line;
-        }
-    }
-
-    return stream;
-}
-
-struct Aligned
-{
-    // The text to print
-    StringRef text;
-    // Align to
-    size_t indent;
-
-    explicit Aligned(StringRef text, size_t indent = kIndentDescription)
-        : text(text)
-        , indent(indent)
-    {
-    }
-};
-
-std::ostream& operator<<(std::ostream& stream, Aligned const& x)
-{
-    if (x.text.size() < x.indent)
-    {
-        // Fits.
-        // Print the text, then skip to indentation width
-        return stream << x.text << Spaces(x.indent - x.text.size());
-    }
-
-    // Does not fit.
-    // Print the text, move to next line, then move to indentation width
-    return stream << x.text << "\n" << Spaces(x.indent);
-}
-
-} // namespace
-
-//--------------------------------------------------------------------------------------------------
 // CmdLine
 //
 
-CmdLine::CmdLine(std::string program, std::string overview)
-    : program(std::move(program))
-    , overview(std::move(overview))
-    , maxPrefixLength(0)
+CmdLine::CmdLine()
+    : maxPrefixLength(0)
 {
 }
 
@@ -139,21 +48,19 @@ bool CmdLine::add(OptionBase* opt)
         if (values.empty())
             return false;
 
-        for (auto&& s : values)
+        for (auto const& s : values)
         {
             if (!insert(s, opt))
                 return false;
         }
-
-        return true;
     }
-
-    // Option name is not empty.
-    // Might be a list of different names.
-    for (auto const& s : strings::split(opt->name, "|"))
+    else
     {
-        if (!insert(s, opt))
-            return false;
+        for (auto const& s : strings::split(opt->name, "|"))
+        {
+            if (!insert(s, opt))
+                return false;
+        }
     }
 
     return true;
@@ -178,54 +85,6 @@ bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
 
     // Check if all required options have been successfully parsed
     return check() && success;
-}
-
-void CmdLine::help(bool showPositionals) const
-{
-    if (!overview.empty())
-        std::cout << "Overview:\n  " << Wrapped(overview, 2) << "\n\n";
-
-    std::cout << "Usage:\n  " << program << " [options]";
-
-    for (auto I : positionals)
-    {
-        if (I->isOptional())
-            std::cout << " [" << I->usage() << "]";
-        else
-            std::cout << " " << I->usage();
-    }
-
-    std::cout << "\n";
-
-    auto opts = getOptions();
-
-    // Move required options to the front
-    auto E = std::stable_partition(opts.begin(), opts.end(),
-                                   [](OptionBase const* x) { return x->isRequired(); });
-
-    // Print required options - if any
-    if (E != opts.begin())
-    {
-        std::cout << "\nRequired Options:\n";
-
-        for (auto I = opts.begin(); I != E; ++I)
-            (*I)->help();
-    }
-
-    // Print options
-    std::cout << "\nOptions:\n";
-
-    for (auto I = E; I != opts.end(); ++I)
-        (*I)->help();
-
-    // Print positionals - if required
-    if (showPositionals && !positionals.empty())
-    {
-        std::cout << "\nPositional options:\n";
-
-        for (auto const& I : positionals)
-            I->help();
-    }
 }
 
 CmdLine::ConstOptionVector CmdLine::getOptions(bool SkipHidden) const
@@ -264,10 +123,8 @@ OptionBase* CmdLine::findOption(StringRef name) const
     return I == options.end() ? 0 : I->second;
 }
 
-//
 // Process a single command line argument.
 // Returns true on success, false otherwise.
-//
 bool CmdLine::handleArg(StringVector const& argv,
                         size_t& i,
                         OptionVector::iterator& pos,
@@ -316,17 +173,23 @@ bool CmdLine::handleArg(StringVector const& argv,
 
     // Try to process this argument as a standard option.
     if (handleOption(success, name, i, argv))
+    {
         return success;
+    }
 
     // If it's not a standard option and there is no equals sign,
     // check for a prefix option.
     // FIXME: Allow prefix only for short options?
     if (handlePrefix(success, name, i))
+    {
         return success;
+    }
 
     // If it's not standard or prefix option, check for an option group
     if (short_option && handleGroup(success, name, i))
+    {
         return success;
+    }
 
     // Unknown option specified...
     unknowns.emplace_back(arg);
@@ -334,10 +197,6 @@ bool CmdLine::handleArg(StringVector const& argv,
     return ignoreUnknowns || error("unknown option '" + arg + "'");
 }
 
-//
-// Process a positional argument.
-// Returns true on success, false otherwise.
-//
 bool CmdLine::handlePositional(StringRef arg, size_t i, OptionVector::iterator& pos)
 {
     if (pos == positionals.end())
@@ -354,13 +213,8 @@ bool CmdLine::handlePositional(StringRef arg, size_t i, OptionVector::iterator& 
     return addOccurrence(opt, arg, arg, i);
 }
 
-//
 // If 'arg' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
-//
-// Returns true if the option was handled, returns in 'success' whether the option was
-// successfully handled.
-//
 bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv)
 {
     if (auto opt = findOption(arg)) // Standard option?
@@ -416,12 +270,7 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
     return false;
 }
 
-//
 // Handles prefix options which have an argument specified without an equals sign.
-//
-// Returns true if the option was handled, returns in 'success' whether the option was
-// successfully handled.
-//
 bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
 {
     assert(!arg.empty());
@@ -441,12 +290,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
     return false;
 }
 
-//
 // Process an option group.
-//
-// Returns true if the option was handled, returns in 'success' whether the option was
-// successfully handled.
-//
 bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 {
     OptionVector group;
@@ -609,7 +453,7 @@ std::string OptionGroup::desc() const
     case OptionGroup::One:
         return "exactly one option in group '" + name + "' must be specified";
     case OptionGroup::OneOrMore:
-        return "at least on option in group '" + name + "' must be specified";
+        return "at least one option in group '" + name + "' must be specified";
     case OptionGroup::All:
         return "all options in group '" + name + "' must be specified";
     case OptionGroup::ZeroOrAll:
@@ -638,78 +482,6 @@ OptionBase::OptionBase()
 
 OptionBase::~OptionBase()
 {
-}
-
-std::string OptionBase::usage() const
-{
-    if (formatting == Positional)
-        return "<" + name + ">" + (isUnbounded() ? "..." : "");
-
-    if (numArgs == ArgDisallowed)
-        return name;
-
-    std::string str = "<" + argName + ">";
-
-    if (numArgs == ArgOptional)
-        str = "[=" + str + "]";
-
-    if (numArgs == ArgRequired && !isPrefix())
-        str = " " + str;
-
-    return name + str;
-}
-
-void OptionBase::help() const
-{
-    std::vector<StringRef> values;
-    std::vector<StringRef> descr;
-
-    allowedValues(values);
-
-    if (values.empty())
-    {
-        auto prefix = formatting == Positional ? "  " : "  -";
-        std::cout << Aligned(prefix + usage()) << Wrapped(desc, kIndentDescription) << "\n";
-        return;
-    }
-
-    // This option only allows a limited set of values.
-    // Show all valid values.
-
-    // Get the description for each value
-    descriptions(descr);
-
-    assert(descr.size() == values.size() && "not supported");
-
-    if (formatting == Positional)
-    {
-        // Print the name of the positional option and the description
-        std::cout << Aligned("  <" + name + ">")
-                  << Wrapped(desc + ":", kIndentDescription) << "\n";
-    }
-    else if (name.empty())
-    {
-        // Print the description
-        std::cout << Wrapped("  " + desc + ":", 2) << "\n";
-    }
-    else
-    {
-        // Named alternative.
-        // Print the name and the description.
-        std::cout << Aligned("  -" + name) << Wrapped(desc + ":", kIndentDescription) << "\n";
-    }
-
-    std::string prefix = "    ";
-
-    if (formatting != Positional)
-        prefix += name.empty() ? "-" : "=";
-
-    // Print all the possible options
-    for (size_t I = 0; I < values.size(); ++I)
-    {
-        std::cout << Aligned(prefix + values[I])
-                  << Wrapped("- " + descr[I], kIndentDescription + 2) << "\n";
-    }
 }
 
 StringRef OptionBase::displayName() const
@@ -761,12 +533,12 @@ void OptionBase::done()
     assert((formatting != Positional || !name.empty())
         && "positional options need a name");
 
+    if (argName.empty())
+        argName = "arg";
+
     if (formatting == Positional /*|| formatting == Prefix*/)
         numArgs = ArgRequired;
 
     if (formatting == Grouping)
         numArgs = ArgDisallowed;
-
-    if (argName.empty())
-        argName = "arg";
 }

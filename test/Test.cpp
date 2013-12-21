@@ -67,16 +67,7 @@ int main(int argc, char* argv[])
 {
     //----------------------------------------------------------------------------------------------
 
-    cl::CmdLine cmd(argv[0],
-        "A short description.\n"
-        "\n"
-        "The path of the righteous man is beset on all sides by the iniquities of the selfish and "
-        "the tyranny of evil men. Blessed is he who, in the name of charity and good will, shepherds "
-        "the weak through the valley of darkness, for he is truly his brother's keeper and the "
-        "finder of lost children. And I will strike down upon thee with great vengeance and furious "
-        "anger those who would attempt to poison and destroy My brothers. And you will know My name "
-        "is the Lord when I lay My vengeance upon thee."
-        );
+    cl::CmdLine cmd;
 
                     //------------------------------------------------------------------------------
 
@@ -196,23 +187,6 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto helpParser = [&](StringRef value) -> bool
-    {
-        std::cout << "Showing help for \"" << value << "\"\n";
-        cmd.help();
-        return true;
-    };
-
-    auto help = cl::makeOptionWithParser<std::string/*subcommand*/>(
-        std::bind(helpParser, std::placeholders::_1),
-        cmd, "help",
-        cl::Optional,
-        cl::Prefix,
-        cl::ArgOptional
-        );
-
-                    //------------------------------------------------------------------------------
-
     auto debug_level = cl::makeOption<int>(cmd, "debug-level|d",
         cl::Desc("Specify a debug-level"),
         cl::Optional,
@@ -264,11 +238,6 @@ int main(int argc, char* argv[])
 
     bool success = cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false);
 
-    if (help.getCount())
-        return 0;
-    else
-        cmd.help();
-
     if (!success)
     {
         for (auto const& s : cmd.getErrors())
@@ -283,7 +252,6 @@ int main(int argc, char* argv[])
     std::cout << pretty(g) << std::endl;
     std::cout << pretty(gh) << std::endl;
     std::cout << pretty(h) << std::endl;
-    std::cout << pretty(help) << std::endl;
     std::cout << pretty(I) << std::endl;
     std::cout << pretty(opt) << std::endl;
     std::cout << pretty(simpson) << std::endl;
@@ -295,7 +263,7 @@ int main(int argc, char* argv[])
 
     std::cout << "Targets: " << pretty(targets.get().list) << std::endl;
 
-    std::cout << "files:\n";
+    std::cout << "Files:\n";
     for (auto& s : files.get())
         std::cout << "  \"" << s << "\"" << std::endl;
 

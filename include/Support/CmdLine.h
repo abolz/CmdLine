@@ -78,10 +78,6 @@ public:
     using StringVector      = std::vector<std::string>;
 
 private:
-    // The name of the program
-    std::string program;
-    // Additional text displayed in the help menu
-    std::string overview;
     // List of options
     OptionMap options;
     // List of option groups and associated options
@@ -96,16 +92,13 @@ private:
     size_t maxPrefixLength;
 
 public:
-    explicit CmdLine(std::string program, std::string overview = "");
+    explicit CmdLine();
 
     // Adds the given option to the command line
     bool add(OptionBase* opt);
 
     // Parse the given command line arguments
     bool parse(StringVector const& argv, bool ignoreUnknowns = false);
-
-    // Prints the help message
-    void help(bool showPositionals = false) const;
 
     // Returns the list of errors
     StringVector const& getErrors() const { return errors; }
@@ -147,8 +140,7 @@ struct ArgName
 {
     std::string value;
 
-    explicit ArgName(std::string value)
-        : value(std::move(value))
+    explicit ArgName(std::string value) : value(std::move(value))
     {
     }
 };
@@ -161,8 +153,7 @@ struct Desc
 {
     std::string value;
 
-    explicit Desc(std::string x)
-        : value(std::move(x))
+    explicit Desc(std::string x) : value(std::move(x))
     {
     }
 };
@@ -176,8 +167,7 @@ struct Initializer
 {
     T value;
 
-    explicit Initializer(T x)
-        : value(std::forward<T>(x))
+    explicit Initializer(T x) : value(std::forward<T>(x))
     {
     }
 
@@ -256,10 +246,7 @@ struct MapParser
     bool operator ()(StringRef spec, StringRef value, size_t /*i*/, T& result) const
     {
         // If the value is null, the option is specified by spec
-        if (value.data() == nullptr)
-            value = spec;
-
-        auto I = map.find(value.str());
+        auto I = map.find(value.data() ? value.str() : spec.str());
 
         if (I != map.end())
         {
@@ -472,10 +459,6 @@ protected:
     void done();
 
 private:
-    std::string usage() const;
-
-    void help() const;
-
     // Returns the name of this option for use in error messages
     StringRef displayName() const;
 
@@ -581,7 +564,7 @@ public:
     using is_scalar         = typename std::is_void<inserter_type>::type;
 
     static_assert(is_scalar::value || std::is_default_constructible<value_type>::value,
-        "Elements of containers must be default constructible");
+        "elements of containers must be default constructible");
 
 public:
     template <class P, class... An>

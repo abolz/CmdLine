@@ -38,7 +38,7 @@ static std::string to_pretty_string(T const& object)
 
 TEST(CmdLineTest, ArgOptionalPass1)
 {
-    cl::CmdLine cmd("program");
+    cl::CmdLine cmd;
     auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
 
     EXPECT_TRUE( cmd.parse({"-a"}) );
@@ -48,7 +48,7 @@ TEST(CmdLineTest, ArgOptionalPass1)
 
 TEST(CmdLineTest, ArgOptionalPass2)
 {
-    cl::CmdLine cmd("program");
+    cl::CmdLine cmd;
     auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
 
     EXPECT_TRUE( cmd.parse({"-a=xxx"}) );
@@ -58,7 +58,7 @@ TEST(CmdLineTest, ArgOptionalPass2)
 
 TEST(CmdLineTest, ArgOptionalFail1)
 {
-    cl::CmdLine cmd("program");
+    cl::CmdLine cmd;
     auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
 
     EXPECT_FALSE( cmd.parse({"-a", "xxx"}) );
@@ -79,7 +79,7 @@ TEST(CmdLineTest, Flags1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<bool>(cmd, "a");
         auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
@@ -125,7 +125,7 @@ TEST(CmdLineTest, Grouping1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
         auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
@@ -178,7 +178,7 @@ TEST(CmdLineTest, Prefix)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto r = cl::makeOption<std::string>(cmd, "r", cl::Prefix, cl::ArgRequired);
         auto o = cl::makeOption<std::string>(cmd, "o", cl::Prefix, cl::ArgOptional);
@@ -218,7 +218,7 @@ TEST(CmdLineTest, MayPrefix)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto r = cl::makeOption<std::string>(cmd, "r", cl::MayPrefix, cl::ArgRequired);
         auto o = cl::makeOption<std::string>(cmd, "o", cl::MayPrefix, cl::ArgOptional);
@@ -256,7 +256,7 @@ TEST(CmdLineTest, Equals)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
         auto b = cl::makeOption<std::string>(cmd, "b", cl::Prefix, cl::ArgOptional);
@@ -298,7 +298,7 @@ TEST(CmdLineTest, Consume1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<std::string>(cmd, "a");
         auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
@@ -339,7 +339,7 @@ TEST(CmdLineTest, Consume2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<std::string>(cmd, "a");
         auto s = cl::makeOption<std::vector<std::string>>(cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
@@ -371,7 +371,7 @@ TEST(CmdLineTest, Map1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
             { "none", 0 },
@@ -414,7 +414,7 @@ TEST(CmdLineTest, Map2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
             { "O0", 0 },
@@ -456,7 +456,7 @@ TEST(CmdLineTest, Map3)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
             { "O0", 0, "No optimizations"             },
@@ -498,7 +498,7 @@ TEST(CmdLineTest, Map4)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
             { "0", 0, "No optimizations"             },
@@ -541,7 +541,7 @@ TEST(CmdLineTest, Ignore1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
             cl::Positional, cl::ZeroOrMore
@@ -566,7 +566,7 @@ TEST(CmdLineTest, Ignore2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         auto y = cl::makeOption<bool>(cmd, "y");
 
@@ -590,7 +590,7 @@ TEST(CmdLineTest, OptionGroup1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd("program");
+        cl::CmdLine cmd;
 
         cl::OptionGroup gr1(cmd, "gr1");
         cl::OptionGroup gr2(cmd, "gr2", cl::OptionGroup::ZeroOrAll);
