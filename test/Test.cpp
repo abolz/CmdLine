@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
     });
 
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
-        optParser,
+        std::ref(optParser),
         cmd,
         cl::ArgName("optimization level"),
         cl::Required,

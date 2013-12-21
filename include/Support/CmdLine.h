@@ -222,6 +222,32 @@ struct Parser<std::string>
     }
 };
 
+template <class P>
+void allowedValues(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
+{
+}
+
+template <class P>
+void allowedValues(std::reference_wrapper<P> const& parser, std::vector<StringRef>& vec)
+{
+    allowedValues(parser.get(), vec);
+}
+
+template <class P>
+void descriptions(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
+{
+}
+
+template <class P>
+void descriptions(std::reference_wrapper<P> const& parser, std::vector<StringRef>& vec)
+{
+    descriptions(parser.get(), vec);
+}
+
+//--------------------------------------------------------------------------------------------------
+// MapParser
+//
+
 template <class T>
 struct MapParser
 {
@@ -258,21 +284,11 @@ struct MapParser
     }
 };
 
-template <class P>
-void allowedValues(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
-{
-}
-
 template <class T>
 void allowedValues(MapParser<T> const& parser, std::vector<StringRef>& vec)
 {
     for (auto const& I : parser.map)
         vec.emplace_back(I.first);
-}
-
-template <class P>
-void descriptions(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
-{
 }
 
 template <class T>
@@ -603,7 +619,6 @@ private:
             throw std::runtime_error("failed to register option");
     }
 
-    // Used when T is a container type
     bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
         value_type t;
@@ -617,23 +632,21 @@ private:
         return false;
     }
 
-    // Used when T is a value type
     bool parse(StringRef spec, StringRef value, size_t i, std::true_type) {
         return parser(spec, value, i, this->get());
     }
 
-    // Parses the given value and stores the result.
     bool parse(StringRef spec, StringRef value, size_t i) override {
         return parse(spec, value, i, is_scalar());
     }
 
-    void allowedValues(StringRefVector& vec) const override
+    void allowedValues(StringRefVector& vec) const override final
     {
         using cl::allowedValues;
         allowedValues(getParser(), vec);
     }
 
-    void descriptions(StringRefVector& vec) const override
+    void descriptions(StringRefVector& vec) const override final
     {
         using cl::descriptions;
         descriptions(getParser(), vec);
