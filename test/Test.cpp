@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
 
     //----------------------------------------------------------------------------------------------
 
-    bool success = cmd.parse({ argv + 1, argv + argc }, /*ignoreUnknowns*/ false);
+    bool success = cmd.parse({ argv + 1, argv + argc });
 
     if (!success)
     {

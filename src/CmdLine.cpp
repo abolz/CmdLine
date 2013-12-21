@@ -14,8 +14,9 @@ using namespace support::cl;
 // CmdLine
 //
 
-CmdLine::CmdLine()
-    : maxPrefixLength_(0)
+CmdLine::CmdLine(unsigned flags)
+    : flags_(flags)
+    , maxPrefixLength_(0)
 {
 }
 
@@ -67,7 +68,7 @@ bool CmdLine::add(OptionBase* opt)
     return true;
 }
 
-bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
+bool CmdLine::parse(StringVector const& argv)
 {
     bool success = true;
     bool dashdash = false; // "--" seen?
@@ -78,11 +79,17 @@ bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
     // Handle all arguments...
     for (size_t N = 0; N < argv.size(); ++N)
     {
-        if (!handleArg(argv, N, pos, dashdash, ignoreUnknowns))
+        if (!handleArg(argv, N, pos, dashdash))
         {
-            success = false;
+            if (flags_ & StopOnFirstError)
+                return false;
+            else
+                success = false;
         }
     }
+
+    if (flags_ & IgnoreMissingOptions)
+        return true;
 
     // Check if all required options have been successfully parsed
     return check() && success;
@@ -121,12 +128,7 @@ OptionBase* CmdLine::findOption(StringRef name) const
 
 // Process a single command line argument.
 // Returns true on success, false otherwise.
-bool CmdLine::handleArg(StringVector const& argv,
-                        size_t& i,
-                        OptionVector::iterator& pos,
-                        bool& dashdash,
-                        bool ignoreUnknowns
-                        )
+bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash)
 {
     StringRef arg = argv[i];
 
@@ -136,6 +138,8 @@ bool CmdLine::handleArg(StringVector const& argv,
         dashdash = true;
         return true;
     }
+
+    bool ignoreUnknowns = (flags_ & IgnoreUnknownOptions) != 0;
 
     // This argument is considered to be positional if it doesn't start with '-', if it is "-"
     // itself, or if we have seen "--" already.

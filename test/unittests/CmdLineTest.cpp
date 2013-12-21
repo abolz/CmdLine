@@ -541,7 +541,7 @@ TEST(CmdLineTest, Ignore1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd;
+        cl::CmdLine cmd(cl::IgnoreUnknownOptions);
 
         auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
             cl::Positional, cl::ZeroOrMore
@@ -549,7 +549,7 @@ TEST(CmdLineTest, Ignore1)
 
         auto y = cl::makeOption<bool>(cmd, "y");
 
-        bool actual_result = cmd.parse(argv, true/*IgnoreUnknowns*/);
+        bool actual_result = cmd.parse(argv);
         EXPECT_EQ(result, actual_result);
         EXPECT_EQ(unknowns, cmd.unknowns());
     };
@@ -566,11 +566,11 @@ TEST(CmdLineTest, Ignore2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd;
+        cl::CmdLine cmd(cl::IgnoreUnknownOptions);
 
         auto y = cl::makeOption<bool>(cmd, "y");
 
-        bool actual_result = cmd.parse(argv, true/*IgnoreUnknowns*/);
+        bool actual_result = cmd.parse(argv);
         EXPECT_EQ(result, actual_result);
         EXPECT_EQ(unknowns, cmd.unknowns());
     };

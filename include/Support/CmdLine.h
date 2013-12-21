@@ -23,6 +23,16 @@ namespace cl
 {
 
 //--------------------------------------------------------------------------------------------------
+// CmdLine flags
+//
+
+enum CmdLineFlags : unsigned {
+    StopOnFirstError = 0x01, // Stop parsing when the first error is encountered
+    IgnoreUnknownOptions = 0x02, // Ignore unknown options
+    IgnoreMissingOptions = 0x04, // Do not check if all options have been specified
+};
+
+//--------------------------------------------------------------------------------------------------
 // Option flags
 //
 
@@ -78,6 +88,8 @@ public:
     using StringVector      = std::vector<std::string>;
 
 private:
+    // CmdLine flags
+    unsigned flags_;
     // List of options
     OptionMap options_;
     // List of option groups and associated options
@@ -92,13 +104,13 @@ private:
     size_t maxPrefixLength_;
 
 public:
-    explicit CmdLine();
+    explicit CmdLine(unsigned flags = 0);
 
     // Adds the given option to the command line
     bool add(OptionBase* opt);
 
     // Parse the given command line arguments
-    bool parse(StringVector const& argv, bool ignoreUnknowns = false);
+    bool parse(StringVector const& argv);
 
     // Returns the list of errors
     StringVector const& errors() const { return errors_; }
@@ -112,10 +124,13 @@ public:
     // Returns a list of the positional options.
     ConstOptionVector positionals() const;
 
+    // Check if all required options have been specified
+    bool check();
+
 private:
     OptionBase* findOption(StringRef name) const;
 
-    bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash, bool ignoreUnknowns);
+    bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash);
 
     bool handlePositional(StringRef arg, size_t i, OptionVector::iterator& pos);
 
@@ -125,7 +140,6 @@ private:
 
     bool addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i);
 
-    bool check();
     bool check(OptionBase const* opt);
     bool check(OptionGroup const* g);
 
@@ -582,7 +596,6 @@ protected:
 public:
     using stored_type = RemoveReference<T>;
 
-public:
     // Returns the value
     stored_type& value() { return value_; }
 
