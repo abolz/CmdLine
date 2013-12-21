@@ -304,10 +304,14 @@ void descriptions(MapParser<T> const& parser, std::vector<StringRef>& vec)
 
 namespace details
 {
+    struct Any {
+        template <class... T> Any(T&&...) {}
+    };
+
     struct Inserter
     {
         template <class C, class V>
-        void operator ()(C& c, V&& v) const {
+        void operator()(C& c, V&& v) const {
             c.insert(c.end(), std::forward<V>(v));
         }
     };
@@ -317,7 +321,7 @@ namespace details
         template <class U>
         static auto test(U&& u)
             -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
-        static auto test(...) -> std::false_type;
+        static auto test(Any) -> std::false_type;
     };
 
     template <class T>
