@@ -10,11 +10,6 @@ using namespace support;
 
 size_t const StringRef::npos = static_cast<size_t>(-1);
 
-void StringRef::write(std::ostream& Stream) const
-{
-    Stream.write(data(), size());
-}
-
 size_t StringRef::find(char_type Ch, size_t From) const
 {
     if (From >= size())
@@ -28,6 +23,9 @@ size_t StringRef::find(char_type Ch, size_t From) const
 
 size_t StringRef::find(StringRef Str, size_t From) const
 {
+    if (Str.size() == 1)
+        return find(Str[0], From);
+
     if (From > size())
         return npos;
 

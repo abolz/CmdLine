@@ -156,7 +156,7 @@ bool CmdLine::handleArg(StringVector const& argv,
         }
 
         // Unhandled positional argument...
-        unknowns.emplace_back(arg.str());
+        unknowns.push_back(arg.str());
 
         return ignoreUnknowns || error("unhandled positional argument: '" + arg + "'");
     }
@@ -192,7 +192,7 @@ bool CmdLine::handleArg(StringVector const& argv,
     }
 
     // Unknown option specified...
-    unknowns.emplace_back(arg);
+    unknowns.push_back(arg.str());
 
     return ignoreUnknowns || error("unknown option '" + arg + "'");
 }

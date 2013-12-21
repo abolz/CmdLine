@@ -10,6 +10,10 @@
 namespace support
 {
 
+//--------------------------------------------------------------------------------------------------
+// StringRef
+//
+
 class StringRef
 {
 public:
@@ -90,11 +94,6 @@ public:
     // Returns whether this string is null or empty.
     bool empty() const {
         return Length == 0;
-    }
-
-    // Returns whether this string is null.
-    bool null() const {
-        return Data == nullptr;
     }
 
     // Returns an iterator to the first element of the string.
@@ -202,16 +201,8 @@ public:
 
     // Constructs a std::string from this StringRef.
     std::string str() const {
-        return empty() ? std::string() : std::string(data(), size());
+        return std::string(begin(), end());
     }
-
-    // Explicitly convert to a std::string
-    explicit operator std::string() const {
-        return str();
-    }
-
-    // Write this string into the given stream
-    void write(std::ostream& Stream) const;
 
     // Search for the first character Ch in the sub-string [From, Length)
     size_t find(char_type Ch, size_t From = 0) const;
@@ -245,6 +236,10 @@ public:
     StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
 };
 
+//--------------------------------------------------------------------------------------------------
+// Comparisons
+//
+
 inline bool operator ==(StringRef LHS, StringRef RHS) {
     return LHS.equals(RHS);
 }
@@ -269,7 +264,15 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
     return !(LHS < RHS);
 }
 
-/*extern*/ std::ostream& operator <<(std::ostream& Stream, StringRef Str);
+//--------------------------------------------------------------------------------------------------
+// Formatted output
+//
+
+std::ostream& operator <<(std::ostream& Stream, StringRef Str);
+
+//--------------------------------------------------------------------------------------------------
+// String operations
+//
 
 inline std::string& operator +=(std::string& LHS, StringRef RHS) {
     return LHS.append(RHS.data(), RHS.size());
@@ -286,6 +289,10 @@ inline std::string operator +(std::string LHS, StringRef RHS)
     LHS.append(RHS.data(), RHS.size());
     return std::move(LHS);
 }
+
+//--------------------------------------------------------------------------------------------------
+// Hash
+//
 
 // Modified Bernstein hash
 inline size_t hashValue(StringRef Str, size_t H = 5381)
