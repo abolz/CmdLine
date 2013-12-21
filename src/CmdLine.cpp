@@ -528,7 +528,7 @@ bool OptionBase::isPrefix() const
     return formatting == Prefix || formatting == MayPrefix;
 }
 
-void OptionBase::done()
+void OptionBase::applyRec()
 {
     assert((formatting != Positional || !name.empty())
         && "positional options need a name");

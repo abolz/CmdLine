@@ -472,7 +472,23 @@ protected:
         // NOTE: this is handled in the ctors of BasicOption...
     }
 
-    void done();
+    template <class A, class... An>
+    void applyRec(A&& a, An&&... an)
+    {
+        apply(std::forward<A>(a));
+        applyRec(std::forward<An>(an)...);
+    }
+
+    template <class... An>
+    void applyRec(CmdLine& cmd, An&&... an)
+    {
+        applyRec(std::forward<An>(an)...);
+
+        if (!cmd.add(this))
+            throw std::runtime_error("failed to register option");
+    }
+
+    void applyRec(); // End recursion - check for valid flags
 
 private:
     // Returns the name of this option for use in error messages
@@ -588,7 +604,8 @@ public:
         : BaseType(std::forward<An>(an)...)
         , parser(std::forward<P>(p))
     {
-        applyRec(is_scalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
+        this->apply(is_scalar::value ? Optional : ZeroOrMore);
+        this->applyRec(std::forward<An>(an)...);
     }
 
     // Returns the parser
@@ -598,27 +615,6 @@ public:
     ParserT const& getParser() const { return parser; }
 
 private:
-    // End recursion - check for valid flags
-    void applyRec() {
-        this->done();
-    }
-
-    template <class A, class... An>
-    void applyRec(A&& a, An&&... an)
-    {
-        this->apply(std::forward<A>(a));
-        this->applyRec(std::forward<An>(an)...);
-    }
-
-    template <class... An>
-    void applyRec(CmdLine& cmd, An&&... an)
-    {
-        this->applyRec(std::forward<An>(an)...);
-
-        if (!cmd.add(this))
-            throw std::runtime_error("failed to register option");
-    }
-
     bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
         value_type t;
