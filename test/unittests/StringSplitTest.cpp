@@ -193,15 +193,6 @@ TEST(StringSplitTest, Test7_1)
     }
 }
 
-TEST(StringSplitTest, Test8)
-{
-    auto vec = std::vector<StringRef>(split("a-b-c-d-e", "-", false/*SkipEmpty*/, 2));
-
-    ASSERT_EQ(vec.size(), 2);
-    EXPECT_EQ(vec[0], "a");
-    EXPECT_EQ(vec[1], "b");
-}
-
 TEST(StringSplitTest, EmptySepLiteral)
 {
     auto vec = std::vector<StringRef>(split("abc", ""));

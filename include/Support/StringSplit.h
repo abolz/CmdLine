@@ -24,8 +24,6 @@ class SplitResult
     StringRef Str;
     // The delimiters
     Splitter Split;
-    // The number of tokens an iterator for this range might produce
-    int MaxCount;
     // Whether to skip empty tokens
     bool SkipEmpty;
 
@@ -39,8 +37,6 @@ class SplitResult
         StringRef Tok;
         // The rest of the string to split
         StringRef Str;
-        // The number of tokens this iterator might produce
-        int Count;
 
     public:
         using iterator_category     = std::forward_iterator_tag;
@@ -55,52 +51,39 @@ class SplitResult
             : Split(nullptr)
             , Tok()
             , Str()
-            , Count(0)
         {
         }
 
         // Construct a new iterator
         // SplitResult must be non-null!
-        Iterator(SplitResult const* Split, int MaxCount)
+        Iterator(SplitResult const* Split)
             : Split(Split)
             , Tok()
             , Str(Split->Str)
-            , Count(MaxCount)
-        {
-            this->operator ++(); // grab the first token
+          {
+            this->operator++(); // grab the first token
         }
 
         // Returns the current token
-        reference operator *() const
+        reference operator*() const
         {
             assert(Split && "dereferencing past-the-end iterator");
             return Tok;
         }
 
         // Returns a pointer to the current token
-        pointer operator ->() const
+        pointer operator->() const
         {
             assert(Split && "dereferencing past-the-end iterator");
             return &Tok;
         }
 
         // Grab the next token
-        Iterator& operator ++()
+        Iterator& operator++()
         {
             assert(Split && "incrementing past-the-end iterator");
 
-            if (Count == 0)
-            {
-                Tok = {};
-                Str = {};
-            }
-            else
-            {
-                Split->next(Tok, Str);
-
-                if (Count > 0)
-                    Count--;
-            }
+            Split->next(Tok, Str);
 
             if (Tok.data() == nullptr)
                 Split = nullptr;
@@ -109,7 +92,7 @@ class SplitResult
         }
 
         // Grab the next token
-        Iterator operator ++(int)
+        Iterator operator++(int)
         {
             auto I = *this;
             this->operator ++();
@@ -117,7 +100,7 @@ class SplitResult
         }
 
         // Returns whether the given iterators are equal
-        friend bool operator ==(Iterator const& LHS, Iterator const& RHS)
+        friend bool operator==(Iterator const& LHS, Iterator const& RHS)
         {
             assert((!LHS.Split || !RHS.Split || LHS.Split == RHS.Split) && "invalid comparison");
 
@@ -125,7 +108,7 @@ class SplitResult
         }
 
         // Returns whether the given iterators are inequal
-        friend bool operator !=(Iterator const& LHS, Iterator const& RHS) {
+        friend bool operator!=(Iterator const& LHS, Iterator const& RHS) {
             return !(LHS == RHS);
         }
     };
@@ -136,10 +119,9 @@ public:
 
 public:
     // Construct a new splitter
-    SplitResult(StringRef S, Splitter D, bool SkipEmpty = false, int MaxCount = -1)
+    SplitResult(StringRef S, Splitter D, bool SkipEmpty = false)
         : Str(S)
         , Split(std::move(D))
-        , MaxCount(MaxCount)
         , SkipEmpty(SkipEmpty)
     {
         static const StringRef kEmpty = "";
@@ -150,13 +132,9 @@ public:
             Str = kEmpty;
     }
 
-    //----------------------------------------------------------------------------------------------
-    // Range implementation
-    //
-
     // Returns an iterator to the first token
     const_iterator begin() const {
-        return { this, MaxCount };
+        return { this };
     }
 
     // Returns the past-the-end iterator
@@ -167,10 +145,6 @@ public:
     // Construct a container from this range
     template <class T>
     explicit operator T() const { return T(begin(), end()); }
-
-    //----------------------------------------------------------------------------------------------
-    // Generator implementation
-    //
 
     std::pair<StringRef, StringRef> operator ()() const
     {
@@ -237,7 +211,7 @@ public:
     {
     }
 
-    StringRef operator ()(StringRef Str) const {
+    StringRef operator()(StringRef Str) const {
         return Str.substr(Str.find_first_of(Chars), 1);
     }
 };
@@ -261,7 +235,7 @@ public:
     {
     }
 
-    StringRef operator ()(StringRef Str) const
+    StringRef operator()(StringRef Str) const
     {
         // Handle empty needles
         if (Needle.empty())
@@ -306,7 +280,7 @@ public:
         assert(Len > 0);
     }
 
-    StringRef operator ()(StringRef Str) const
+    StringRef operator()(StringRef Str) const
     {
         // If the string fits into the current line,
         // just return this last line.
@@ -333,28 +307,24 @@ inline SplitWrap wrap(size_t Width, StringRef Spaces = " \n")
 //
 
 template <class Splitter>
-inline SplitResult<Splitter>
-split(StringRef Str, Splitter D, bool SkipEmpty = false, int MaxCount = -1)
+inline SplitResult<Splitter> split(StringRef Str, Splitter D, bool SkipEmpty = false)
 {
-    return { Str, std::move(D), SkipEmpty, MaxCount };
+    return { Str, std::move(D), SkipEmpty };
 }
 
-inline SplitResult<SplitLiteral>
-split(StringRef Str, std::string const& Chars, bool SkipEmpty = false, int MaxCount = -1)
+inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, bool SkipEmpty = false)
 {
-    return split(Str, literal(Chars), SkipEmpty, MaxCount);
+    return split(Str, literal(Chars), SkipEmpty);
 }
 
-inline SplitResult<SplitLiteral>
-split(StringRef Str, StringRef Chars, bool SkipEmpty = false, int MaxCount = -1)
+inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, bool SkipEmpty = false)
 {
-    return split(Str, literal(Chars), SkipEmpty, MaxCount);
+    return split(Str, literal(Chars), SkipEmpty);
 }
 
-inline SplitResult<SplitLiteral>
-split(StringRef Str, char const* Chars, bool SkipEmpty = false, int MaxCount = -1)
+inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, bool SkipEmpty = false)
 {
-    return split(Str, literal(Chars), SkipEmpty, MaxCount);
+    return split(Str, literal(Chars), SkipEmpty);
 }
 
 } // namespace strings
