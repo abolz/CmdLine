@@ -107,7 +107,7 @@ public:
     StringVector const& unknowns() const { return unknowns_; }
 
     // Returns the list of (unique) options, sorted by name.
-    ConstOptionVector options(bool SkipHidden = true) const;
+    ConstOptionVector options() const;
 
     // Returns a list of the positional options.
     ConstOptionVector positionals() const;

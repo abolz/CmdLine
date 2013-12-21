@@ -88,16 +88,13 @@ bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
     return check() && success;
 }
 
-CmdLine::ConstOptionVector CmdLine::options(bool SkipHidden) const
+CmdLine::ConstOptionVector CmdLine::options() const
 {
     ConstOptionVector opts;
 
     // Get the list of all (visible) options
     for (auto const& I : options_)
-    {
-        if (!SkipHidden || (I.second->flags() & Hidden) == 0)
-            opts.emplace_back(I.second);
-    }
+        opts.emplace_back(I.second);
 
     // Sort by name
     std::stable_sort(opts.begin(), opts.end(),
@@ -359,7 +356,7 @@ bool CmdLine::check()
 {
     bool success = true;
 
-    for (auto& I : options(false/*SkipHidden*/))
+    for (auto& I : options())
         success = check(I) && success;
 
     for (auto& I : positionals())
