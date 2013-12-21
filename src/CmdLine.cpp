@@ -513,11 +513,6 @@ bool OptionBase::isUnbounded() const
     return numOccurrences == ZeroOrMore || numOccurrences == OneOrMore;
 }
 
-bool OptionBase::isOptional() const
-{
-    return numOccurrences == Optional || numOccurrences == ZeroOrMore;
-}
-
 bool OptionBase::isRequired() const
 {
     return numOccurrences == Required || numOccurrences == OneOrMore;

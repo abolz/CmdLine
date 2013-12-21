@@ -497,7 +497,6 @@ private:
     bool isOccurrenceAllowed() const;
     bool isOccurrenceRequired() const;
     bool isUnbounded() const;
-    bool isOptional() const;
     bool isRequired() const;
     bool isPrefix() const;
 
