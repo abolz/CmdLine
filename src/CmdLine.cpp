@@ -481,6 +481,21 @@ OptionBase::~OptionBase()
 {
 }
 
+bool OptionBase::isUnbounded() const
+{
+    return numOccurrences_ == ZeroOrMore || numOccurrences_ == OneOrMore;
+}
+
+bool OptionBase::isRequired() const
+{
+    return numOccurrences_ == Required || numOccurrences_ == OneOrMore;
+}
+
+bool OptionBase::isPrefix() const
+{
+    return formatting_ == Prefix || formatting_ == MayPrefix;
+}
+
 StringRef OptionBase::displayName() const
 {
     if (name_.empty())
@@ -503,21 +518,6 @@ bool OptionBase::isOccurrenceRequired() const
         return count_ == 0;
 
     return false;
-}
-
-bool OptionBase::isUnbounded() const
-{
-    return numOccurrences_ == ZeroOrMore || numOccurrences_ == OneOrMore;
-}
-
-bool OptionBase::isRequired() const
-{
-    return numOccurrences_ == Required || numOccurrences_ == OneOrMore;
-}
-
-bool OptionBase::isPrefix() const
-{
-    return formatting_ == Prefix || formatting_ == MayPrefix;
 }
 
 void OptionBase::applyRec()

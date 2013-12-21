@@ -469,6 +469,21 @@ public:
     // Returns the number of times this option has been specified on the command line
     unsigned count() const { return count_; }
 
+    // Returns whether this option may be specified multiple times.
+    bool isUnbounded() const;
+
+    // Returns whether this option must be specified on the command line
+    bool isRequired() const;
+
+    // Returns whether this is a Prefix or MayPrefix option.
+    bool isPrefix() const;
+
+    // Returns a list of allowed values for this option
+    virtual void allowedValues(std::vector<StringRef>& vec) const = 0;
+
+    // Returns a list of descriptions for any allowed value for this option
+    virtual void descriptions(std::vector<StringRef>& vec) const = 0;
+
 protected:
     void apply(std::string x)       { name_ = std::move(x); }
     void apply(ArgName x)           { argName_ = std::move(x.value); }
@@ -512,18 +527,9 @@ private:
 
     bool isOccurrenceAllowed() const;
     bool isOccurrenceRequired() const;
-    bool isUnbounded() const;
-    bool isRequired() const;
-    bool isPrefix() const;
 
     // Parses the given value and stores the result.
     virtual bool parse(StringRef spec, StringRef value, size_t i) = 0;
-
-    // Returns a list of valid arguments for this option
-    virtual void allowedValues(std::vector<StringRef>& vec) const = 0;
-
-    // Returns a list of the descriptions for each valid argument
-    virtual void descriptions(std::vector<StringRef>& vec) const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -629,6 +635,20 @@ public:
     // Returns the parser
     ParserT const& parser() const { return parser_; }
 
+    // Returns a list of allowed values for this option
+    void allowedValues(StringRefVector& vec) const override final
+    {
+        using cl::allowedValues;
+        allowedValues(parser(), vec);
+    }
+
+    // Returns a list of descriptions for any allowed value for this option
+    void descriptions(StringRefVector& vec) const override final
+    {
+        using cl::descriptions;
+        descriptions(parser(), vec);
+    }
+
 private:
     bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
@@ -649,18 +669,6 @@ private:
 
     bool parse(StringRef spec, StringRef value, size_t i) override {
         return parse(spec, value, i, is_scalar());
-    }
-
-    void allowedValues(StringRefVector& vec) const override final
-    {
-        using cl::allowedValues;
-        allowedValues(parser(), vec);
-    }
-
-    void descriptions(StringRefVector& vec) const override final
-    {
-        using cl::descriptions;
-        descriptions(parser(), vec);
     }
 };
 
