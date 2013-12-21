@@ -79,17 +79,17 @@ public:
 
 private:
     // List of options
-    OptionMap options;
+    OptionMap options_;
     // List of option groups and associated options
-    OptionGroups groups;
+    OptionGroups groups_;
     // List of positional options
-    OptionVector positionals;
+    OptionVector positionals_;
     // List of error message
-    StringVector errors;
+    StringVector errors_;
     // List of unknown command line arguments
-    StringVector unknowns;
+    StringVector unknowns_;
     // The length of the longest prefix option
-    size_t maxPrefixLength;
+    size_t maxPrefixLength_;
 
 public:
     explicit CmdLine();
@@ -101,16 +101,16 @@ public:
     bool parse(StringVector const& argv, bool ignoreUnknowns = false);
 
     // Returns the list of errors
-    StringVector const& getErrors() const { return errors; }
+    StringVector const& errors() const { return errors_; }
 
     // Returns the list of unknown command line arguments
-    StringVector const& getUnknowns() const { return unknowns; }
+    StringVector const& unknowns() const { return unknowns_; }
 
     // Returns the list of (unique) options, sorted by name.
-    ConstOptionVector getOptions(bool SkipHidden = true) const;
+    ConstOptionVector options(bool SkipHidden = true) const;
 
     // Returns a list of the positional options.
-    ConstOptionVector getPositionalOptions() const;
+    ConstOptionVector positionals() const;
 
 private:
     OptionBase* findOption(StringRef name) const;
@@ -400,11 +400,11 @@ public:
 
 private:
     // The name of this option group
-    std::string name;
+    std::string name_;
     // The type of this group
-    Type type;
+    Type type_;
     // The list of options in this group
-    std::vector<OptionBase*> options;
+    std::vector<OptionBase*> options_;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -416,21 +416,21 @@ class OptionBase
     friend class CmdLine;
 
     // The name of this option
-    std::string name;
+    std::string name_;
     // The name of the value of this option
-    std::string argName;
+    std::string argName_;
     // The help message for this option
-    std::string desc;
+    std::string desc_;
     // Controls how often the option must/may be specified on the command line
-    NumOccurrences numOccurrences;
+    NumOccurrences numOccurrences_;
     // Controls whether the option expects a value
-    NumArgs numArgs;
+    NumArgs numArgs_;
     // Controls how the option might be specified
-    Formatting formatting;
+    Formatting formatting_;
     // Other flags
-    MiscFlags miscFlags;
+    MiscFlags miscFlags_;
     // The number of times this option was specified on the command line
-    unsigned count;
+    unsigned count_;
 
 protected:
     // Constructor.
@@ -442,29 +442,41 @@ public:
 
 public:
     // Returns the name of this option
-    std::string const& getName() const { return name; }
+    std::string const& name() const { return name_; }
 
     // Return name of the value
-    std::string const& getArgName() const { return argName; }
+    std::string const& argName() const { return argName_; }
 
     // Resturns the description of this option
-    std::string const& getDesc() const { return desc; }
+    std::string const& desc() const { return desc_; }
+
+    // Returns how often the option must/may be specified on the command line
+    NumOccurrences numOccurrences() const { return numOccurrences_; }
+
+    // Returns whether the option expects a value
+    NumArgs numArgs() const { return numArgs_; }
+
+    // Returns how the option might be specified
+    Formatting formatting() const { return formatting_; }
+
+    // Returns other flags
+    MiscFlags flags() const { return miscFlags_; }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned getCount() const { return count; }
+    unsigned count() const { return count_; }
 
 protected:
-    void apply(std::string x)       { name = std::move(x); }
-    void apply(ArgName x)           { argName = std::move(x.value); }
-    void apply(Desc x)              { desc = std::move(x.value); }
-    void apply(NumOccurrences x)    { numOccurrences = x; }
-    void apply(NumArgs x)           { numArgs = x; }
-    void apply(Formatting x)        { formatting = x; }
-    void apply(MiscFlags x)         { miscFlags = static_cast<MiscFlags>(miscFlags | x); }
+    void apply(std::string x)       { name_ = std::move(x); }
+    void apply(ArgName x)           { argName_ = std::move(x.value); }
+    void apply(Desc x)              { desc_ = std::move(x.value); }
+    void apply(NumOccurrences x)    { numOccurrences_ = x; }
+    void apply(NumArgs x)           { numArgs_ = x; }
+    void apply(Formatting x)        { formatting_ = x; }
+    void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
 
     void apply(OptionGroup& x) {
         // FIXME: Check for duplicates
-        x.options.push_back(this);
+        x.options_.push_back(this);
     }
 
     template <class U>
@@ -519,28 +531,28 @@ class BasicOption : public OptionBase
 {
     using BaseType = OptionBase;
 
-    T value;
+    T value_;
 
 private:
     struct Tag {};
 
     explicit BasicOption(Tag)
         : BaseType()
-        , value{} // NOTE: error here if T is a reference type and not initialized using init(T)
+        , value_{} // NOTE: error here if T is a reference type and not initialized using init(T)
     {
     }
 
     template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
     explicit BasicOption(Tag, Initializer<T> x, An&&...)
         : BaseType()
-        , value(x)
+        , value_(x)
     {
     }
 
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
     explicit BasicOption(Tag, Initializer<U> x, An&&...)
         : BaseType()
-        , value(x)
+        , value_(x)
     {
     }
 
@@ -562,16 +574,16 @@ public:
 
 public:
     // Returns the value
-    stored_type& get() { return value; }
+    stored_type& value() { return value_; }
 
     // Returns the value
-    stored_type const& get() const { return value; }
+    stored_type const& value() const { return value_; }
 
     // Returns a pointer to the value
-    stored_type* operator ->() { return std::addressof(value); }
+    stored_type* operator->() { return std::addressof(value_); }
 
     // Returns a pointer to the value
-    stored_type const* operator ->() const { return std::addressof(value); }
+    stored_type const* operator->() const { return std::addressof(value_); }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -584,7 +596,7 @@ class Option : public BasicOption<T>
     using BaseType = BasicOption<T>;
     using StringRefVector = std::vector<StringRef>;
 
-    ParserT parser;
+    ParserT parser_;
 
 public:
     using parser_type = ParserT;
@@ -601,26 +613,26 @@ public:
     template <class P, class... An>
     explicit Option(P&& p, An&&... an)
         : BaseType(std::forward<An>(an)...)
-        , parser(std::forward<P>(p))
+        , parser_(std::forward<P>(p))
     {
         this->apply(is_scalar::value ? Optional : ZeroOrMore);
         this->applyRec(std::forward<An>(an)...);
     }
 
     // Returns the parser
-    ParserT& getParser() { return parser; }
+    ParserT& parser() { return parser_; }
 
     // Returns the parser
-    ParserT const& getParser() const { return parser; }
+    ParserT const& parser() const { return parser_; }
 
 private:
     bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
         value_type t;
 
-        if (parser(spec, value, i, t))
+        if (parser_(spec, value, i, t))
         {
-            inserter_type()(this->get(), std::move(t));
+            inserter_type()(this->value(), std::move(t));
             return true;
         }
 
@@ -628,7 +640,7 @@ private:
     }
 
     bool parse(StringRef spec, StringRef value, size_t i, std::true_type) {
-        return parser(spec, value, i, this->get());
+        return parser_(spec, value, i, this->value());
     }
 
     bool parse(StringRef spec, StringRef value, size_t i) override {
@@ -638,13 +650,13 @@ private:
     void allowedValues(StringRefVector& vec) const override final
     {
         using cl::allowedValues;
-        allowedValues(getParser(), vec);
+        allowedValues(parser(), vec);
     }
 
     void descriptions(StringRefVector& vec) const override final
     {
         using cl::descriptions;
-        descriptions(getParser(), vec);
+        descriptions(parser(), vec);
     }
 };
 

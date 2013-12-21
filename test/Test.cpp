@@ -34,9 +34,9 @@ namespace cl
     template <class T, class P>
     void prettyPrint(std::ostream& stream, Option<T, P> const& option)
     {
-        stream << option.getName() << ":\n";
-        stream << "  count = " << option.getCount() << "\n";
-        stream << "  value = " << pretty(option.get());
+        stream << option.name() << ":\n";
+        stream << "  count = " << option.count() << "\n";
+        stream << "  value = " << pretty(option.value());
     }
 
     template <class T>
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
 
     if (!success)
     {
-        for (auto const& s : cmd.getErrors())
+        for (auto const& s : cmd.errors())
             std::cout << "error: " << s << "\n";
 
         return -1;
@@ -261,10 +261,10 @@ int main(int argc, char* argv[])
     std::cout << pretty(Wsign_conversion) << std::endl;
     std::cout << pretty(Wsign_compare) << std::endl;
 
-    std::cout << "Targets: " << pretty(targets.get().list) << std::endl;
+    std::cout << "Targets: " << pretty(targets.value().list) << std::endl;
 
     std::cout << "Files:\n";
-    for (auto& s : files.get())
+    for (auto& s : files.value())
         std::cout << "  \"" << s << "\"" << std::endl;
 
     //----------------------------------------------------------------------------------------------

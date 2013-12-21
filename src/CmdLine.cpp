@@ -15,31 +15,32 @@ using namespace support::cl;
 //
 
 CmdLine::CmdLine()
-    : maxPrefixLength(0)
+    : maxPrefixLength_(0)
 {
 }
 
 bool CmdLine::add(OptionBase* opt)
 {
-    if (opt->formatting == Positional)
+    if (opt->formatting() == Positional)
     {
-        positionals.push_back(opt);
+        positionals_.push_back(opt);
         return true;
     }
 
     auto insert = [&](StringRef s, OptionBase* opt) -> bool
     {
         // Save the length of the longest prefix option
-        if (opt->isPrefix()) {
-            if (maxPrefixLength < s.size())
-                maxPrefixLength = s.size();
+        if (opt->isPrefix())
+        {
+            if (maxPrefixLength_ < s.size())
+                maxPrefixLength_ = s.size();
         }
 
         // Insert the option into the map
-        return options.insert({ s, opt }).second;
+        return options_.insert({ s, opt }).second;
     };
 
-    if (opt->name.empty())
+    if (opt->name().empty())
     {
         std::vector<StringRef> values;
 
@@ -56,7 +57,7 @@ bool CmdLine::add(OptionBase* opt)
     }
     else
     {
-        for (auto const& s : strings::split(opt->name, "|"))
+        for (auto const& s : strings::split(opt->name(), "|"))
         {
             if (!insert(s, opt))
                 return false;
@@ -72,7 +73,7 @@ bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
     bool dashdash = false; // "--" seen?
 
     // The current positional argument - if any
-    auto pos = positionals.begin();
+    auto pos = positionals_.begin();
 
     // Handle all arguments...
     for (size_t N = 0; N < argv.size(); ++N)
@@ -87,24 +88,22 @@ bool CmdLine::parse(StringVector const& argv, bool ignoreUnknowns)
     return check() && success;
 }
 
-CmdLine::ConstOptionVector CmdLine::getOptions(bool SkipHidden) const
+CmdLine::ConstOptionVector CmdLine::options(bool SkipHidden) const
 {
     ConstOptionVector opts;
 
     // Get the list of all (visible) options
-    for (auto const& I : options)
+    for (auto const& I : options_)
     {
-        if (!SkipHidden || (I.second->miscFlags & Hidden) == 0)
+        if (!SkipHidden || (I.second->flags() & Hidden) == 0)
             opts.emplace_back(I.second);
     }
 
     // Sort by name
     std::stable_sort(opts.begin(), opts.end(),
-        [](OptionBase const* LHS, OptionBase const* RHS)
-        {
-            return LHS->name < RHS->name;
-        }
-    );
+        [](OptionBase const* LHS, OptionBase const* RHS) {
+            return LHS->name() < RHS->name();
+        });
 
     // Remove duplicates
     opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
@@ -112,15 +111,15 @@ CmdLine::ConstOptionVector CmdLine::getOptions(bool SkipHidden) const
     return opts;
 }
 
-CmdLine::ConstOptionVector CmdLine::getPositionalOptions() const
+CmdLine::ConstOptionVector CmdLine::positionals() const
 {
-    return ConstOptionVector(positionals.begin(), positionals.end());
+    return ConstOptionVector(positionals_.begin(), positionals_.end());
 }
 
 OptionBase* CmdLine::findOption(StringRef name) const
 {
-    auto I = options.find(name);
-    return I == options.end() ? 0 : I->second;
+    auto I = options_.find(name);
+    return I == options_.end() ? 0 : I->second;
 }
 
 // Process a single command line argument.
@@ -149,14 +148,14 @@ bool CmdLine::handleArg(StringVector const& argv,
         {
             // If the current positional argument has the ConsumeAfter flag set, parse
             // all following command-line arguments as positional options.
-            if ((*pos)->miscFlags & ConsumeAfter)
+            if ((*pos)->flags() & ConsumeAfter)
                 dashdash = true;
 
             return true;
         }
 
         // Unhandled positional argument...
-        unknowns.push_back(arg.str());
+        unknowns_.push_back(arg.str());
 
         return ignoreUnknowns || error("unhandled positional argument: '" + arg + "'");
     }
@@ -192,14 +191,14 @@ bool CmdLine::handleArg(StringVector const& argv,
     }
 
     // Unknown option specified...
-    unknowns.push_back(arg.str());
+    unknowns_.push_back(arg.str());
 
     return ignoreUnknowns || error("unknown option '" + arg + "'");
 }
 
 bool CmdLine::handlePositional(StringRef arg, size_t i, OptionVector::iterator& pos)
 {
-    if (pos == positionals.end())
+    if (pos == positionals_.end())
         return false;
 
     auto opt = *pos;
@@ -223,9 +222,9 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
 
         // If the option requires an argument, "steal" the next argument from the
         // command line, so that "-o file" is possible instead of "-o=file"
-        if (opt->numArgs == ArgRequired)
+        if (opt->numArgs() == ArgRequired)
         {
-            if (opt->formatting == Prefix || i + 1 >= argv.size())
+            if (opt->formatting() == Prefix || i + 1 >= argv.size())
             {
                 success = error("option '" + opt->displayName() + "' expects an argument");
                 return true;
@@ -249,21 +248,19 @@ bool CmdLine::handleOption(bool& success, StringRef arg, size_t& i, StringVector
 
     if (auto opt = findOption(spec))
     {
-        if (opt->numArgs == ArgDisallowed)
+        if (opt->numArgs() == ArgDisallowed)
         {
             // An argument was specified, but this is not allowed
             success = error("option '" + opt->displayName() + "' does not allow an argument");
-        }
-        else
-        {
-            // Include the equals sign in the value if this option is a prefix option.
-            // Discard otherwise.
-            if (!opt->isPrefix())
-                I++;
-
-            success = addOccurrence(opt, spec, arg.drop_front(I), i);
+            return true;
         }
 
+        // Include the equals sign in the value if this option is a prefix option.
+        // Discard otherwise.
+        if (!opt->isPrefix())
+            I++;
+
+        success = addOccurrence(opt, spec, arg.drop_front(I), i);
         return true;
     }
 
@@ -275,7 +272,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef arg, size_t i)
 {
     assert(!arg.empty());
 
-    for (auto n = std::min(maxPrefixLength, arg.size()); n != 0; --n)
+    for (auto n = std::min(maxPrefixLength_, arg.size()); n != 0; --n)
     {
         auto spec = arg.front(n);
         auto opt = findOption(spec);
@@ -302,7 +299,7 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
     {
         auto opt = findOption(name.substr(n, 1));
 
-        if (opt == 0 || opt->formatting != Grouping)
+        if (opt == 0 || opt->formatting() != Grouping)
             return false;
         else
             group.push_back(opt);
@@ -312,7 +309,10 @@ bool CmdLine::handleGroup(bool& success, StringRef name, size_t i)
 
     // Then handle all the options
     for (auto opt : group)
-        success = addOccurrence(opt, opt->name, StringRef(), i) && success;
+    {
+        success = addOccurrence(opt, opt->name(), {}, i)
+                  && success;
+    }
 
     return true;
 }
@@ -323,7 +323,7 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
 
     if (!opt->isOccurrenceAllowed())
     {
-        if (opt->numOccurrences == Optional)
+        if (opt->numOccurrences() == Optional)
             return error("option '" + name + "' must occur at most once");
         else
             return error("option '" + name + "' must occur exactly once");
@@ -331,15 +331,16 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef spec, StringRef value, si
 
     auto parse = [&](StringRef spec, StringRef value) -> bool
     {
-        if (!opt->parse(spec, value, i))
-            return error("invalid argument '" + value + "' for option '" + name + "'");
+        if (opt->parse(spec, value, i))
+        {
+            opt->count_++;
+            return true;
+        }
 
-        opt->count++;
-
-        return true;
+        return error("invalid argument '" + value + "' for option '" + name + "'");
     };
 
-    if (opt->miscFlags & CommaSeparated)
+    if (opt->flags() & CommaSeparated)
     {
         for (auto v : strings::split(value, ","))
             if (!parse(spec, v))
@@ -358,13 +359,13 @@ bool CmdLine::check()
 {
     bool success = true;
 
-    for (auto& I : getOptions(false/*SkipHidden*/))
+    for (auto& I : options(false/*SkipHidden*/))
         success = check(I) && success;
 
-    for (auto& I : positionals)
+    for (auto& I : positionals())
         success = check(I) && success;
 
-    for (auto& I : groups)
+    for (auto& I : groups_)
         success = check(I.second) && success;
 
     return success;
@@ -389,7 +390,7 @@ bool CmdLine::check(OptionGroup const* g)
 // Adds an error message. Returns false.
 bool CmdLine::error(std::string str)
 {
-    errors.push_back(std::move(str));
+    errors_.push_back(std::move(str));
     return false;
 }
 
@@ -398,43 +399,42 @@ bool CmdLine::error(std::string str)
 //
 
 OptionGroup::OptionGroup(CmdLine& cmd, std::string name, Type type)
-    : name(std::move(name))
-    , type(type)
+    : name_(std::move(name))
+    , type_(type)
 {
-    if (!cmd.groups.insert({this->name, this}).second)
+    if (!cmd.groups_.insert({this->name_, this}).second)
     {
     }
 }
 
 bool OptionGroup::check() const
 {
-    if (type == OptionGroup::Default)
+    if (type_ == OptionGroup::Default)
         return true;
 
     // Count the number of options in this group which have been specified on the command-line
-    size_t N = std::count_if(options.begin(), options.end(),
-        [](OptionBase const* x)
-        {
-            return x->getCount() > 0;
+    size_t N = std::count_if(options_.begin(), options_.end(),
+        [](OptionBase const* x) {
+            return x->count() > 0;
         }
     );
 
-    switch (type)
+    switch (type_)
     {
-    case OptionGroup::Default: // prevent warning
+    case Default: // prevent warning
         return true;
-    case OptionGroup::Zero:
+    case Zero:
         return N == 0;
-    case OptionGroup::ZeroOrOne:
+    case ZeroOrOne:
         return N == 0 || N == 1;
-    case OptionGroup::One:
+    case One:
         return N == 1;
-    case OptionGroup::OneOrMore:
+    case OneOrMore:
         return N >= 1;
-    case OptionGroup::All:
-        return N == options.size();
-    case OptionGroup::ZeroOrAll:
-        return N == 0 || N == options.size();
+    case All:
+        return N == options_.size();
+    case ZeroOrAll:
+        return N == 0 || N == options_.size();
     }
 
     return true; // prevent warning
@@ -442,22 +442,22 @@ bool OptionGroup::check() const
 
 std::string OptionGroup::desc() const
 {
-    switch (type)
+    switch (type_)
     {
-    case OptionGroup::Default:
-        return "any number of options in group '" + name + "' may be specified";
-    case OptionGroup::Zero:
-        return "no options in group '" + name + "' may be specified";
-    case OptionGroup::ZeroOrOne:
-        return "at most one option in group '" + name + "' may be specified";
-    case OptionGroup::One:
-        return "exactly one option in group '" + name + "' must be specified";
-    case OptionGroup::OneOrMore:
-        return "at least one option in group '" + name + "' must be specified";
-    case OptionGroup::All:
-        return "all options in group '" + name + "' must be specified";
-    case OptionGroup::ZeroOrAll:
-        return "none or all options in group '" + name + "' must be specified";
+    case Default:
+        return "any number of options in group '" + name_ + "' may be specified";
+    case Zero:
+        return "no options in group '" + name_ + "' may be specified";
+    case ZeroOrOne:
+        return "at most one option in group '" + name_ + "' may be specified";
+    case One:
+        return "exactly one option in group '" + name_ + "' must be specified";
+    case OneOrMore:
+        return "at least one option in group '" + name_ + "' must be specified";
+    case All:
+        return "all options in group '" + name_ + "' must be specified";
+    case ZeroOrAll:
+        return "none or all options in group '" + name_ + "' must be specified";
     }
 
     assert(!"internal error");
@@ -469,14 +469,14 @@ std::string OptionGroup::desc() const
 //
 
 OptionBase::OptionBase()
-    : name()
-    , argName()
-    , desc("**** Documentation missing ****")
-    , numOccurrences(Optional)
-    , numArgs(ArgOptional)
-    , formatting(DefaultFormatting)
-    , miscFlags(None)
-    , count(0)
+    : name_()
+    , argName_()
+    , desc_("**** Documentation missing ****")
+    , numOccurrences_(Optional)
+    , numArgs_(ArgOptional)
+    , formatting_(DefaultFormatting)
+    , miscFlags_(None)
+    , count_(0)
 {
 }
 
@@ -486,54 +486,54 @@ OptionBase::~OptionBase()
 
 StringRef OptionBase::displayName() const
 {
-    if (name.empty())
-        return argName;
+    if (name_.empty())
+        return argName_;
 
-    return name;
+    return name_;
 }
 
 bool OptionBase::isOccurrenceAllowed() const
 {
-    if (numOccurrences == Optional || numOccurrences == Required)
-        return count == 0;
+    if (numOccurrences_ == Optional || numOccurrences_ == Required)
+        return count_ == 0;
 
     return true;
 }
 
 bool OptionBase::isOccurrenceRequired() const
 {
-    if (numOccurrences == Required || numOccurrences == OneOrMore)
-        return count == 0;
+    if (numOccurrences_ == Required || numOccurrences_ == OneOrMore)
+        return count_ == 0;
 
     return false;
 }
 
 bool OptionBase::isUnbounded() const
 {
-    return numOccurrences == ZeroOrMore || numOccurrences == OneOrMore;
+    return numOccurrences_ == ZeroOrMore || numOccurrences_ == OneOrMore;
 }
 
 bool OptionBase::isRequired() const
 {
-    return numOccurrences == Required || numOccurrences == OneOrMore;
+    return numOccurrences_ == Required || numOccurrences_ == OneOrMore;
 }
 
 bool OptionBase::isPrefix() const
 {
-    return formatting == Prefix || formatting == MayPrefix;
+    return formatting_ == Prefix || formatting_ == MayPrefix;
 }
 
 void OptionBase::applyRec()
 {
-    assert((formatting != Positional || !name.empty())
+    assert((formatting_ != Positional || !name_.empty())
         && "positional options need a name");
 
-    if (argName.empty())
-        argName = "arg";
+    if (argName_.empty())
+        argName_ = "arg";
 
-    if (formatting == Positional /*|| formatting == Prefix*/)
-        numArgs = ArgRequired;
+    if (formatting_ == Positional)
+        numArgs_ = ArgRequired;
 
-    if (formatting == Grouping)
-        numArgs = ArgDisallowed;
+    if (formatting_ == Grouping)
+        numArgs_ = ArgDisallowed;
 }
