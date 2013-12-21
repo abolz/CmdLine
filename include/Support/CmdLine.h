@@ -112,6 +112,9 @@ public:
     // Parse the given command line arguments
     bool parse(StringVector const& argv);
 
+    // Expand response files and parse the command line arguments
+    bool expandAndParse(StringVector argv);
+
     // Returns the list of errors
     StringVector const& errors() const { return errors_; }
 
@@ -129,6 +132,9 @@ public:
 
 private:
     OptionBase* findOption(StringRef name) const;
+
+    bool expandResponseFile(StringVector& argv, size_t i);
+    bool expandResponseFiles(StringVector& argv);
 
     bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash);
 

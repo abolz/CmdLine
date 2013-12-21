@@ -2,9 +2,11 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
+#include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 
 using namespace support;
@@ -95,6 +97,14 @@ bool CmdLine::parse(StringVector const& argv)
     return check() && success;
 }
 
+bool CmdLine::expandAndParse(StringVector argv)
+{
+    if (!expandResponseFiles(argv))
+        return false;
+
+    return parse(argv);
+}
+
 CmdLine::ConstOptionVector CmdLine::options() const
 {
     ConstOptionVector opts;
@@ -124,6 +134,50 @@ OptionBase* CmdLine::findOption(StringRef name) const
 {
     auto I = options_.find(name);
     return I == options_.end() ? 0 : I->second;
+}
+
+bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
+{
+    std::ifstream file(argv[i].substr(1));
+
+    if (!file)
+        return error("no such file or directory: \"" + argv[i] + "\"");
+
+    // Erase the i-th argument (@file)
+    argv.erase(argv.begin() + i);
+
+    // Parse the file while inserting new command line arguments before the erased argument
+    auto I = std::istreambuf_iterator<char>(file.rdbuf());
+    auto E = std::istreambuf_iterator<char>();
+
+    tokenizeCommandLineUnix(I, E, std::inserter(argv, argv.begin() + i));
+
+    return true;
+}
+
+// Recursively expand response files.
+// Returns true on success, false otherwise.
+bool CmdLine::expandResponseFiles(StringVector& argv)
+{
+    // Response file counter to prevent infinite recursion...
+    size_t responseFilesLeft = 100;
+
+    for (size_t i = 0; i < argv.size();)
+    {
+        if (argv[i][0] != '@')
+        {
+            i++;
+            continue;
+        }
+
+        if (!expandResponseFile(argv, i))
+            return false;
+
+        if (--responseFilesLeft == 0)
+            return error("too many response files encountered");
+    }
+
+    return true;
 }
 
 // Process a single command line argument.
