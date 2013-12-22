@@ -457,9 +457,8 @@ OptionGroup::OptionGroup(CmdLine& cmd, std::string name, Type type)
     : name_(std::move(name))
     , type_(type)
 {
-    if (!cmd.groups_.insert({this->name_, this}).second)
-    {
-    }
+    if (!cmd.groups_.insert({name_, this}).second)
+        throw std::runtime_error("failed to register option group '" + name + "'");
 }
 
 bool OptionGroup::check() const
@@ -471,8 +470,7 @@ bool OptionGroup::check() const
     size_t N = std::count_if(options_.begin(), options_.end(),
         [](OptionBase const* x) {
             return x->count() > 0;
-        }
-    );
+        });
 
     switch (type_)
     {
