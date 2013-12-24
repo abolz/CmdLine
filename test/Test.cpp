@@ -92,8 +92,8 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ZeroOrMore);
-    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ZeroOrMore);
+    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
     auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix, cl::ArgRequired);
 
                     //------------------------------------------------------------------------------

@@ -147,10 +147,10 @@ TEST(CmdLineTest, Grouping1)
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=1"                 }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=true"              }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=0"                 }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-a=false"             }, {0,0}, {0,0}, {0,0} ) ); // group => arg disallowed
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=1"                 }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=true"              }, {1,1}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=0"                 }, {1,0}, {0,0}, {0,0} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-a=false"             }, {1,0}, {0,0}, {0,0} ) );
     EXPECT_NO_FATAL_FAILURE( test(false, { "-a0"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a0
     EXPECT_NO_FATAL_FAILURE( test(false, { "-a1"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -a1
     EXPECT_NO_FATAL_FAILURE( test(false, { "-ax"                  }, {0,0}, {0,0}, {0,0} ) ); // unknown option -ax
@@ -168,6 +168,42 @@ TEST(CmdLineTest, Grouping1)
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab1", "-ba"          }, {1,1}, {1,1}, {1,1} ) );
     EXPECT_NO_FATAL_FAILURE( test(false, { "-ab=1", "-ba"         }, {1,1}, {1,1}, {0,0} ) ); // invalid value for -ab
     EXPECT_NO_FATAL_FAILURE( test(false, { "-ab", "1", "-ba"      }, {1,1}, {1,1}, {1,1} ) ); // unhandled positional
+}
+
+TEST(CmdLineTest, Grouping2)
+{
+    using PairI = std::pair<unsigned, int>;
+    using PairS = std::pair<unsigned, std::string>;
+
+    auto test = [](bool result, Argv const& argv, PairI const& a_val, PairI const& b_val, PairS const& c_val)
+    {
+        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+
+        cl::CmdLine cmd;
+
+        auto a = cl::makeOption<bool>(cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cmd, "v", cl::Grouping, cl::ArgDisallowed);
+        auto c = cl::makeOption<std::string>(cmd, "f", cl::Grouping, cl::ArgRequired);
+
+        bool actual_result = parse(cmd, argv);
+        EXPECT_EQ(result, actual_result);
+
+        EXPECT_EQ(a_val.first, a.count());
+        EXPECT_EQ(b_val.first, b.count());
+        EXPECT_EQ(c_val.first, c.count());
+
+        if (a.count())
+            EXPECT_EQ(a_val.second, +a.value());
+        if (b.count())
+            EXPECT_EQ(b_val.second, +b.value());
+        if (c.count())
+            EXPECT_EQ(c_val.second, c.value());
+    };
+
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-xvf", "test.tar"       }, {1,1}, {1,1}, {1,"test.tar"} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-xv", "-f", "test.tar"  }, {1,1}, {1,1}, {1,"test.tar"} ) );
+    EXPECT_NO_FATAL_FAILURE( test(true,  { "-xv", "-f=test.tar"     }, {1,1}, {1,1}, {1,"test.tar"} ) );
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-xfv", "test.tar"       }, {0,0}, {0,0}, {0,""        } ) );
 }
 
 TEST(CmdLineTest, Prefix)

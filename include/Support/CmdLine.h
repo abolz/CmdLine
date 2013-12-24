@@ -138,13 +138,15 @@ private:
 
     bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash);
 
-    bool handlePositional(StringRef arg, size_t i, OptionVector::iterator& pos);
+    bool handlePositional(StringVector const& argv, size_t& i, OptionVector::iterator& pos, StringRef arg);
 
-    bool handleOption(bool& success, StringRef arg, size_t& i, StringVector const& argv);
-    bool handlePrefix(bool& success, StringRef arg, size_t i);
-    bool handleGroup(bool& success, StringRef arg, size_t i);
+    bool handleOption(StringVector const& argv, size_t& i, bool& success, StringRef arg);
+    bool handlePrefix(StringVector const& argv, size_t& i, bool& success, StringRef arg);
+    bool handleGroup(StringVector const& argv, size_t& i, bool& success, StringRef arg);
 
-    bool addOccurrence(OptionBase* opt, StringRef spec, StringRef value, size_t i);
+    bool parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
+
+    bool addOccurrence(StringVector const& argv, size_t& i, OptionBase* opt, StringRef name, StringRef arg);
 
     bool check(OptionBase const* opt);
     bool check(OptionGroup const* g);
