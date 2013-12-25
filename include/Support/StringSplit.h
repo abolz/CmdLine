@@ -153,10 +153,8 @@ public:
     }
 
 private:
-    void parse(StringRef& T, StringRef& S) const
+    void assign_next(StringRef& T, StringRef& S, StringRef Sep) const
     {
-        auto Sep = Split(S);
-
         if (Sep.data() == nullptr)
         {
             // If the splitter returns null, stop immediately.
@@ -175,9 +173,7 @@ private:
         }
         else
         {
-            assert(S.begin() <= Sep.begin());
-            assert(Sep.begin() <= Sep.end());
-            assert(Sep.end() <= S.end());
+            assert(S.contains(Sep));
 
             // Otherwise, split out the separator from the current string.
             // NOTE: Sep may be empty!
@@ -186,13 +182,22 @@ private:
         }
     }
 
+    void assign_next(StringRef& T, StringRef& S, std::pair<StringRef, StringRef> P) const
+    {
+        assert(S.contains(P.first));
+        assert(S.contains(P.second));
+
+        T = P.first;
+        S = P.second;
+    }
+
     void next(StringRef& T, StringRef& S) const
     {
-        parse(T, S);
+        assign_next(T, S, Split(S));
 
         while (SkipEmpty && (T.empty() && T.data() != nullptr))
         {
-            parse(T, S);
+            assign_next(T, S, Split(S));
         }
     }
 };
@@ -299,7 +304,7 @@ public:
 
 inline SplitWrap wrap(size_t Width, StringRef Spaces = " \n")
 {
-    return SplitWrap(Width, Spaces);
+    return { Width, Spaces };
 }
 
 //--------------------------------------------------------------------------------------------------
