@@ -96,6 +96,11 @@ public:
         return Length == 0;
     }
 
+    // Returns true if Str is a substring of the current string.
+    bool contains(StringRef Str) const {
+        return begin() <= Str.begin() && Str.end() <= end();
+    }
+
     // Returns an iterator to the first element of the string.
     const_iterator begin() const {
         return Data;
