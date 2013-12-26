@@ -68,7 +68,7 @@ TEST(CmdLineTest, ArgOptionalFail1)
     auto e = cmd.errors();
 
     ASSERT_EQ(e.size(), 1);
-    EXPECT_EQ(e[0], "unhandled positional argument: 'xxx'");
+    EXPECT_EQ(e[0], "unknown positional option: 'xxx'");
 }
 
 TEST(CmdLineTest, Flags1)
@@ -179,7 +179,7 @@ TEST(CmdLineTest, Grouping2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd;
+        cl::CmdLine cmd(cl::PrintErrors);
 
         auto a = cl::makeOption<bool>(cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
         auto b = cl::makeOption<bool>(cmd, "v", cl::Grouping, cl::ArgDisallowed);

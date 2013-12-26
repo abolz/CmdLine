@@ -212,7 +212,7 @@ bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::itera
         // Unhandled positional argument...
         unknowns_.push_back(arg.str());
 
-        return ignoreUnknowns || error("unhandled positional argument: '" + arg + "'");
+        return ignoreUnknowns || error("unknown positional option: '" + arg + "'");
     }
 
     // Starts with a dash, must be an argument.
@@ -233,7 +233,6 @@ bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::itera
 
     // If it's not a standard option and there is no equals sign,
     // check for a prefix option.
-    // FIXME: Allow prefix only for short options?
     if (handlePrefix(argv, i, success, name))
     {
         return success;
@@ -352,7 +351,7 @@ bool CmdLine::handleGroup(StringVector const& argv, size_t& i, bool& success, St
         if (group[n]->numArgs() == ArgRequired)
         {
             success = error("option '" + group[n]->displayName()
-                + "' requires an argument (note: must be at the end of an option group)");
+                + "' requires an argument (must be last in '" + name + "')");
             return true;
         }
     }
@@ -391,10 +390,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
     // Check if an occurrence is allowed
     if (!opt->isOccurrenceAllowed())
     {
-        if (opt->numOccurrences() == Optional)
-            return error("option '" + name + "' must occur at most once");
-        else
-            return error("option '" + name + "' must occur exactly once");
+        return error("option '" + name + "' already specified");
     }
 
     size_t index = i;
@@ -404,7 +400,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
         // If an argument was specified, check if this is allowed.
         if (arg.data() && opt->numArgs() == ArgDisallowed)
         {
-            return error("option '" + dname + "' does not allow an argument");
+            return error("option '" + dname + "' doesn't allow an argument");
         }
 
         // If the option requires an argument, "steal" the next argument from the
@@ -413,7 +409,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
         {
             if (opt->formatting() == Prefix || i + 1 >= argv.size())
             {
-                return error("option '" + dname + "' expects an argument");
+                return error("option '" + dname + "' requires an argument");
             }
 
             arg = argv[++i];
@@ -433,7 +429,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
         return true;
     }
 
-    // Just parse the option.
+    // Otherwise, just parse the option.
     return parse(opt, name, arg, index);
 }
 
