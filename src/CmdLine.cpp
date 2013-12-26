@@ -472,9 +472,8 @@ bool CmdLine::check(OptionGroup const* g)
 // Adds an error message. Returns false.
 bool CmdLine::error(std::string str)
 {
-#if 1
-    std::cout << "command-line: error: " << str << std::endl;
-#endif
+    if (flags_ & PrintErrors)
+        std::cout << "command-line error: " << str << std::endl;
 
     errors_.push_back(std::move(str));
     return false;

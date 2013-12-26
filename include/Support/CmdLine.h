@@ -30,6 +30,7 @@ enum CmdLineFlags : unsigned {
     StopOnFirstError = 0x01, // Stop parsing when the first error is encountered
     IgnoreUnknownOptions = 0x02, // Ignore unknown options
     IgnoreMissingOptions = 0x04, // Do not check if all options have been specified
+    PrintErrors = 0x08,     // Print errors to std::cerr
 };
 
 //--------------------------------------------------------------------------------------------------

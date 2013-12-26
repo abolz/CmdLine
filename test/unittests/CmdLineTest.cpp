@@ -626,7 +626,7 @@ TEST(CmdLineTest, OptionGroup1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd;
+        cl::CmdLine cmd(cl::PrintErrors);
 
         cl::OptionGroup gr1(cmd, "gr1");
         cl::OptionGroup gr2(cmd, "gr2", cl::OptionGroup::ZeroOrAll);
