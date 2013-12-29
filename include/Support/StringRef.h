@@ -60,23 +60,20 @@ public:
 
     // Construct a StringRef from a C-string.
     StringRef(const_pointer Str)
-        : Data(Str)
-        , Length(Str ? traits_type::length(Str) : 0)
+        : StringRef(Str, Str ? traits_type::length(Str) : 0)
     {
     }
 
     // Construct from two iterators
     StringRef(const_iterator Begin, const_iterator End)
-        : Data(Begin)
-        , Length(End - Begin)
+        : StringRef(Begin, static_cast<size_t>(End - Begin))
     {
         assert((Begin ? Begin <= End : !End) && "invalid iterators");
     }
 
     // Construct a StringRef from a std::string.
     StringRef(std::string const& Str)
-        : Data(Str.data())
-        , Length(Str.size())
+        : StringRef(Str.data(), Str.size())
     {
     }
 
@@ -93,29 +90,24 @@ public:
 
     // Returns whether this string is null or empty.
     bool empty() const {
-        return Length == 0;
-    }
-
-    // Returns true if Str is a substring of the current string.
-    bool contains(StringRef Str) const {
-        return begin() <= Str.begin() && Str.end() <= end();
+        return size() == 0;
     }
 
     // Returns an iterator to the first element of the string.
     const_iterator begin() const {
-        return Data;
+        return data();
     }
 
     // Returns an iterator to one element past the last element of the string.
     const_iterator end() const {
-        return Data + Length;
+        return data() + size();
     }
 
     // Array access.
     const_reference operator [](size_t Index) const
     {
         assert(Index < size() && "index out of range");
-        return Data[Index];
+        return data()[Index];
     }
 
     // Returns the first character of the string.
