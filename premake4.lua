@@ -24,7 +24,6 @@ solution "Support"
     end
 
     configuration { "Debug" }
-        targetsuffix "d"
         defines { "_DEBUG" }
         flags { "ExtraWarnings", "Symbols" }
 
@@ -66,6 +65,9 @@ project "CmdLine"
         "include/**.*",
         "src/**.*",
     }
+
+    configuration { "Debug" }
+        targetsuffix "d"
 
 ----------------------------------------------------------------------------------------------------
 project "Test"
