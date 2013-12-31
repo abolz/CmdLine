@@ -137,17 +137,18 @@ private:
     bool expandResponseFile(StringVector& argv, size_t i);
     bool expandResponseFiles(StringVector& argv);
 
-    bool handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash);
+    bool handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
 
-    bool handlePositional(StringVector const& argv, size_t& i, OptionVector::iterator& pos, StringRef arg);
+    bool handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
 
-    bool handleOption(StringVector const& argv, size_t& i, bool& success, StringRef arg);
-    bool handlePrefix(StringVector const& argv, size_t& i, bool& success, StringRef arg);
-    bool handleGroup(StringVector const& argv, size_t& i, bool& success, StringRef arg);
+    bool handleOption(bool& success, StringRef curr, StringVector const& argv, size_t& i);
+    bool handlePrefix(bool& success, StringRef curr, size_t i);
+    bool handleGroup(bool& success, StringRef curr, StringVector const& argv, size_t& i);
+
+    bool addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i);
+    bool addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i);
 
     bool parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
-
-    bool addOccurrence(StringVector const& argv, size_t& i, OptionBase* opt, StringRef name, StringRef arg);
 
     bool check(OptionBase const* opt);
     bool check(OptionGroup const* g);
@@ -282,6 +283,7 @@ struct MapParser
         Init(std::string name, T value, std::string desc = "")
             : MapValueType{std::move(name), {std::move(value), std::move(desc)}}
         {
+            assert(!name.empty() && "empty keys are not allowed");
         }
     };
 
@@ -294,8 +296,8 @@ struct MapParser
 
     bool operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
     {
-        // If the arg is null, the option is specified by name
-        auto I = map.find(arg.data() ? arg.str() : name.str());
+        // If the arg is empty, the option is specified by name
+        auto I = map.find(arg.empty() ? name.str() : arg.str());
 
         if (I != map.end())
         {

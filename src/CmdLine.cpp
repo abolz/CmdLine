@@ -81,7 +81,7 @@ bool CmdLine::parse(StringVector const& argv)
     // Handle all arguments...
     for (size_t N = 0; N < argv.size(); ++N)
     {
-        if (!handleArg(argv, N, pos, dashdash))
+        if (!handleArg(dashdash, argv, N, pos))
         {
             if (flags_ & StopOnFirstError)
                 return false;
@@ -182,7 +182,7 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
 
 // Process a single command line argument.
 // Returns true on success, false otherwise.
-bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::iterator& pos, bool& dashdash)
+bool CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
 {
     StringRef arg = argv[i];
 
@@ -199,7 +199,7 @@ bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::itera
     // itself, or if we have seen "--" already.
     if (arg[0] != '-' || arg == "-" || dashdash)
     {
-        if (handlePositional(argv, i, pos, arg))
+        if (handlePositional(arg, argv, i, pos))
         {
             // If the current positional argument has the ConsumeAfter flag set, parse
             // all following command-line arguments as positional options.
@@ -226,20 +226,20 @@ bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::itera
     bool success = true;
 
     // Try to process this argument as a standard option.
-    if (handleOption(argv, i, success, name))
+    if (handleOption(success, name, argv, i))
     {
         return success;
     }
 
     // If it's not a standard option and there is no equals sign,
     // check for a prefix option.
-    if (handlePrefix(argv, i, success, name))
+    if (handlePrefix(success, name, i))
     {
         return success;
     }
 
     // If it's not standard or prefix option, check for an option group
-    if (short_option && handleGroup(argv, i, success, name))
+    if (short_option && handleGroup(success, name, argv, i))
     {
         return success;
     }
@@ -250,7 +250,7 @@ bool CmdLine::handleArg(StringVector const& argv, size_t& i, OptionVector::itera
     return ignoreUnknowns || error("unknown option '" + arg + "'");
 }
 
-bool CmdLine::handlePositional(StringVector const& argv, size_t& i, OptionVector::iterator& pos, StringRef arg)
+bool CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
 {
     if (pos == positionals_.end())
     {
@@ -263,25 +263,25 @@ bool CmdLine::handlePositional(StringVector const& argv, size_t& i, OptionVector
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
     {
-        return handlePositional(argv, i, ++pos, arg);
+        return handlePositional(curr, argv, i, ++pos);
     }
 
     // The value of a positional option is the argument itself.
-    return addOccurrence(argv, i, opt, (*pos)->displayName(), arg);
+    return addOccurrence(opt, curr, curr, i);
 }
 
 // If 'arg' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
-bool CmdLine::handleOption(StringVector const& argv, size_t& i, bool& success, StringRef arg)
+bool CmdLine::handleOption(bool& success, StringRef curr, StringVector const& argv, size_t& i)
 {
-    if (auto opt = findOption(arg)) // Standard option?
+    if (auto opt = findOption(curr)) // Standard option?
     {
-        success = addOccurrence(argv, i, opt, arg, {});
+        success = addOccurrence(opt, curr, argv, i);
         return true;
     }
 
     // Get the index of the first equals sign
-    auto I = arg.find('=');
+    auto I = curr.find('=');
 
     if (I == StringRef::npos)
     {
@@ -289,15 +289,15 @@ bool CmdLine::handleOption(StringVector const& argv, size_t& i, bool& success, S
     }
 
     // Get the option name
-    auto name = arg.front(I);
+    auto name = curr.front(I);
 
     if (auto opt = findOption(name))
     {
         // Include the equals sign in the value if this option is a prefix option.
         // Discard otherwise.
-        arg = arg.drop_front(opt->isPrefix() ? I : I + 1);
+        StringRef arg = curr.drop_front(opt->isPrefix() ? I : I + 1);
 
-        success = addOccurrence(argv, i, opt, name, arg);
+        success = addOccurrence(opt, name, arg, i);
         return true;
     }
 
@@ -305,18 +305,18 @@ bool CmdLine::handleOption(StringVector const& argv, size_t& i, bool& success, S
 }
 
 // Handles prefix options which have an argument specified without an equals sign.
-bool CmdLine::handlePrefix(StringVector const& argv, size_t& i, bool& success, StringRef arg)
+bool CmdLine::handlePrefix(bool& success, StringRef curr, size_t i)
 {
-    assert(!arg.empty());
+    assert(!curr.empty());
 
-    for (auto n = std::min(maxPrefixLength_, arg.size()); n != 0; --n)
+    for (auto n = std::min(maxPrefixLength_, curr.size()); n != 0; --n)
     {
-        auto name = arg.front(n);
+        auto name = curr.front(n);
         auto opt = findOption(name);
 
         if (opt && opt->isPrefix())
         {
-            success = addOccurrence(argv, i, opt, name, arg.drop_front(n));
+            success = addOccurrence(opt, name, curr.drop_front(n), i);
             return true;
         }
     }
@@ -325,16 +325,16 @@ bool CmdLine::handlePrefix(StringVector const& argv, size_t& i, bool& success, S
 }
 
 // Process an option group.
-bool CmdLine::handleGroup(StringVector const& argv, size_t& i, bool& success, StringRef name)
+bool CmdLine::handleGroup(bool& success, StringRef curr, StringVector const& argv, size_t& i)
 {
     OptionVector group;
 
-    group.reserve(name.size());
+    group.reserve(curr.size());
 
     // First check if the name consists of single letter options
-    for (size_t n = 0; n != name.size(); ++n)
+    for (size_t n = 0; n != curr.size(); ++n)
     {
-        auto opt = findOption(name.substr(n, 1));
+        auto opt = findOption(curr.substr(n, 1));
 
         if (opt == 0 || opt->formatting() != Grouping)
             return false;
@@ -351,7 +351,7 @@ bool CmdLine::handleGroup(StringVector const& argv, size_t& i, bool& success, St
         if (group[n]->numArgs() == ArgRequired)
         {
             success = error("option '" + group[n]->displayName()
-                + "' requires an argument (must be last in '" + name + "')");
+                + "' requires an argument (must be last in '" + curr + "')");
             return true;
         }
     }
@@ -359,62 +359,71 @@ bool CmdLine::handleGroup(StringVector const& argv, size_t& i, bool& success, St
     success = true;
 
     // Then handle all the options
-    for (auto opt : group)
+    for (size_t n = 0; n != group.size(); ++n)
     {
-        success = addOccurrence(argv, i, opt, opt->name(), {})
+        success = addOccurrence(group[n], curr.substr(n, 1), argv, i)
                   && success;
     }
 
     return true;
 }
 
-bool CmdLine::parse(OptionBase* opt, StringRef name, StringRef arg, size_t i)
+bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i)
 {
-    if (opt->parse(name, arg, i))
-    {
-        opt->count_++;
-        return true;
-    }
-
-    return error("invalid argument '" + arg + "' for option '" + name + "'");
-}
-
-bool CmdLine::addOccurrence(StringVector const& argv,
-                            size_t& i,
-                            OptionBase* opt,
-                            StringRef name,
-                            StringRef arg)
-{
-    StringRef dname = opt->displayName();
-
-    // Check if an occurrence is allowed
-    if (!opt->isOccurrenceAllowed())
-    {
-        return error("option '" + name + "' already specified");
-    }
+    StringRef arg;
 
     size_t index = i;
 
     if (opt->formatting() != Positional)
     {
-        // If an argument was specified, check if this is allowed.
-        if (arg.data() && opt->numArgs() == ArgDisallowed)
-        {
-            return error("option '" + dname + "' doesn't allow an argument");
-        }
-
         // If the option requires an argument, "steal" the next argument from the
         // command line, so that "-o file" is possible instead of "-o=file"
-        if (!arg.data() && opt->numArgs() == ArgRequired)
+        if (opt->numArgs() == ArgRequired)
         {
             if (opt->formatting() == Prefix || i + 1 >= argv.size())
             {
-                return error("option '" + dname + "' requires an argument");
+                return error("option '" + opt->displayName() + "' requires an argument");
             }
 
             arg = argv[++i];
         }
     }
+
+    return parse(opt, name, arg, index);
+}
+
+bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i)
+{
+    if (opt->formatting() != Positional)
+    {
+        // An argument was specified, check if this is allowed.
+        if (opt->numArgs() == ArgDisallowed)
+        {
+            return error("option '" + opt->displayName() + "' doesn't allow an argument");
+        }
+    }
+
+    return parse(opt, name, arg, i);
+}
+
+bool CmdLine::parse(OptionBase* opt, StringRef name, StringRef arg, size_t i)
+{
+    // Check if an occurrence is allowed
+    if (!opt->isOccurrenceAllowed())
+    {
+        return error("option '" + opt->displayName() + "' already specified");
+    }
+
+    auto add = [&](StringRef name, StringRef arg) -> bool
+    {
+        if (opt->parse(name, arg, i))
+        {
+            opt->count_++;
+            return true;
+        }
+
+        return error("invalid argument '" + arg + "' for option '" + name + "'");
+    };
 
     // If this option takes a comma-separated list of arguments, split the string
     // and add all arguments separately.
@@ -422,7 +431,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
     {
         for (auto v : strings::split(arg, ","))
         {
-            if (!parse(opt, name, v, index))
+            if (!add(name, v))
                 return false;
         }
 
@@ -430,7 +439,7 @@ bool CmdLine::addOccurrence(StringVector const& argv,
     }
 
     // Otherwise, just parse the option.
-    return parse(opt, name, arg, index);
+    return add(name, arg);
 }
 
 bool CmdLine::check()
