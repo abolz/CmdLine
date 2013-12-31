@@ -193,11 +193,11 @@ TEST(StringSplitTest, Test7_1)
     }
 }
 
-TEST(StringSplitTest, EmptySepLiteral)
+TEST(StringSplitTest, EmptySepLiteral1)
 {
     auto vec = std::vector<StringRef>(split("abc", ""));
 
-#if !defined(SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL) || (SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL == 0)
+#if !SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "abc");
 #else
@@ -206,6 +206,22 @@ TEST(StringSplitTest, EmptySepLiteral)
     EXPECT_EQ(vec[1], "b");
     EXPECT_EQ(vec[2], "c");
 #endif
+}
+
+TEST(StringSplitTest, EmptySepLiteral2)
+{
+    auto vec = std::vector<StringRef>(split("x", ""));
+
+    ASSERT_EQ(vec.size(), 1);
+    EXPECT_EQ(vec[0], "x");
+}
+
+TEST(StringSplitTest, EmptySepLiteral3)
+{
+    auto vec = std::vector<StringRef>(split("", ""));
+
+    ASSERT_EQ(vec.size(), 1);
+    EXPECT_EQ(vec[0], "");
 }
 
 TEST(StringSplitTest, EmptySepAnyOf)

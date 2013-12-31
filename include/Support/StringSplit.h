@@ -17,16 +17,55 @@ namespace strings
 // SplitResult
 //
 
-template <class Splitter>
+template <class Delimiter>
 class SplitResult
 {
+    class Iterator;
+
     // The string to split
     StringRef Str;
     // The delimiters
-    Splitter Split;
+    Delimiter Delim;
     // Whether to skip empty tokens
     bool SkipEmpty;
 
+public:
+    using iterator = Iterator;
+    using const_iterator = Iterator;
+
+    // Construct a new splitter
+    SplitResult(StringRef str, Delimiter delim, bool skipEmpty = false)
+        : Str(str)
+        , Delim(std::move(delim))
+        , SkipEmpty(skipEmpty)
+    {
+    }
+
+    // Returns an iterator to the first token
+    const_iterator begin() const {
+        return { this, Str };
+    }
+
+    // Returns the past-the-end iterator
+    const_iterator end() const {
+        return { nullptr, Str };
+    }
+
+    // Construct a container from this range
+    template <class T>
+    explicit operator T() const
+    {
+        return T(begin(), end());
+    }
+
+    // Returns the current token and the rest of the string.
+    std::pair<StringRef, StringRef> operator ()() const
+    {
+        auto I = begin();
+        return { I.Tok, I.Str };
+    }
+
+private:
     class Iterator
     {
         friend class SplitResult;
@@ -46,22 +85,14 @@ class SplitResult
         using difference_type       = ptrdiff_t;
 
     public:
-        // Construct the past-the-end iterator
-        Iterator()
-            : Split(nullptr)
-            , Tok()
-            , Str()
-        {
-        }
-
         // Construct a new iterator
-        // SplitResult must be non-null!
-        Iterator(SplitResult const* Split)
-            : Split(Split)
-            , Tok()
-            , Str(Split->Str)
-          {
-            this->operator++(); // grab the first token
+        Iterator(SplitResult const* split, StringRef str)
+            : Split(split)
+            , Tok(str.front(0))
+            , Str(str)
+        {
+            if (Split)
+                Split->increment(*this, true/*first*/);
         }
 
         // Returns the current token
@@ -83,11 +114,7 @@ class SplitResult
         {
             assert(Split && "incrementing past-the-end iterator");
 
-            Split->next(Tok, Str);
-
-            if (Tok.data() == nullptr)
-                Split = nullptr;
-
+            Split->increment(*this);
             return *this;
         }
 
@@ -104,7 +131,12 @@ class SplitResult
         {
             assert((!LHS.Split || !RHS.Split || LHS.Split == RHS.Split) && "invalid comparison");
 
-            return LHS.Tok.data() == RHS.Tok.data();
+            if (!LHS.Split && !RHS.Split)
+                return true;
+            if (!LHS.Split || !RHS.Split)
+                return false;
+
+            return LHS.Tok.begin() == RHS.Tok.begin();
         }
 
         // Returns whether the given iterators are inequal
@@ -113,91 +145,88 @@ class SplitResult
         }
     };
 
-public:
-    using iterator = Iterator;
-    using const_iterator = Iterator;
-
-public:
-    // Construct a new splitter
-    SplitResult(StringRef S, Splitter D, bool SkipEmpty = false)
-        : Str(S)
-        , Split(std::move(D))
-        , SkipEmpty(SkipEmpty)
+    void inc(Iterator& I, StringRef Sep) const
     {
-        static const StringRef kEmpty = "";
+        assert(I.Str.begin() <= Sep.begin() && Sep.end() <= I.Str.end());
 
-        // Make Str non-null!
-        // NOTE: assert(StringRef() == "")
-        if (Str.data() == nullptr)
-            Str = kEmpty;
-    }
-
-    // Returns an iterator to the first token
-    const_iterator begin() const {
-        return { this };
-    }
-
-    // Returns the past-the-end iterator
-    const_iterator end() const {
-        return {};
-    }
-
-    // Construct a container from this range
-    template <class T>
-    explicit operator T() const { return T(begin(), end()); }
-
-    std::pair<StringRef, StringRef> operator ()() const
-    {
-        auto I = begin();
-        return { I.Tok, I.Str };
-    }
-
-private:
-    void assign_next(StringRef& T, StringRef& S, StringRef Sep) const
-    {
-        if (Sep.data() == nullptr)
+        if (Sep.begin() == I.Str.end())
         {
-            // If the splitter returns null, stop immediately.
-            T = {};
-            S = {};
-        }
-        else if (Sep.begin() == S.end())
-        {
-            assert(Sep.empty());
-
-            // If the splitter returns an empty separator beginning at the end
-            // of the current string, use the current string as the next token
-            // and stop on the next iteration.
-            T = S;
-            S = {};
+            // There is no further delimiter.
+            // The current string is the last token.
+            I.Tok = I.Str;
         }
         else
         {
-            assert(S.contains(Sep));
-
-            // Otherwise, split out the separator from the current string.
-            // NOTE: Sep may be empty!
-            T = { S.begin(), Sep.begin() };
-            S = { Sep.end(), S.end() };
+            // Delimiter found.
+            // Split the string at the specified position.
+            I.Tok = { I.Str.begin(), Sep.begin() };
+            I.Str = { Sep.end(), I.Str.end() };
         }
     }
 
-    void assign_next(StringRef& T, StringRef& S, std::pair<StringRef, StringRef> P) const
+    void inc(Iterator& I, std::pair<size_t, size_t> Sep) const
     {
-        assert(S.contains(P.first));
-        assert(S.contains(P.second));
+        // ?? return inc(I, I.Str.substr(Sep.first, Sep.second)) ??
 
-        T = P.first;
-        S = P.second;
+        /*if (Sep.first == StringRef::npos && Sep.second == StringRef::npos)
+        {
+            // Stop iteration, now.
+            // Set the iterator to the past-the-end iterator.
+            I.Split = nullptr;
+        }
+        else*/ if (Sep.first == StringRef::npos)
+        {
+            // There is no further delimiter.
+            // The current string is the last token.
+            I.Tok = I.Str;
+        }
+        else
+        {
+            assert(Sep.first <= I.Str.size());
+            assert(Sep.second <= I.Str.size() - Sep.first);
+
+            // Delimiter found.
+            // Split the string at the specified position.
+            I.Tok = I.Str.front(Sep.first);
+            I.Str = I.Str.drop_front(Sep.first).drop_front(Sep.second);
+        }
     }
 
-    void next(StringRef& T, StringRef& S) const
-    {
-        assign_next(T, S, Split(S));
+    //void inc(Iterator& I, std::pair<StringRef, StringRef> const& Next) const
+    //{
+    //    I.Tok = Next.first;
+    //    I.Str = Next.second;
+    //}
 
-        while (SkipEmpty && (T.empty() && T.data() != nullptr))
+    void increment0(Iterator& I, bool first) const
+    {
+        assert(I.Split);
+
+        if (!first && I.Tok.end() == I.Str.end())
         {
-            assign_next(T, S, Split(S));
+            assert(I.Tok.begin() == I.Str.begin());
+
+            // The current string is the last token.
+            // Set the iterator to the past-the-end iterator.
+            I.Split = nullptr;
+        }
+        else
+        {
+            // Find the next token and adjust the iterator.
+            inc(I, Delim(I.Str));
+        }
+    }
+
+    void increment(Iterator& I, bool first = false) const
+    {
+        // Find the next separator and adjust the iterator.
+        increment0(I, first);
+
+        // Skip empty tokens if required.
+        if (SkipEmpty)
+        {
+            while (I.Split && I.Tok.empty())
+                increment0(I, false/*first*/);
         }
     }
 };
@@ -211,18 +240,16 @@ class SplitAnyOf
     StringRef Chars;
 
 public:
-    SplitAnyOf(StringRef Chars = {})
-        : Chars(Chars)
+    SplitAnyOf(StringRef Chars) : Chars(Chars)
     {
     }
 
-    StringRef operator()(StringRef Str) const {
-        return Str.substr(Str.find_first_of(Chars), 1);
+    std::pair<size_t, size_t> operator()(StringRef Str) const {
+        return { Str.find_first_of(Chars), 1 };
     }
 };
 
-inline SplitAnyOf any_of(StringRef Chars)
-{
+inline SplitAnyOf any_of(StringRef Chars) {
     return { Chars };
 }
 
@@ -235,34 +262,28 @@ class SplitLiteral
     StringRef Needle;
 
 public:
-    SplitLiteral(StringRef Needle = {})
-        : Needle(Needle)
+    SplitLiteral(StringRef Needle) : Needle(Needle)
     {
     }
 
-    StringRef operator()(StringRef Str) const
+    std::pair<size_t, size_t> operator()(StringRef Str) const
     {
-        // Handle empty needles
         if (Needle.empty())
         {
-#if !defined(SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL) || (SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL == 0)
-            // Returns the whole string as a token.
+#if !SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
+            // Return the whole string as a token.
             // Makes literal("") behave exactly as any_of("").
-            return Str.back(0);
+            return { StringRef::npos, 0 };
 #else
-            if (Str.empty())
-                return {}; // Empty needle, empty haystack: Stop immediately
-            else
-                return Str.substr(1,0); // Split after the first character.
+            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
 #endif
         }
 
-        return Str.substr(Str.find(Needle), Needle.size());
+        return { Str.find(Needle), Needle.size() };
     }
 };
 
-inline SplitLiteral literal(StringRef Str)
-{
+inline SplitLiteral literal(StringRef Str) {
     return { Str };
 }
 
@@ -285,25 +306,25 @@ public:
         assert(Len > 0);
     }
 
-    StringRef operator()(StringRef Str) const
+    std::pair<size_t, size_t> operator()(StringRef Str) const
     {
         // If the string fits into the current line,
         // just return this last line.
         if (Str.size() <= Len)
-            return Str.back(0);
+            return { StringRef::npos, 0 };
 
         // Search for the first space preceding the line length.
         auto pos = Str.find_last_of(Spaces, Len);
 
         if (pos != StringRef::npos)
-            return Str.substr(pos, 1); // There is a space.
-        else
-            return Str.substr(Len, 0); // No space in current line, break at Len.
+            return { pos, 1 }; // There is a space.
+
+        // No space in current line, break at Len.
+        return { Len, 0 };
     }
 };
 
-inline SplitWrap wrap(size_t Width, StringRef Spaces = " \n")
-{
+inline SplitWrap wrap(size_t Width, StringRef Spaces = " ") {
     return { Width, Spaces };
 }
 
@@ -311,24 +332,21 @@ inline SplitWrap wrap(size_t Width, StringRef Spaces = " \n")
 // split
 //
 
-template <class Splitter>
-inline SplitResult<Splitter> split(StringRef Str, Splitter D, bool SkipEmpty = false)
+template <class Delimiter>
+inline SplitResult<Delimiter> split(StringRef Str, Delimiter D, bool SkipEmpty = false)
 {
     return { Str, std::move(D), SkipEmpty };
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, bool SkipEmpty = false)
-{
+inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, bool SkipEmpty = false) {
     return split(Str, literal(Chars), SkipEmpty);
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, bool SkipEmpty = false)
-{
+inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, bool SkipEmpty = false) {
     return split(Str, literal(Chars), SkipEmpty);
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, bool SkipEmpty = false)
-{
+inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, bool SkipEmpty = false) {
     return split(Str, literal(Chars), SkipEmpty);
 }
 
