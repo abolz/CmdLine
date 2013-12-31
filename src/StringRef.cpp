@@ -109,41 +109,6 @@ StringRef StringRef::trim(StringRef Chars) const
     return trim_left(Chars).trim_right(Chars);
 }
 
-namespace
-{
-
-bool Pad(std::ostream& OS, std::streamsize Fill)
-{
-    using traits = StringRef::traits_type;
-
-    for (; Fill > 0; --Fill)
-    {
-        if (traits::eq_int_type(traits::eof(), OS.rdbuf()->sputc(OS.fill())))
-            return false;
-    }
-
-    return true;
-}
-
-bool Put(std::ostream& OS, char const* Data, std::streamsize Count)
-{
-    return OS.rdbuf()->sputn(Data, Count) == Count;
-}
-
-bool Put(std::ostream& OS, char const* Data, std::streamsize Count, std::streamsize Fill)
-{
-    if ((OS.flags() & std::ios_base::adjustfield) == std::ios_base::left)
-    {
-        return Put(OS, Data, Count) && Pad(OS, Fill);
-    }
-    else
-    {
-        return Pad(OS, Fill) && Put(OS, Data, Count);
-    }
-}
-
-} // namespace
-
 std::ostream& support::operator<<(std::ostream& Stream, StringRef Str)
 {
     //
@@ -179,17 +144,35 @@ std::ostream& support::operator<<(std::ostream& Stream, StringRef Str)
     // 5    Returns: out.
     //
 
+    using traits = StringRef::traits_type;
+
     std::ostream::sentry ok(Stream);
     if (ok)
     {
         bool failed = false;
         try
         {
-            std::streamsize Fill = Stream.width() <= 0 || static_cast<size_t>(Stream.width()) <= Str.size()
-                ? 0
-                : Stream.width() - Str.size();
+            std::streamsize size = Str.size();
+            std::streamsize fill = Stream.width() <= 0 || Stream.width() <= size
+                    ? 0
+                    : Stream.width() - size;
 
-            failed = !Put(Stream, Str.data(), Str.size(), Fill);
+            bool left = (Stream.flags() & std::ios_base::adjustfield) == std::ios_base::left;
+
+            if (left)
+            {
+                failed = Stream.rdbuf()->sputn(Str.data(), size) != size;
+            }
+
+            for ( ; !failed && fill > 0; --fill)
+            {
+                failed = Stream.rdbuf()->sputc(Stream.fill()) == traits::eof();
+            }
+
+            if (!failed && !left)
+            {
+                failed = Stream.rdbuf()->sputn(Str.data(), size) != size;
+            }
         }
         catch (...)
         {
