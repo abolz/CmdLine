@@ -283,7 +283,7 @@ struct MapParser
         Init(std::string name, T value, std::string desc = "")
             : MapValueType{std::move(name), {std::move(value), std::move(desc)}}
         {
-            assert(!name.empty() && "empty keys are not allowed");
+            assert(!this->first.empty() && "empty keys are not allowed");
         }
     };
 
