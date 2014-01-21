@@ -2,6 +2,7 @@
 // See the LICENSE file for details.
 
 #include "Support/StringRef.h"
+#include "Support/StringRefStream.h"
 
 #include <gtest/gtest.h>
 

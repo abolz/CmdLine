@@ -4,7 +4,6 @@
 #pragma once
 
 #include <cassert>
-#include <iosfwd>
 #include <string>
 
 namespace support
@@ -260,12 +259,6 @@ inline bool operator >(StringRef LHS, StringRef RHS) {
 inline bool operator >=(StringRef LHS, StringRef RHS) {
     return !(LHS < RHS);
 }
-
-//--------------------------------------------------------------------------------------------------
-// Formatted output
-//
-
-std::ostream& operator <<(std::ostream& Stream, StringRef Str);
 
 //--------------------------------------------------------------------------------------------------
 // String operations

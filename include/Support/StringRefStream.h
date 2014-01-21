@@ -6,6 +6,7 @@
 #include "Support/StringRef.h"
 
 #include <istream>
+#include <ostream>
 #include <streambuf>
 
 namespace support
@@ -36,7 +37,8 @@ protected:
                              std::ios_base::openmode Which = std::ios_base::in) override;
 
     // Sets the position indicator of the input sequence to an absolute position.
-    virtual pos_type seekpos(pos_type Pos, std::ios_base::openmode Which = std::ios_base::in) override;
+    virtual pos_type seekpos(pos_type Pos,
+                             std::ios_base::openmode Which = std::ios_base::in) override;
 
     // Reads characters from the input sequence and stores them into a character array
     virtual std::streamsize xsgetn(char_type* Dest, std::streamsize Count) override;
@@ -63,5 +65,11 @@ public:
     // Returns the current input buffer
     StringRef strref() const { return Buffer.strref(); }
 };
+
+//--------------------------------------------------------------------------------------------------
+// Formatted output
+//
+
+std::ostream& operator <<(std::ostream& Stream, StringRef Str);
 
 } // namespace support
