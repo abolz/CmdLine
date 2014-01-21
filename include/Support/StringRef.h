@@ -164,7 +164,7 @@ public:
 
     // Removes substr(Pos, N) from the current string S.
     // Returns a pair (A,B) such that S == A + substr(Pos, N) + B.
-    std::pair<StringRef, StringRef> split(size_t Pos, size_t N = 0) const {
+    std::pair<StringRef, StringRef> remove_substr(size_t Pos, size_t N = 0) const {
         return { front(Pos), drop_front(Pos).drop_front(N) };
     }
 

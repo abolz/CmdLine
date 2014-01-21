@@ -129,7 +129,7 @@ TEST(StringRefTest, CheckStringRef)
 
 static void CheckSplit(StringRef str, size_t pos, size_t n, StringRef first, StringRef second)
 {
-    auto P = str.split(pos, n);
+    auto P = str.remove_substr(pos, n);
 
     auto S = P.first.str() + str.substr(pos, n) + P.second;
 
