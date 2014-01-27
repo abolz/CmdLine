@@ -30,13 +30,9 @@ private:
     // The length of the string
     size_t Length;
 
-    // Workaround: traits_type::compare is undefined for null pointers even if MaxCount is 0.
-    static int Compare(const_pointer LHS, const_pointer RHS, size_t MaxCount) {
-        return MaxCount == 0 ? 0 : traits_type::compare(LHS, RHS, MaxCount);
+    static size_t Min(size_t x, size_t y) {
+        return x < y ? x : y;
     }
-
-    static size_t Min(size_t x, size_t y) { return x < y ? x : y; }
-    static size_t Max(size_t x, size_t y) { return x > y ? x : y; }
 
 public:
     static size_t const npos;
@@ -171,13 +167,13 @@ public:
     bool equals(StringRef RHS) const
     {
         return size() == RHS.size()
-               && 0 == Compare(data(), RHS.data(), RHS.size());
+               && 0 == traits_type::compare(data(), RHS.data(), RHS.size());
     }
 
     // Lexicographically compare this string with another.
     bool less(StringRef RHS) const
     {
-        int c = Compare(data(), RHS.data(), Min(size(), RHS.size()));
+        int c = traits_type::compare(data(), RHS.data(), Min(size(), RHS.size()));
         return c < 0 || (c == 0 && size() < RHS.size());
     }
 
@@ -185,14 +181,14 @@ public:
     bool starts_with(StringRef Prefix) const
     {
         return size() >= Prefix.size()
-               && 0 == Compare(data(), Prefix.data(), Prefix.size());
+               && 0 == traits_type::compare(data(), Prefix.data(), Prefix.size());
     }
 
     // Returns whether the string ends with Suffix
     bool ends_with(StringRef Suffix) const
     {
         return size() >= Suffix.size()
-               && 0 == Compare(data() + (size() - Suffix.size()), Suffix.data(), Suffix.size());
+               && 0 == traits_type::compare(data() + (size() - Suffix.size()), Suffix.data(), Suffix.size());
     }
 
     // Constructs a std::string from this StringRef.
