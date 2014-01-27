@@ -196,6 +196,11 @@ public:
         return std::string(begin(), end());
     }
 
+    // Explicitly convert to a std::string
+    explicit operator std::string() const {
+        return str();
+    }
+
     // Search for the first character Ch in the sub-string [From, Length)
     size_t find(char_type Ch, size_t From = 0) const;
 
