@@ -3,8 +3,6 @@
 
 #include "Support/StringRef.h"
 
-#include <algorithm>
-
 using namespace support;
 
 size_t const StringRef::npos = static_cast<size_t>(-1);
@@ -25,26 +23,17 @@ size_t StringRef::find(StringRef Str, size_t From) const
     if (Str.size() == 1)
         return find(Str[0], From);
 
-    if (From > size())
+    if (From > size() || Str.size() > size())
         return npos;
 
-#if 1
     if (Str.empty())
         return From;
 
-    auto I = std::search(begin() + From, end(), Str.begin(), Str.end(), traits_type::eq);
-    auto x = static_cast<size_t>(I - begin());
-
-    return x + Str.size() <= size() ? x : npos;
-#else
-    for (auto I = From; ; ++I)
-    {
-        if (I + Str.size() > size())
-            return npos;
-        if (Compare(data() + I, Str.data(), Str.size()) == 0)
+    for (auto I = From; I != size() - Str.size() + 1; ++I)
+        if (traits_type::compare(data() + I, Str.data(), Str.size()) == 0)
             return I;
-    }
-#endif
+
+    return npos;
 }
 
 size_t StringRef::find_first_of(StringRef Chars, size_t From) const
@@ -110,7 +99,7 @@ StringRef StringRef::trim_left(StringRef Chars) const
 StringRef StringRef::trim_right(StringRef Chars) const
 {
     auto I = find_last_not_of(Chars);
-    return front(I == npos ? npos : I + 1); // return front(Max(I, I + 1));
+    return front(I == npos ? npos : I + 1);
 }
 
 StringRef StringRef::trim(StringRef Chars) const
