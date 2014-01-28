@@ -7,6 +7,7 @@
 #include "Support/StringRefStream.h"
 #include "Support/Utility.h"
 
+#include <functional>
 #include <iomanip>
 #include <map>
 #include <stdexcept>
