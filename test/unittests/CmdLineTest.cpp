@@ -578,7 +578,7 @@ TEST(CmdLineTest, Ignore1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd(cl::IgnoreUnknownOptions);
+        cl::CmdLine cmd(cl::AllowUnknownOptions);
 
         auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
             cl::Positional, cl::ZeroOrMore
@@ -603,7 +603,7 @@ TEST(CmdLineTest, Ignore2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd(cl::IgnoreUnknownOptions);
+        cl::CmdLine cmd(cl::AllowUnknownOptions);
 
         auto y = cl::makeOption<bool>(cmd, "y");
 

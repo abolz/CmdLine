@@ -90,7 +90,7 @@ bool CmdLine::parse(StringVector const& argv)
         }
     }
 
-    if (flags_ & IgnoreMissingOptions)
+    if (flags_ & AllowMissingOptions)
         return true;
 
     // Check if all required options have been successfully parsed
@@ -193,7 +193,7 @@ bool CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, Opt
         return true;
     }
 
-    bool ignoreUnknowns = (flags_ & IgnoreUnknownOptions) != 0;
+    bool ignoreUnknowns = (flags_ & AllowUnknownOptions) != 0;
 
     // This argument is considered to be positional if it doesn't start with '-', if it is "-"
     // itself, or if we have seen "--" already.

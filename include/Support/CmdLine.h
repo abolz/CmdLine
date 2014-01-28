@@ -27,10 +27,10 @@ namespace cl
 //
 
 enum CmdLineFlags : unsigned {
-    StopOnFirstError = 0x01, // Stop parsing when the first error is encountered
-    IgnoreUnknownOptions = 0x02, // Ignore unknown options
-    IgnoreMissingOptions = 0x04, // Do not check if all options have been specified
-    PrintErrors = 0x08,     // Print errors to std::cerr
+    AllowMissingOptions     = 0x01, // Do not check if all options have been specified
+    AllowUnknownOptions     = 0x02, // Ignore unknown options
+    PrintErrors             = 0x04, // Print errors to std::cerr
+    StopOnFirstError        = 0x08, // Stop parsing when the first error is encountered
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -63,10 +63,10 @@ enum Formatting : unsigned char {
 };
 
 enum MiscFlags : unsigned char {
-    None = 0,
-    CommaSeparated = 0x01,  // Should this list split between commas?
-    Hidden = 0x02,          // Do not show this option in the usage
-    ConsumeAfter = 0x04,    // Handle all following arguments as positional arguments
+    None                    = 0,
+    CommaSeparated          = 0x01, // Should this list split between commas?
+    Hidden                  = 0x02, // Do not show this option in the usage
+    ConsumeAfter            = 0x04, // Handle all following arguments as positional arguments
 };
 
 //--------------------------------------------------------------------------------------------------
