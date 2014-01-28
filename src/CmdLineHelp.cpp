@@ -45,7 +45,7 @@ std::ostream& cl::operator<<(std::ostream& stream, Wrapped const& x)
     for (auto par : strings::split(x.text, "\n"))
     {
         // Break the string at the maximum width into lines
-        for (auto line : strings::split(par, strings::wrap(x.maxWidth - x.indent)))
+        for (auto line : strings::split(par, strings::WrapDelimiter(x.maxWidth - x.indent)))
         {
             if (first)
                 first = false;

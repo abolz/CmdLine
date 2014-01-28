@@ -1,12 +1,15 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
+// http://isocpp.org/files/papers/n3593.html
+
 #pragma once
 
 #include "Support/StringRef.h"
 
 #include <cstddef>
 #include <iterator>
+#include <utility>
 
 namespace support
 {
@@ -14,268 +17,231 @@ namespace strings
 {
 
 //--------------------------------------------------------------------------------------------------
-// SplitResult
+// SplitIterator
 //
 
-template <class Delimiter>
-class SplitResult
+template <class SplitRangeT>
+class SplitIterator
 {
-    class Iterator;
-
-    // The string to split
-    StringRef Str;
-    // The delimiters
-    Delimiter Delim;
-    // Whether to skip empty tokens
-    bool SkipEmpty;
+    SplitRangeT* R;
 
 public:
-    using iterator = Iterator;
-    using const_iterator = Iterator;
+    using iterator_category     = std::input_iterator_tag;
+    using value_type            = StringRef;
+    using reference             = StringRef const&;
+    using pointer               = StringRef const*;
+    using difference_type       = ptrdiff_t;
 
-    // Construct a new splitter
-    SplitResult(StringRef str, Delimiter delim, bool skipEmpty = false)
-        : Str(str)
-        , Delim(std::move(delim))
-        , SkipEmpty(skipEmpty)
+public:
+    SplitIterator(SplitRangeT* R_ = nullptr)
+        : R(R_)
     {
     }
 
-    // Returns an iterator to the first token
-    const_iterator begin() const {
-        return { this, Str };
-    }
-
-    // Returns the past-the-end iterator
-    const_iterator end() const {
-        return { nullptr, Str };
-    }
-
-    // Construct a container from this range
-    template <class T>
-    explicit operator T() const
+    auto operator *() -> reference
     {
-        return T(begin(), end());
+        assert(R && "dereferencing end() iterator");
+        return R->Tok;
     }
+
+    auto operator ->() -> pointer
+    {
+        assert(R && "dereferencing end() iterator");
+        return &R->Tok;
+    }
+
+    auto operator ++() -> SplitIterator&
+    {
+        assert(R && "incrementing end() iterator");
+
+        if (R->next() == false)
+            R = nullptr;
+
+        return *this;
+    }
+
+    auto operator ++(int) -> SplitIterator
+    {
+        auto t = *this;
+        operator ++();
+        return t;
+    }
+
+    auto operator ==(SplitIterator const& RHS) const -> bool {
+        return R == RHS.R;
+    }
+
+    auto operator !=(SplitIterator const& RHS) const -> bool {
+        return R != RHS.R;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// SplitRange
+//
+
+template <class StringT, class DelimiterT>
+class SplitRange
+{
+    template <class> friend class SplitIterator;
+
+    // The string to split
+    StringT Str;
+    // The delimiters
+    DelimiterT Delim;
+    // The current token
+    StringRef Tok;
+    // The start of the rest of the string
+    size_t Pos;
+
+public:
+    using iterator = SplitIterator<SplitRange>;
+    using const_iterator = SplitIterator<SplitRange>;
+
+public:
+    SplitRange(StringT Str_, DelimiterT Delim_)
+        : Str(std::move(Str_))
+        , Delim(std::move(Delim_))
+        , Tok(Str)
+        , Pos(0)
+    {
+        increment();
+    }
+
+    auto begin() -> iterator {
+        return iterator(this);
+    }
+
+    auto end() -> iterator {
+        return iterator();
+    }
+
+//#if !STRINGS_N3593
+    template <class T> explicit operator T() { return T(begin(), end()); }
+//#endif
 
     // Returns the current token and the rest of the string.
-    std::pair<StringRef, StringRef> operator ()() const
-    {
-        auto I = begin();
-        return { I.Tok, I.Str };
+    auto operator ()() const -> std::pair<StringRef, StringRef> {
+        return { Tok, StringRef(Str).substr(Pos) };
     }
 
 private:
-    class Iterator
+    //
+    // From N3593:
+    //
+    // The result of a Delimiter's find() member function must be a std::StringRef referring to
+    // one of the following:
+    //
+    // -    A substring of find()'s argument text referring to the delimiter/separator that was
+    //      found.
+    // -    An empty std::StringRef referring to find()'s argument's end iterator, (e.g.,
+    //      std::StringRef(input_text.end(), 0)). This indicates that the delimiter/separator was
+    //      not found.
+    //
+    // [Footnote: An alternative to having a Delimiter's find() function return a std::StringRef
+    // is to instead have it return a std::pair<size_t, size_t> where the pair's first member is the
+    // position of the found delimiter, and the second member is the length of the found delimiter.
+    // In this case, Not Found could be prepresented as std::make_pair(std::StringRef::npos, 0).
+    // ---end footnote]
+    //
+
+    void increment(std::pair<size_t, size_t> Sep)
     {
-        friend class SplitResult;
+        auto S = StringRef(Str).substr(Pos);
 
-        // The splitter
-        SplitResult const* Split;
-        // The current token
-        StringRef Tok;
-        // The rest of the string to split
-        StringRef Str;
-
-    public:
-        using iterator_category     = std::forward_iterator_tag;
-        using value_type            = StringRef;
-        using reference             = value_type const&;
-        using pointer               = value_type const*;
-        using difference_type       = ptrdiff_t;
-
-    public:
-        // Construct a new iterator
-        Iterator(SplitResult const* split, StringRef str)
-            : Split(split)
-            , Tok(str.front(0))
-            , Str(str)
-        {
-            if (Split)
-                Split->increment(*this, true/*first*/);
-        }
-
-        // Returns the current token
-        reference operator*() const
-        {
-            assert(Split && "dereferencing past-the-end iterator");
-            return Tok;
-        }
-
-        // Returns a pointer to the current token
-        pointer operator->() const
-        {
-            assert(Split && "dereferencing past-the-end iterator");
-            return &Tok;
-        }
-
-        // Grab the next token
-        Iterator& operator++()
-        {
-            assert(Split && "incrementing past-the-end iterator");
-
-            Split->increment(*this);
-            return *this;
-        }
-
-        // Grab the next token
-        Iterator operator++(int)
-        {
-            auto I = *this;
-            this->operator ++();
-            return I;
-        }
-
-        // Returns whether the given iterators are equal
-        friend bool operator==(Iterator const& LHS, Iterator const& RHS)
-        {
-            assert((!LHS.Split || !RHS.Split || LHS.Split == RHS.Split) && "invalid comparison");
-
-            if (!LHS.Split && !RHS.Split)
-                return true;
-            if (!LHS.Split || !RHS.Split)
-                return false;
-
-            return LHS.Tok.begin() == RHS.Tok.begin();
-        }
-
-        // Returns whether the given iterators are inequal
-        friend bool operator!=(Iterator const& LHS, Iterator const& RHS) {
-            return !(LHS == RHS);
-        }
-    };
-
-    void inc(Iterator& I, StringRef Sep) const
-    {
-        assert(I.Str.begin() <= Sep.begin() && Sep.end() <= I.Str.end());
-
-        if (Sep.begin() == I.Str.end())
+        if (Sep.first == StringRef::npos)
         {
             // There is no further delimiter.
             // The current string is the last token.
-            I.Tok = I.Str;
+            Tok = S;
+            Pos = StringRef::npos;
         }
         else
         {
+            assert(Sep.first + Sep.second >= Sep.first);
+            assert(Pos + Sep.first + Sep.second > Pos);
+
             // Delimiter found.
-            // Split the string at the specified position.
-            I.Tok = { I.Str.begin(), Sep.begin() };
-            I.Str = { Sep.end(), I.Str.end() };
+            Tok = S.substr(0, Sep.first);
+            Pos = Pos + Sep.first + Sep.second;
         }
     }
 
-    void inc(Iterator& I, std::pair<size_t, size_t> Sep) const
+    bool increment()
     {
-        // ?? return inc(I, I.Str.substr(Sep.first, Sep.second)) ??
-
-        /*if (Sep.first == StringRef::npos && Sep.second == StringRef::npos)
-        {
-            // Stop iteration, now.
-            // Set the iterator to the past-the-end iterator.
-            I.Split = nullptr;
-        }
-        else*/ if (Sep.first == StringRef::npos)
-        {
-            // There is no further delimiter.
-            // The current string is the last token.
-            I.Tok = I.Str;
-        }
-        else
-        {
-            assert(Sep.first <= I.Str.size());
-            assert(Sep.second <= I.Str.size() - Sep.first);
-
-            // Delimiter found.
-            // Split the string at the specified position.
-            I.Tok = I.Str.front(Sep.first);
-            I.Str = I.Str.drop_front(Sep.first).drop_front(Sep.second);
-        }
+        increment(Delim(StringRef(Str).substr(Pos)));
+        return true;
     }
 
-    //void inc(Iterator& I, std::pair<StringRef, StringRef> const& Next) const
-    //{
-    //    I.Tok = Next.first;
-    //    I.Str = Next.second;
-    //}
-
-    void increment0(Iterator& I, bool first) const
+    bool next()
     {
-        assert(I.Split);
-
-        if (!first && I.Tok.end() == I.Str.end())
+        if (Pos == StringRef::npos)
         {
-            assert(I.Tok.begin() == I.Str.begin());
-
             // The current string is the last token.
             // Set the iterator to the past-the-end iterator.
-            I.Split = nullptr;
+            return false;
         }
         else
         {
             // Find the next token and adjust the iterator.
-            inc(I, Delim(I.Str));
-        }
-    }
-
-    void increment(Iterator& I, bool first = false) const
-    {
-        // Find the next separator and adjust the iterator.
-        increment0(I, first);
-
-        // Skip empty tokens if required.
-        if (SkipEmpty)
-        {
-            while (I.Split && I.Tok.empty())
-                increment0(I, false/*first*/);
+            return increment();
         }
     }
 };
 
 //--------------------------------------------------------------------------------------------------
-// SplitAnyOf
+// AnyOfDelimiter
 //
 
-class SplitAnyOf
+class AnyOfDelimiter
 {
     StringRef Chars;
 
 public:
-    SplitAnyOf(StringRef Chars) : Chars(Chars)
+    explicit AnyOfDelimiter(StringRef Chars_)
+        : Chars(Chars_)
     {
     }
 
-    std::pair<size_t, size_t> operator()(StringRef Str) const {
+    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t> {
         return { Str.find_first_of(Chars), 1 };
     }
 };
 
-inline SplitAnyOf any_of(StringRef Chars) {
-    return { Chars };
-}
-
 //--------------------------------------------------------------------------------------------------
-// SplitLiteral
+// LiteralDelimiter
 //
 
-class SplitLiteral
+class LiteralDelimiter
 {
     StringRef Needle;
 
 public:
-    SplitLiteral(StringRef Needle) : Needle(Needle)
+    explicit LiteralDelimiter(StringRef Needle_)
+        : Needle(Needle_)
     {
     }
 
-    std::pair<size_t, size_t> operator()(StringRef Str) const
+    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
     {
         if (Needle.empty())
         {
-#if !SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
-            // Return the whole string as a token.
-            // Makes literal("") behave exactly as any_of("").
-            return { StringRef::npos, 0 };
-#else
+#if SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
+            //
+            // From N3593:
+            //
+            // A delimiter of the empty string results in each character in the input string
+            // becoming one element in the output collection. This is a special case. It is done to
+            // match the behavior of splitting using the empty string in other programming languages
+            // (e.g., perl).
+            //
             return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+#else
+            //
+            // Return the whole string as a token.
+            // Makes LiteralDelimiter("") behave exactly as AnyOfDelimiter("").
+            //
+            return { StringRef::npos, 0 };
 #endif
         }
 
@@ -283,15 +249,11 @@ public:
     }
 };
 
-inline SplitLiteral literal(StringRef Str) {
-    return { Str };
-}
-
 //--------------------------------------------------------------------------------------------------
-// SplitWrap
+// WrapDelimiter
 //
 
-class SplitWrap
+class WrapDelimiter
 {
     // The maximum length of a single line
     size_t Len;
@@ -299,55 +261,90 @@ class SplitWrap
     StringRef Spaces;
 
 public:
-    SplitWrap(size_t Len, StringRef Spaces)
-        : Len(Len)
-        , Spaces(Spaces)
+    explicit WrapDelimiter(size_t Len_, StringRef Spaces_ = " ")
+        : Len(Len_)
+        , Spaces(Spaces_)
     {
         assert(Len > 0);
     }
 
-    std::pair<size_t, size_t> operator()(StringRef Str) const
+    auto operator()(StringRef Str) const -> std::pair<size_t, size_t>
     {
-        // If the string fits into the current line,
-        // just return this last line.
+        // If the string fits into the current line, just return this last line.
         if (Str.size() <= Len)
             return { StringRef::npos, 0 };
 
-        // Search for the first space preceding the line length.
-        auto pos = Str.find_last_of(Spaces, Len);
+        // Otherwise, search for the first space preceding the line length.
+        auto Pos = Str.find_last_of(Spaces, Len);
 
-        if (pos != StringRef::npos)
-            return { pos, 1 }; // There is a space.
-
-        // No space in current line, break at Len.
-        return { Len, 0 };
+        if (Pos != StringRef::npos)
+            return { Pos, 1 }; // There is a space.
+        else
+            return { Len, 0 }; // No space in current line, break at Len.
     }
 };
-
-inline SplitWrap wrap(size_t Width, StringRef Spaces = " ") {
-    return { Width, Spaces };
-}
 
 //--------------------------------------------------------------------------------------------------
 // split
 //
 
-template <class Delimiter>
-inline SplitResult<Delimiter> split(StringRef Str, Delimiter D, bool SkipEmpty = false)
+namespace details
 {
-    return { Str, std::move(D), SkipEmpty };
+    //
+    // From N3593:
+    //
+    // Rvalue support
+    //
+    // As described so far, std::split() may not work correctly if splitting a std::StringRef that
+    // refers to a temporary string. In particular, the following will not work:
+    //
+    //      for (std::StringRef s : std::split(GetTemporaryString(), "-")) {
+    //          s now refers to a temporary string that is no longer valid.
+    //      }
+    //
+    // To address this, std::split() will move ownership of rvalues into the Range object that is
+    // returned from std::split().
+    //
+
+    inline auto TestStoredType( std::string&& )
+        -> std::string;
+    inline auto TestStoredType( std::string const& )
+        -> StringRef;
+    inline auto TestStoredType( StringRef )
+        -> StringRef;
+    inline auto TestStoredType( char const* )
+        -> StringRef;
+
+    template <class T>
+    using StoredType = decltype(TestStoredType(std::declval<T>()));
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, std::string const& Chars, bool SkipEmpty = false) {
-    return split(Str, literal(Chars), SkipEmpty);
+template <class StringT, class DelimiterT>
+auto split(StringT&& S, DelimiterT&& D)
+    -> SplitRange<details::StoredType<StringT>, typename std::decay<DelimiterT>::type>
+{
+    return { std::forward<StringT>(S), std::forward<DelimiterT>(D) };
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, StringRef Chars, bool SkipEmpty = false) {
-    return split(Str, literal(Chars), SkipEmpty);
+template <class StringT>
+auto split(StringT&& S, std::string D)
+    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(std::move(D))) )
+{
+    return split(std::forward<StringT>(S), LiteralDelimiter(std::move(D)));
 }
 
-inline SplitResult<SplitLiteral> split(StringRef Str, char const* Chars, bool SkipEmpty = false) {
-    return split(Str, literal(Chars), SkipEmpty);
+template <class StringT>
+auto split(StringT&& S, StringRef D)
+    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(D)) )
+{
+    return split(std::forward<StringT>(S), LiteralDelimiter(D));
+}
+
+template <class StringT>
+auto split(StringT&& S, char const* D)
+    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(D)) )
+{
+    return split(std::forward<StringT>(S), LiteralDelimiter(D));
 }
 
 } // namespace strings

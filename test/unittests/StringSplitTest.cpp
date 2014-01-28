@@ -41,7 +41,7 @@ RangeConverter<Range> convert(Range const& R)
 
 TEST(StringSplitTest, EmptyString1)
 {
-    auto vec = std::vector<StringRef>(split({}, ","));
+    auto vec = std::vector<StringRef>(split(StringRef(), ","));
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
@@ -57,7 +57,7 @@ TEST(StringSplitTest, EmptyString2)
 
 TEST(StringSplitTest, EmptyString3)
 {
-    auto vec = std::vector<StringRef>(split({}, any_of(",")));
+    auto vec = std::vector<StringRef>(split(StringRef(), AnyOfDelimiter(",")));
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
@@ -65,7 +65,7 @@ TEST(StringSplitTest, EmptyString3)
 
 TEST(StringSplitTest, EmptyString4)
 {
-    auto vec = std::vector<StringRef>(split("", any_of(",")));
+    auto vec = std::vector<StringRef>(split("", AnyOfDelimiter(",")));
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "");
@@ -73,35 +73,20 @@ TEST(StringSplitTest, EmptyString4)
 
 TEST(StringSplitTest, X1)
 {
-    {
-        auto vec = std::vector<StringRef>(split(",", ","));
+    auto vec = std::vector<StringRef>(split(",", ","));
 
-        ASSERT_EQ(vec.size(), 2);
-        EXPECT_EQ(vec[0], "");
-        EXPECT_EQ(vec[1], "");
-    }
-    {
-        auto vec = std::vector<StringRef>(split(",", ",", true/*SkipEmpty*/));
-
-        ASSERT_EQ(vec.size(), 0);
-    }
+    ASSERT_EQ(vec.size(), 2);
+    EXPECT_EQ(vec[0], "");
+    EXPECT_EQ(vec[1], "");
 }
 
 TEST(StringSplitTest, X2)
 {
-    {
-        auto vec = std::vector<StringRef>(split(", ", ","));
+    auto vec = std::vector<StringRef>(split(", ", ","));
 
-        ASSERT_EQ(vec.size(), 2);
-        EXPECT_EQ(vec[0], "");
-        EXPECT_EQ(vec[1], " ");
-    }
-    {
-        auto vec = std::vector<StringRef>(split(", ", ",", true/*SkipEmpty*/));
-
-        ASSERT_EQ(vec.size(), 1);
-        EXPECT_EQ(vec[0], " ");
-    }
+    ASSERT_EQ(vec.size(), 2);
+    EXPECT_EQ(vec[0], "");
+    EXPECT_EQ(vec[1], " ");
 }
 
 TEST(StringSplitTest, Z1)
@@ -132,7 +117,7 @@ TEST(StringSplitTest, Z3)
 
 TEST(StringSplitTest, Test6)
 {
-    auto vec = std::vector<StringRef>(split("a.b-c,. d, e .f-", any_of(".,-")));
+    auto vec = std::vector<StringRef>(split("a.b-c,. d, e .f-", AnyOfDelimiter(".,-")));
 
     ASSERT_EQ(vec.size(), 8);
     EXPECT_EQ(vec[0], "a");
@@ -169,28 +154,17 @@ TEST(StringSplitTest, Test7)
 
 TEST(StringSplitTest, Test7_1)
 {
-    {
-        auto vec = std::vector<StringRef>(split("-a-b-c----d", "-"));
+    auto vec = std::vector<StringRef>(split("-a-b-c----d", "-"));
 
-        ASSERT_EQ(vec.size(), 8);
-        EXPECT_EQ(vec[0], "");
-        EXPECT_EQ(vec[1], "a");
-        EXPECT_EQ(vec[2], "b");
-        EXPECT_EQ(vec[3], "c");
-        EXPECT_EQ(vec[4], "");
-        EXPECT_EQ(vec[5], "");
-        EXPECT_EQ(vec[6], "");
-        EXPECT_EQ(vec[7], "d");
-    }
-    {
-        auto vec = std::vector<StringRef>(split("-a-b-c----d", "-", true/*SkipEmpty*/));
-
-        ASSERT_EQ(vec.size(), 4);
-        EXPECT_EQ(vec[0], "a");
-        EXPECT_EQ(vec[1], "b");
-        EXPECT_EQ(vec[2], "c");
-        EXPECT_EQ(vec[3], "d");
-    }
+    ASSERT_EQ(vec.size(), 8);
+    EXPECT_EQ(vec[0], "");
+    EXPECT_EQ(vec[1], "a");
+    EXPECT_EQ(vec[2], "b");
+    EXPECT_EQ(vec[3], "c");
+    EXPECT_EQ(vec[4], "");
+    EXPECT_EQ(vec[5], "");
+    EXPECT_EQ(vec[6], "");
+    EXPECT_EQ(vec[7], "d");
 }
 
 TEST(StringSplitTest, EmptySepLiteral1)
@@ -226,7 +200,7 @@ TEST(StringSplitTest, EmptySepLiteral3)
 
 TEST(StringSplitTest, EmptySepAnyOf)
 {
-    auto vec = std::vector<StringRef>(split("abc", any_of("")));
+    auto vec = std::vector<StringRef>(split("abc", AnyOfDelimiter("")));
 
     ASSERT_EQ(vec.size(), 1);
     EXPECT_EQ(vec[0], "abc");
@@ -236,38 +210,77 @@ TEST(StringSplitTest, Iterator)
 {
     auto R = split("a,b,c,d", ",");
 
+    std::vector<StringRef> vec;
+
+    for (auto I = R.begin(), E = R.end(); I != E; ++I)
     {
-        std::vector<StringRef> vec;
-
-        for (auto I = R.begin(), E = R.end(); I != E; ++I)
-        {
-            vec.push_back(*I);
-        }
-
-        ASSERT_EQ(vec.size(), 4);
-        EXPECT_EQ(vec[0], "a");
-        EXPECT_EQ(vec[1], "b");
-        EXPECT_EQ(vec[2], "c");
-        EXPECT_EQ(vec[3], "d");
+        vec.push_back(*I);
     }
-    {
-        // R is reusable
 
-        std::vector<StringRef> vec;
-
-        for (auto I = R.begin(), E = R.end(); I != E; ++I)
-        {
-            vec.push_back(*I);
-        }
-
-        ASSERT_EQ(vec.size(), 4);
-        EXPECT_EQ(vec[0], "a");
-        EXPECT_EQ(vec[1], "b");
-        EXPECT_EQ(vec[2], "c");
-        EXPECT_EQ(vec[3], "d");
-    }
+    ASSERT_EQ(vec.size(), 4);
+    EXPECT_EQ(vec[0], "a");
+    EXPECT_EQ(vec[1], "b");
+    EXPECT_EQ(vec[2], "c");
+    EXPECT_EQ(vec[3], "d");
 }
 
+TEST(StringSplitTest, Range1)
+{
+    auto R = split("a,b,c,d", ",");
+
+    auto I = R.begin();
+    auto E = R.end();
+
+    EXPECT_NE(I, E);
+    EXPECT_EQ(*R.begin(), "a");
+    EXPECT_EQ(*R.begin(), "a");
+    EXPECT_EQ(*R.begin(), "a");
+    EXPECT_EQ(*R.begin(), "a");
+    EXPECT_EQ(*R.begin(), "a");
+}
+
+static std::string make_string()
+{
+    return
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,"
+        "abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc,abc"
+        ;
+}
+
+TEST(StringSplitTest, Temp)
+{
+    using result_type = decltype(split(make_string(), ","));
+
+    std::cout << "sizeof(void*)       = " << sizeof(void*) << std::endl;
+    std::cout << "sizeof(std::string) = " << sizeof(std::string) << std::endl;
+    std::cout << "sizeof(S)           = " << sizeof(result_type) << std::endl;
+    std::cout << "sizeof(S::iterator) = " << sizeof(result_type::iterator) << std::endl;
+
+    std::vector<std::string> vec;
+
+    {
+        auto S = split(make_string(), ",");
+
+        auto T = S;
+
+        auto U = std::move(T);
+
+        auto V = U;
+
+        vec = std::vector<std::string>(V);
+    }
+
+    for (auto&& s : vec)
+    {
+        EXPECT_EQ(s, "abc");
+    }
+}
 
 #if 0
 
