@@ -353,12 +353,12 @@ namespace details
     using HasInsert = decltype(HasInsertImpl::test(std::declval<T>()));
 
     template <class T, class = HasInsert<T>>
-    struct DefaultValueType {
+    struct DefaultElementType {
         using type = T;
     };
 
     template <class T>
-    struct DefaultValueType<T, std::true_type> {
+    struct DefaultElementType<T, std::true_type> {
         using type = RemoveCVRec<typename T::value_type>;
     };
 
@@ -373,17 +373,17 @@ namespace details
     };
 }
 
-template <class ValueT, class InserterT = void>
+template <class ElementT, class InserterT = void>
 struct TraitsBase
 {
-    using value_type = ValueT;
+    using element_type = ElementT;
     using inserter_type = InserterT;
 };
 
 template <class T>
 struct Traits
     : TraitsBase<
-        typename details::DefaultValueType<T>::type,
+        typename details::DefaultElementType<T>::type,
         typename details::DefaultInserter<T>::type
       >
 {
@@ -615,7 +615,7 @@ public:
 // Option
 //
 
-template <class T, class ParserT = Parser<typename Traits<T>::value_type>>
+template <class T, class ParserT = Parser<typename Traits<T>::element_type>>
 class Option : public BasicOption<T>
 {
     using BaseType = BasicOption<T>;
@@ -627,11 +627,11 @@ public:
     using parser_type = ParserT;
     using traits_type = Traits<T>;
 
-    using value_type        = typename traits_type::value_type;
+    using element_type      = typename traits_type::element_type;
     using inserter_type     = typename traits_type::inserter_type;
     using is_scalar         = typename std::is_void<inserter_type>::type;
 
-    static_assert(is_scalar::value || std::is_default_constructible<value_type>::value,
+    static_assert(is_scalar::value || std::is_default_constructible<element_type>::value,
         "elements of containers must be default constructible");
 
 public:
@@ -667,7 +667,7 @@ public:
 private:
     bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
-        value_type t;
+        element_type t;
 
         if (parser_(spec, value, i, t))
         {
