@@ -94,34 +94,56 @@ std::string cl::usage(OptionBase const* o)
     return {};
 }
 
-void cl::help(std::ostream& stream, CmdLine const& cmd)
+template <class Iterator>
+static void PrintHelp(std::ostream& stream, StringRef text, Iterator first, Iterator last)
 {
+    if (first == last)
+        return;
+
+    stream << text << "\n";
+
+    for (; first != last; ++first)
+        help(stream, *first);
+
+    stream << "\n";
+}
+
+template <class Range>
+static void PrintHelp(std::ostream& stream, StringRef text, Range const& range)
+{
+    using std::begin;
+    using std::end;
+
+    PrintHelp(stream, text, begin(range), end(range));
+}
+
+void cl::help(std::ostream& stream, CmdLine const& cmd, StringRef overview)
+{
+    if (!overview.empty())
+    {
+        stream << "Overview:\n  " << Wrapped(overview, kIndent, kMaxWidth) << "\n\n";
+    }
+
     stream << "Usage:\n  " << usage(cmd) << "\n\n";
 
     auto opts = cmd.options();
 
+    // Print positional options
+    PrintHelp(stream, "Positional options:", cmd.positionals());
+
     // Print required options first.
     auto E = std::stable_partition(opts.begin(), opts.end(),
-                    [](OptionBase const* x) { return x->isRequired(); });
+        [](OptionBase const* x)
+        {
+            return x->isRequired();
+        }
+    );
 
     // Print all the required options - if any
-    if (E != opts.begin())
-    {
-        stream << "Required Options:\n";
-
-        for (auto I = opts.begin(); I != E; ++I)
-            help(stream, *I);
-
-        stream << "\n";
-    }
+    PrintHelp(stream, "Required options:", opts.begin(), E);
 
     // Print all other options
-    stream << "Options:\n";
-
-    for (auto I = E; I != opts.end(); ++I)
-        help(stream, *I);
-
-    stream << "\n";
+    PrintHelp(stream, "Options:", E, opts.end());
 }
 
 void cl::help(std::ostream& stream, OptionBase const* o)

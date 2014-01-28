@@ -60,7 +60,7 @@ std::string usage(CmdLine const& cmd);
 std::string usage(OptionBase const* option);
 
 // Prints the help message for the given command line
-void help(std::ostream& stream, CmdLine const& cmd);
+void help(std::ostream& stream, CmdLine const& cmd, StringRef overview = "");
 
 // Prints the help message for the given option
 void help(std::ostream& stream, OptionBase const* option);
