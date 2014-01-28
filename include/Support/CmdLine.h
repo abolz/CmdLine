@@ -596,19 +596,19 @@ protected:
     }
 
 public:
-    using stored_type = RemoveReference<T>;
+    using value_type = RemoveReference<T>;
 
     // Returns the value
-    stored_type& value() { return value_; }
+    value_type& value() { return value_; }
 
     // Returns the value
-    stored_type const& value() const { return value_; }
+    value_type const& value() const { return value_; }
 
     // Returns a pointer to the value
-    stored_type* operator->() { return std::addressof(value_); }
+    value_type* operator->() { return std::addressof(value_); }
 
     // Returns a pointer to the value
-    stored_type const* operator->() const { return std::addressof(value_); }
+    value_type const* operator->() const { return std::addressof(value_); }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -626,12 +626,13 @@ class Option : public BasicOption<T>
 public:
     using parser_type = ParserT;
     using traits_type = Traits<T>;
+    using element_type = typename traits_type::element_type;
+    using inserter_type = typename traits_type::inserter_type;
 
-    using element_type      = typename traits_type::element_type;
-    using inserter_type     = typename traits_type::inserter_type;
-    using is_scalar         = typename std::is_void<inserter_type>::type;
+private:
+    using IsScalar = typename std::is_void<inserter_type>::type;
 
-    static_assert(is_scalar::value || std::is_default_constructible<element_type>::value,
+    static_assert(IsScalar::value || std::is_default_constructible<element_type>::value,
         "elements of containers must be default constructible");
 
 public:
@@ -640,15 +641,15 @@ public:
         : BaseType(std::forward<An>(an)...)
         , parser_(std::forward<P>(p))
     {
-        this->apply(is_scalar::value ? Optional : ZeroOrMore);
+        this->apply(IsScalar::value ? Optional : ZeroOrMore);
         this->applyRec(std::forward<An>(an)...);
     }
 
     // Returns the parser
-    ParserT& parser() { return parser_; }
+    parser_type& parser() { return parser_; }
 
     // Returns the parser
-    ParserT const& parser() const { return parser_; }
+    parser_type const& parser() const { return parser_; }
 
     // Returns a list of allowed values for this option
     void allowedValues(StringRefVector& vec) const override final
@@ -683,7 +684,7 @@ private:
     }
 
     bool parse(StringRef spec, StringRef value, size_t i) override {
-        return parse(spec, value, i, is_scalar());
+        return parse(spec, value, i, IsScalar());
     }
 };
 
