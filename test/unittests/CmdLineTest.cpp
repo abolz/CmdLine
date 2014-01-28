@@ -416,8 +416,8 @@ TEST(CmdLineTest, Map1)
             { "01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789", 3}
         });
 
-        auto x = cl::makeOptionWithParser<int>(
-            xParser,
+        auto x = cl::makeOption<int>(
+            cl::initParser(xParser),
             cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
@@ -460,8 +460,8 @@ TEST(CmdLineTest, Map2)
             { "O3", 3 },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
-            xParser,
+        auto x = cl::makeOption<int>(
+            cl::initParser(xParser),
             cmd,
             cl::Required,
             cl::ArgDisallowed,
@@ -502,8 +502,8 @@ TEST(CmdLineTest, Map3)
             { "O3", 3, "Enable all optimizations"     },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
-            xParser,
+        auto x = cl::makeOption<int>(
+            cl::initParser(xParser),
             cmd,
             cl::Required,
             cl::Prefix,
@@ -544,8 +544,8 @@ TEST(CmdLineTest, Map4)
             { "3", 3, "Enable all optimizations"     },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
-            xParser,
+        auto x = cl::makeOption<int>(
+            cl::initParser(xParser),
             cmd, "O",
             cl::Required,
             cl::Prefix,
