@@ -328,21 +328,21 @@ auto split(StringT&& S, DelimiterT&& D)
 
 template <class StringT>
 auto split(StringT&& S, std::string D)
-    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(std::move(D))) )
+    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
 {
     return split(std::forward<StringT>(S), LiteralDelimiter(std::move(D)));
 }
 
 template <class StringT>
 auto split(StringT&& S, StringRef D)
-    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(D)) )
+    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
 {
     return split(std::forward<StringT>(S), LiteralDelimiter(D));
 }
 
 template <class StringT>
 auto split(StringT&& S, char const* D)
-    -> decltype( split(std::forward<StringT>(S), LiteralDelimiter(D)) )
+    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
 {
     return split(std::forward<StringT>(S), LiteralDelimiter(D));
 }
