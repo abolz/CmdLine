@@ -225,7 +225,7 @@ struct Parser<bool>
 {
     bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, bool& value) const
     {
-        if (arg == "" || arg == "1" || arg == "true")
+        if (arg.empty() || arg == "1" || arg == "true")
             value = true;
         else if (arg == "0" || arg == "false")
             value = false;
