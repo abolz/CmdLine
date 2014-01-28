@@ -117,10 +117,14 @@ public:
     bool expandAndParse(StringVector argv);
 
     // Returns the list of errors
-    StringVector const& errors() const { return errors_; }
+    StringVector const& errors() const {
+        return errors_;
+    }
 
     // Returns the list of unknown command line arguments
-    StringVector const& unknowns() const { return unknowns_; }
+    StringVector const& unknowns() const {
+        return unknowns_;
+    }
 
     // Returns the list of (unique) options, sorted by name.
     ConstOptionVector options() const;
@@ -471,28 +475,44 @@ public:
 
 public:
     // Returns the name of this option
-    std::string const& name() const { return name_; }
+    std::string const& name() const {
+        return name_;
+    }
 
     // Return name of the value
-    std::string const& argName() const { return argName_; }
+    std::string const& argName() const {
+        return argName_;
+    }
 
     // Resturns the description of this option
-    std::string const& desc() const { return desc_; }
+    std::string const& desc() const {
+        return desc_;
+    }
 
     // Returns how often the option must/may be specified on the command line
-    NumOccurrences numOccurrences() const { return numOccurrences_; }
+    NumOccurrences numOccurrences() const {
+        return numOccurrences_;
+    }
 
     // Returns whether the option expects a value
-    NumArgs numArgs() const { return numArgs_; }
+    NumArgs numArgs() const {
+        return numArgs_;
+    }
 
     // Returns how the option might be specified
-    Formatting formatting() const { return formatting_; }
+    Formatting formatting() const {
+        return formatting_;
+    }
 
     // Returns other flags
-    MiscFlags flags() const { return miscFlags_; }
+    MiscFlags flags() const {
+        return miscFlags_;
+    }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned count() const { return count_; }
+    unsigned count() const {
+        return count_;
+    }
 
     // Returns whether this option may be specified multiple times.
     bool isUnbounded() const;
@@ -519,8 +539,7 @@ protected:
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
 
     void apply(OptionGroup& x) {
-        // FIXME: Check for duplicates
-        x.options_.push_back(this);
+        x.options_.push_back(this); // FIXME: Check for duplicates
     }
 
     template <class U>
@@ -599,16 +618,24 @@ public:
     using value_type = RemoveReference<T>;
 
     // Returns the value
-    value_type& value() { return value_; }
+    value_type& value() {
+        return value_;
+    }
 
     // Returns the value
-    value_type const& value() const { return value_; }
+    value_type const& value() const {
+        return value_;
+    }
 
     // Returns a pointer to the value
-    value_type* operator->() { return std::addressof(value_); }
+    value_type* operator->() {
+        return std::addressof(value_);
+    }
 
     // Returns a pointer to the value
-    value_type const* operator->() const { return std::addressof(value_); }
+    value_type const* operator->() const {
+        return std::addressof(value_);
+    }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -646,10 +673,14 @@ public:
     }
 
     // Returns the parser
-    parser_type& parser() { return parser_; }
+    parser_type& parser() {
+        return parser_;
+    }
 
     // Returns the parser
-    parser_type const& parser() const { return parser_; }
+    parser_type const& parser() const {
+        return parser_;
+    }
 
     // Returns a list of allowed values for this option
     void allowedValues(StringRefVector& vec) const override final
