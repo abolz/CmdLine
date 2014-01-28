@@ -32,8 +32,8 @@ namespace cl
         }
     };
 
-    template <class T, class P>
-    void prettyPrint(std::ostream& stream, Option<T, P> const& option)
+    template <class T, class TraitsT, class ParserT>
+    void prettyPrint(std::ostream& stream, Option<T, TraitsT, ParserT> const& option)
     {
         stream << option.name() << ":\n";
         stream << "  count = " << option.count() << "\n";
@@ -58,10 +58,12 @@ struct WFlagParser
     }
 };
 
-template <class... A>
-inline cl::Option<bool, WFlagParser> makeWFlag(A&&... args)
+template <class... Args>
+inline auto makeWFlag(Args&&... args)
+    -> decltype( cl::makeOption<bool>(cl::initParser(WFlagParser())) )
 {
-    return cl::makeOptionWithParser<bool>(WFlagParser(), std::forward<A>(args)..., cl::ArgDisallowed, cl::ZeroOrMore);
+    return cl::makeOption<bool>(cl::initParser(WFlagParser()),
+                    std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore);
 }
 
 int main(int argc, char* argv[])
@@ -152,8 +154,8 @@ int main(int argc, char* argv[])
         { "O3", OL_Expensive, "Enable all optimizations"     }
     });
 
-    auto opt = cl::makeOptionWithParser<OptimizationLevel>(
-        std::ref(optParser),
+    auto opt = cl::makeOption<OptimizationLevel>(
+        cl::initParser(std::ref(optParser)),
         cmd,
         cl::ArgName("optimization level"),
         cl::Required,
@@ -178,8 +180,8 @@ int main(int argc, char* argv[])
 //      { "sideshow bob", SideshowBob, "Robert Underdunk Terwilliger" },
     });
 
-    auto simpson = cl::makeOptionWithParser<Simpson>(
-        simpsonParser,
+    auto simpson = cl::makeOption<Simpson>(
+        cl::initParser(simpsonParser),
         cmd, "simpson",
         cl::Desc("Choose a Simpson"),
         cl::ArgRequired,
@@ -218,23 +220,18 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    struct Targets
-    {
-        std::set<std::string> list{{"x", "y", "z"}};
-    };
-
-    auto targetsParser = [](StringRef name, StringRef arg, size_t /*i*/, Targets& value)
+    auto targetsParser = [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
     {
         if (name.starts_with("without-"))
-            value.list.erase(arg.str());
+            value.erase(arg.str());
         else
-            value.list.insert(arg.str());
+            value.insert(arg.str());
 
         return true;
     };
 
-    auto targets = cl::makeOptionWithParser<Targets>(
-        targetsParser,
+    auto targets = cl::makeScalarOption<std::set<std::string>>(
+        cl::initParser(targetsParser),
         cmd, "without-|with-",
         cl::Desc("Specifiy which targets to build"),
         cl::ArgName("target"),
@@ -276,8 +273,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(debug_level) << std::endl;
     std::cout << pretty(Wsign_conversion) << std::endl;
     std::cout << pretty(Wsign_compare) << std::endl;
-
-    std::cout << "Targets: " << pretty(targets.value().list) << std::endl;
+    std::cout << pretty(targets) << std::endl;
 
     std::cout << "Files:\n";
     for (auto& s : files.value())

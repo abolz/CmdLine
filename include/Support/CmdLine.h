@@ -404,6 +404,11 @@ struct Traits<std::string> : TraitsBase<std::string, void>
 {
 };
 
+template <class T>
+struct ScalarTraits : TraitsBase<T, void>
+{
+};
+
 //--------------------------------------------------------------------------------------------------
 // OptionGroup
 //
@@ -640,10 +645,40 @@ public:
 };
 
 //--------------------------------------------------------------------------------------------------
+// InitParser
+//
+
+template <class T>
+struct InitParser
+{
+    T value;
+
+    explicit InitParser(T x) : value(std::forward<T>(x))
+    {
+    }
+
+    operator T() { // extract
+        return std::forward<T>(value);
+    }
+};
+
+template <class T>
+inline auto initParser(T&& value) -> InitParser<T&&>
+{
+    return InitParser<T&&>(std::forward<T>(value));
+}
+
+//--------------------------------------------------------------------------------------------------
+// DefaultInitParser
+//
+
+struct DefaultInitParser {};
+
+//--------------------------------------------------------------------------------------------------
 // Option
 //
 
-template <class T, class ParserT = Parser<typename Traits<T>::element_type>>
+template <class T, class TraitsT = Traits<T>, class ParserT = Parser<typename TraitsT::element_type>>
 class Option : public BasicOption<T>
 {
     using BaseType = BasicOption<T>;
@@ -653,7 +688,7 @@ class Option : public BasicOption<T>
 
 public:
     using parser_type = ParserT;
-    using traits_type = Traits<T>;
+    using traits_type = TraitsT;
     using element_type = typename traits_type::element_type;
     using inserter_type = typename traits_type::inserter_type;
 
@@ -664,13 +699,21 @@ private:
         "elements of containers must be default constructible");
 
 public:
-    template <class P, class... An>
-    explicit Option(P&& p, An&&... an)
-        : BaseType(std::forward<An>(an)...)
-        , parser_(std::forward<P>(p))
+    template <class... Args>
+    explicit Option(DefaultInitParser, Args&&... args)
+        : BaseType(std::forward<Args>(args)...)
     {
         this->apply(IsScalar::value ? Optional : ZeroOrMore);
-        this->applyRec(std::forward<An>(an)...);
+        this->applyRec(std::forward<Args>(args)...);
+    }
+
+    template <class P, class... Args>
+    explicit Option(InitParser<P> p, Args&&... args)
+        : BaseType(std::forward<Args>(args)...)
+        , parser_(p)
+    {
+        this->apply(IsScalar::value ? Optional : ZeroOrMore);
+        this->applyRec(std::forward<Args>(args)...);
     }
 
     // Returns the parser
@@ -720,19 +763,40 @@ private:
     }
 };
 
+//--------------------------------------------------------------------------------------------------
+// make[Scalar]Option
+//
+
 // Construct a new Option with a default constructed parser
-template <class T, class... An>
-auto makeOption(An&&... an) -> Option<T>
+template <class T, class... Args>
+auto makeOption(Args&&... args)
+    -> Option<T>
 {
-    using R = Option<T>;
-    return R(typename R::parser_type(), std::forward<An>(an)...);
+    return Option<T>(DefaultInitParser(), std::forward<Args>(args)...);
+}
+
+// Construct a new Option with a default constructed parser
+template <class T, class... Args>
+auto makeScalarOption(Args&&... args)
+    -> Option<T, ScalarTraits<T>>
+{
+    return Option<T, ScalarTraits<T>>(DefaultInitParser(), std::forward<Args>(args)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
-template <class T, class P, class... An>
-auto makeOptionWithParser(P&& p, An&&... an) -> Option<T, Decay<P>>
+template <class T, class P, class... Args>
+auto makeOption(InitParser<P> p, Args&&... args)
+    -> Option<T, Traits<T>, Decay<P>>
 {
-    return Option<T, Decay<P>>(std::forward<P>(p), std::forward<An>(an)...);
+    return Option<T, Traits<T>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
+}
+
+// Construct a new Option, initialize the parser with the given value
+template <class T, class P, class... Args>
+auto makeScalarOption(InitParser<P> p, Args&&... args)
+    -> Option<T, ScalarTraits<T>, Decay<P>>
+{
+    return Option<T, ScalarTraits<T>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
 }
 
 } // namespace cl
