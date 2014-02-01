@@ -279,6 +279,9 @@ struct BasicTraits
 
 namespace details
 {
+    struct R2 {};
+    struct R1 : R2 {};
+
     struct Inserter
     {
         template <class C, class V>
@@ -288,27 +291,14 @@ namespace details
     };
 
     template <class T>
-    inline auto HasInsert(T&& t)
-        -> decltype(Inserter()(t, std::declval<typename T::value_type>()));
-
-    inline auto HasInsert(AnyType)
-        -> NotAType;
-
-    template <class T, class = decltype(HasInsert(std::declval<T>()))>
-    struct DefaultTraits
-        : BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>
-    {
-    };
+    auto TestInsert(R1) -> BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>;
 
     template <class T>
-    struct DefaultTraits<T, NotAType>
-        : BasicTraits<T>
-    {
-    };
+    auto TestInsert(R2) -> BasicTraits<T>;
 }
 
 template <class T>
-struct Traits : details::DefaultTraits<T>
+struct Traits : decltype(details::TestInsert<T>(details::R1()))
 {
 };
 
