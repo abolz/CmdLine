@@ -140,7 +140,6 @@ void CmdLine::expandResponseFile(StringVector& argv, size_t i)
 }
 
 // Recursively expand response files.
-// Returns true on success, false otherwise.
 void CmdLine::expandResponseFiles(StringVector& argv)
 {
     // Response file counter to prevent infinite recursion...
@@ -162,7 +161,6 @@ void CmdLine::expandResponseFiles(StringVector& argv)
 }
 
 // Process a single command line argument.
-// Returns true on success, false otherwise.
 void CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
 {
     StringRef arg = argv[i];
@@ -238,11 +236,11 @@ void CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t&
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
     {
-        return handlePositional(curr, argv, i, ++pos);
+        handlePositional(curr, argv, i, ++pos);
     }
 
     // The value of a positional option is the argument itself.
-    return addOccurrence(opt, curr, curr, i);
+    addOccurrence(opt, curr, curr, i);
 }
 
 // If 'arg' is the name of an option, process the option immediately.
@@ -488,7 +486,7 @@ void OptionGroup::check() const
 
 OptionBase::OptionBase()
     : name_()
-    , argName_()
+    , argName_("arg")
     , numOccurrences_(Optional)
     , numArgs_(ArgOptional)
     , formatting_(DefaultFormatting)
@@ -542,6 +540,4 @@ bool OptionBase::isPrefix() const
 
 void OptionBase::applyRec()
 {
-    if (argName_.empty())
-        argName_ = "arg";
 }
