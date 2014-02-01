@@ -165,24 +165,27 @@ struct Desc
 // Initializer
 //
 
-template <class T>
-struct Initializer
+namespace details
 {
-    T value;
-
-    explicit Initializer(T x) : value(std::forward<T>(x))
+    template <class T>
+    struct Initializer
     {
-    }
+        T value;
 
-    operator T() { // extract
-        return std::forward<T>(value);
-    }
-};
+        explicit Initializer(T x) : value(std::forward<T>(x))
+        {
+        }
+
+        operator T() { // extract
+            return std::forward<T>(value);
+        }
+    };
+}
 
 template <class T>
-inline auto init(T&& value) -> Initializer<T&&>
+inline auto init(T&& value) -> details::Initializer<T&&>
 {
-    return Initializer<T&&>(std::forward<T>(value));
+    return details::Initializer<T&&>(std::forward<T>(value));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -502,7 +505,7 @@ protected:
     }
 
     template <class U>
-    void apply(Initializer<U>) {
+    void apply(details::Initializer<U>) {
         // NOTE: this is handled in the ctors of BasicOption...
     }
 
@@ -552,14 +555,14 @@ protected:
     }
 
     template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
-    BasicOption(Initializer<T> x, An&&...)
+    BasicOption(details::Initializer<T> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
-    BasicOption(Initializer<U> x, An&&...)
+    BasicOption(details::Initializer<U> x, An&&...)
         : BaseType()
         , value_(x)
     {
@@ -599,31 +602,30 @@ public:
 // InitParser
 //
 
-template <class T>
-struct InitParser
+namespace details
 {
-    T value;
+    struct DefaultInitParser {};
 
-    explicit InitParser(T x) : value(std::forward<T>(x))
+    template <class T>
+    struct InitParser
     {
-    }
+        T value;
 
-    operator T() { // extract
-        return std::forward<T>(value);
-    }
-};
+        explicit InitParser(T x) : value(std::forward<T>(x))
+        {
+        }
 
-template <class T>
-inline auto initParser(T&& value) -> InitParser<T&&>
-{
-    return InitParser<T&&>(std::forward<T>(value));
+        operator T() { // extract
+            return std::forward<T>(value);
+        }
+    };
 }
 
-//--------------------------------------------------------------------------------------------------
-// DefaultInitParser
-//
-
-struct DefaultInitParser {};
+template <class T>
+inline auto initParser(T&& value) -> details::InitParser<T&&>
+{
+    return details::InitParser<T&&>(std::forward<T>(value));
+}
 
 //--------------------------------------------------------------------------------------------------
 // Option
@@ -651,14 +653,14 @@ private:
 
 public:
     template <class... Args>
-    explicit Option(DefaultInitParser, Args&&... args)
+    explicit Option(details::DefaultInitParser, Args&&... args)
         : BaseType(std::forward<Args>(args)...)
     {
         this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
     }
 
     template <class P, class... Args>
-    explicit Option(InitParser<P> p, Args&&... args)
+    explicit Option(details::InitParser<P> p, Args&&... args)
         : BaseType(std::forward<Args>(args)...)
         , parser_(p)
     {
@@ -719,7 +721,7 @@ template <class T, class... Args>
 auto makeOption(Args&&... args)
     -> Option<T>
 {
-    return Option<T>(DefaultInitParser(), std::forward<Args>(args)...);
+    return Option<T>(details::DefaultInitParser(), std::forward<Args>(args)...);
 }
 
 // Construct a new Option with a default constructed parser
@@ -727,12 +729,12 @@ template <class T, class... Args>
 auto makeScalarOption(Args&&... args)
     -> Option<T, TraitsBase<T, void>>
 {
-    return Option<T, TraitsBase<T, void>>(DefaultInitParser(), std::forward<Args>(args)...);
+    return Option<T, TraitsBase<T, void>>(details::DefaultInitParser(), std::forward<Args>(args)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
 template <class T, class P, class... Args>
-auto makeOption(InitParser<P> p, Args&&... args)
+auto makeOption(details::InitParser<P> p, Args&&... args)
     -> Option<T, Traits<T>, Decay<P>>
 {
     return Option<T, Traits<T>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
@@ -740,7 +742,7 @@ auto makeOption(InitParser<P> p, Args&&... args)
 
 // Construct a new Option, initialize the parser with the given value
 template <class T, class P, class... Args>
-auto makeScalarOption(InitParser<P> p, Args&&... args)
+auto makeScalarOption(details::InitParser<P> p, Args&&... args)
     -> Option<T, TraitsBase<T, void>, Decay<P>>
 {
     return Option<T, TraitsBase<T, void>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
