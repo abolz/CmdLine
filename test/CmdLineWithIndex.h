@@ -46,7 +46,7 @@ struct Parser<WithIndex<T>>
     void operator()(StringRef name, StringRef arg, size_t i, WithIndex<T>& value) const
     {
         Parser<T>()(name, arg, i, value.value);
-        value.index = i;
+        value.index = static_cast<int>(i);
     }
 };
 
