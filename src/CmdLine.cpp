@@ -236,7 +236,7 @@ void CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t&
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
     {
-        handlePositional(curr, argv, i, ++pos);
+        return handlePositional(curr, argv, i, ++pos);
     }
 
     // The value of a positional option is the argument itself.
