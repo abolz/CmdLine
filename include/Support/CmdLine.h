@@ -269,8 +269,8 @@ std::vector<StringRef> allowedValues(MapParser<T> const& p)
 // Traits
 //
 
-template <class ElementT, class InserterT>
-struct TraitsBase
+template <class ElementT, class InserterT = void>
+struct BasicTraits
 {
     using element_type = ElementT;
     using inserter_type = InserterT;
@@ -293,12 +293,12 @@ namespace details
     inline auto HasInsert(AnyType) -> NotAType;
 
     template <class T, class = decltype(HasInsert(std::declval<T>()))>
-    struct DefaultTraits : TraitsBase<RemoveCVRec<typename T::value_type>, Inserter>
+    struct DefaultTraits : BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>
     {
     };
 
     template <class T>
-    struct DefaultTraits<T, NotAType> : TraitsBase<T, void>
+    struct DefaultTraits<T, NotAType> : BasicTraits<T>
     {
     };
 }
@@ -314,7 +314,7 @@ struct Traits<T&> : Traits<T>
 };
 
 template <>
-struct Traits<std::string> : TraitsBase<std::string, void>
+struct Traits<std::string> : BasicTraits<std::string>
 {
 };
 
@@ -618,9 +618,9 @@ auto makeOption(An&&... an)
 // Construct a new Option with a default constructed parser
 template <class T, class... An>
 auto makeScalarOption(An&&... an)
-    -> Option<T, TraitsBase<T, void>>
+    -> Option<T, BasicTraits<T>>
 {
-    return Option<T, TraitsBase<T, void>>(details::DefaultInitParser(), std::forward<An>(an)...);
+    return Option<T, BasicTraits<T>>(details::DefaultInitParser(), std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
@@ -634,9 +634,9 @@ auto makeOption(details::InitParser<P> p, An&&... an)
 // Construct a new Option, initialize the parser with the given value
 template <class T, class P, class... An>
 auto makeScalarOption(details::InitParser<P> p, An&&... an)
-    -> Option<T, TraitsBase<T, void>, Decay<P>>
+    -> Option<T, BasicTraits<T>, Decay<P>>
 {
-    return Option<T, TraitsBase<T, void>, Decay<P>>(std::move(p), std::forward<An>(an)...);
+    return Option<T, BasicTraits<T>, Decay<P>>(std::move(p), std::forward<An>(an)...);
 }
 
 } // namespace cl

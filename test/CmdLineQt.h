@@ -69,38 +69,38 @@ namespace qt
 
 #ifdef QHASH_H
 template <class T, class U>
-struct Traits<QHash<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
+struct Traits<QHash<T, U>> : BasicTraits<std::pair<T, U>, qt::QMapInserter>
 {
 };
 
 template <class T, class U>
-struct Traits<QMultiHash<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
+struct Traits<QMultiHash<T, U>> : BasicTraits<std::pair<T, U>, qt::QMapInserter>
 {
 };
 #endif
 
 #ifdef QMAP_H
 template <class T, class U>
-struct Traits<QMap<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
+struct Traits<QMap<T, U>> : BasicTraits<std::pair<T, U>, qt::QMapInserter>
 {
 };
 
 template <class T, class U>
-struct Traits<QMultiMap<T, U>> : TraitsBase<std::pair<T, U>, qt::QMapInserter>
+struct Traits<QMultiMap<T, U>> : BasicTraits<std::pair<T, U>, qt::QMapInserter>
 {
 };
 #endif
 
 #ifdef QSET_H
 template <class T>
-struct Traits<QSet<T>> : TraitsBase<typename QSet<T>::value_type, qt::QSetInserter>
+struct Traits<QSet<T>> : BasicTraits<typename QSet<T>::value_type, qt::QSetInserter>
 {
 };
 #endif
 
 #ifdef QSTRING_H
 template <>
-struct Traits<QString> : TraitsBase<QString, void>
+struct Traits<QString> : BasicTraits<QString, void>
 {
 };
 #endif
