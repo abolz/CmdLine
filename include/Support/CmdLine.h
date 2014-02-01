@@ -466,7 +466,7 @@ class BasicOption : public OptionBase
 protected:
     BasicOption()
         : BaseType()
-        , value_{} // NOTE: error here if T is a reference type and not initialized using init(T)
+        , value_() // NOTE: error here if T is a reference type and not initialized using init(T)
     {
     }
 
@@ -545,21 +545,18 @@ class Option : public BasicOption<T>
     using BaseType = BasicOption<T>;
     using StringRefVector = std::vector<StringRef>;
 
-    ParserT parser_;
-
-public:
-    using parser_type = UnwrapReferenceWrapper<ParserT>;
-
-private:
-    using TraitsType = TraitsT;
-    using ElementType = typename TraitsType::element_type;
-    using InserterType = typename TraitsType::inserter_type;
+    using ElementType = typename TraitsT::element_type;
+    using InserterType = typename TraitsT::inserter_type;
     using IsScalar = typename std::is_void<InserterType>::type;
 
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
         "elements of containers must be default constructible");
 
+    ParserT parser_;
+
 public:
+    using parser_type = UnwrapReferenceWrapper<ParserT>;
+
     template <class... An>
     explicit Option(details::DefaultInitParser, An&&... an)
         : BaseType(std::forward<An>(an)...)
