@@ -7,7 +7,6 @@
 #include "Support/StringRefStream.h"
 #include "Support/Utility.h"
 
-#include <functional>
 #include <iomanip>
 #include <map>
 #include <stdexcept>
@@ -207,14 +206,24 @@ struct Parser<std::string>
     }
 };
 
-template <class P>
-std::vector<StringRef> allowedValues(P const& /*parser*/) {
-    return {};
-}
+//--------------------------------------------------------------------------------------------------
+// allowedValues
+//
+// Returns a list of values the given parser can handle.
+//
+// NOTE:
+//
+// This function is never called using ADL!
+//
+// If your custom parser only allows a limited set of values, you can explicitly add an overload in
+// the support::cl namespace. Do *NOT* add an overload for any of the types defined in namespace
+// support or support::cl!!
+//
 
 template <class P>
-std::vector<StringRef> allowedValues(std::reference_wrapper<P> const& parser) {
-    return allowedValues(parser.get());
+std::vector<StringRef> allowedValues(P const& /*parser*/)
+{
+    return {};
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -246,11 +255,11 @@ struct MapParser
 };
 
 template <class T>
-std::vector<StringRef> allowedValues(MapParser<T> const& parser)
+std::vector<StringRef> allowedValues(MapParser<T> const& p)
 {
     std::vector<StringRef> vec;
 
-    for (auto const& I : parser.map)
+    for (auto const& I : p.map)
         vec.emplace_back(I.first);
 
     return vec;
@@ -269,10 +278,6 @@ struct TraitsBase
 
 namespace details
 {
-    struct Any {
-        template <class... T> Any(T&&...) {}
-    };
-
     struct Inserter
     {
         template <class C, class V>
@@ -283,20 +288,17 @@ namespace details
 
     template <class T>
     inline auto HasInsert(T&& t)
-        -> decltype(Inserter()(t, std::declval<typename T::value_type>()), std::true_type());
+        -> decltype(Inserter()(t, std::declval<typename T::value_type>()));
 
-    inline auto HasInsert(Any)
-        -> std::false_type;
+    inline auto HasInsert(AnyType) -> NotAType;
 
     template <class T, class = decltype(HasInsert(std::declval<T>()))>
-    struct DefaultTraits
-        : TraitsBase<RemoveCVRec<typename T::value_type>, Inserter>
+    struct DefaultTraits : TraitsBase<RemoveCVRec<typename T::value_type>, Inserter>
     {
     };
 
     template <class T>
-    struct DefaultTraits<T, std::false_type>
-        : TraitsBase<T, void>
+    struct DefaultTraits<T, NotAType> : TraitsBase<T, void>
     {
     };
 }
@@ -398,13 +400,16 @@ protected:
     void apply(Formatting x)        { formatting_ = x; }
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
 
-    void apply(OptionGroup& x) {
-        x.options_.push_back(this); // FIXME: Check for duplicates
+    void apply(OptionGroup& x)
+    {
+        // FIXME:
+        // Check for duplicates
+        x.options_.push_back(this);
     }
 
     template <class U>
-    void apply(details::Initializer<U>) {
-        // NOTE: this is handled in the ctors of BasicOption...
+    void apply(details::Initializer<U>)
+    {
     }
 
     template <class A, class... An>
@@ -429,10 +434,9 @@ protected:
         cmd.add(this);
     }
 
-    void applyRec(); // End recursion - check for valid flags
+    void applyRec();
 
 private:
-    // Returns the name of this option for use in error messages
     StringRef displayName() const;
 
     bool isOccurrenceAllowed() const;
@@ -445,7 +449,7 @@ private:
     virtual void parse(StringRef spec, StringRef value, size_t i) = 0;
 
     // Returns a list of allowed values for this option
-    virtual std::vector<StringRef> allowedValues() const = 0;
+    virtual std::vector<StringRef> getAllowedValues() const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -544,31 +548,31 @@ class Option : public BasicOption<T>
     ParserT parser_;
 
 public:
-    using parser_type = ParserT;
-    using traits_type = TraitsT;
+    using parser_type = UnwrapReferenceWrapper<ParserT>;
 
 private:
-    using ElementType = typename traits_type::element_type;
-    using InserterType = typename traits_type::inserter_type;
+    using TraitsType = TraitsT;
+    using ElementType = typename TraitsType::element_type;
+    using InserterType = typename TraitsType::inserter_type;
     using IsScalar = typename std::is_void<InserterType>::type;
 
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
         "elements of containers must be default constructible");
 
 public:
-    template <class... Args>
-    explicit Option(details::DefaultInitParser, Args&&... args)
-        : BaseType(std::forward<Args>(args)...)
+    template <class... An>
+    explicit Option(details::DefaultInitParser, An&&... an)
+        : BaseType(std::forward<An>(an)...)
     {
-        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
+        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
-    template <class P, class... Args>
-    explicit Option(details::InitParser<P> p, Args&&... args)
-        : BaseType(std::forward<Args>(args)...)
+    template <class P, class... An>
+    explicit Option(details::InitParser<P> p, An&&... an)
+        : BaseType(std::forward<An>(an)...)
         , parser_(p)
     {
-        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
+        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
     // Returns the parser
@@ -583,24 +587,22 @@ private:
         ElementType t;
 
         // Parse...
-        parser_(spec, value, i, t);
+        parser()(spec, value, i, t);
 
         // and insert into the container
         InserterType()(this->value(), std::move(t));
     }
 
     void parse(StringRef spec, StringRef value, size_t i, std::true_type) {
-        parser_(spec, value, i, this->value());
+        parser()(spec, value, i, this->value());
     }
 
     virtual void parse(StringRef spec, StringRef value, size_t i) override final {
         parse(spec, value, i, IsScalar());
     }
 
-    virtual std::vector<StringRef> allowedValues() const override final
-    {
-        using cl::allowedValues;
-        return allowedValues(parser());
+    virtual std::vector<StringRef> getAllowedValues() const override final {
+        return cl::allowedValues(parser());
     }
 };
 
@@ -609,35 +611,35 @@ private:
 //
 
 // Construct a new Option with a default constructed parser
-template <class T, class... Args>
-auto makeOption(Args&&... args)
+template <class T, class... An>
+auto makeOption(An&&... an)
     -> Option<T>
 {
-    return Option<T>(details::DefaultInitParser(), std::forward<Args>(args)...);
+    return Option<T>(details::DefaultInitParser(), std::forward<An>(an)...);
 }
 
 // Construct a new Option with a default constructed parser
-template <class T, class... Args>
-auto makeScalarOption(Args&&... args)
+template <class T, class... An>
+auto makeScalarOption(An&&... an)
     -> Option<T, TraitsBase<T, void>>
 {
-    return Option<T, TraitsBase<T, void>>(details::DefaultInitParser(), std::forward<Args>(args)...);
+    return Option<T, TraitsBase<T, void>>(details::DefaultInitParser(), std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
-template <class T, class P, class... Args>
-auto makeOption(details::InitParser<P> p, Args&&... args)
+template <class T, class P, class... An>
+auto makeOption(details::InitParser<P> p, An&&... an)
     -> Option<T, Traits<T>, Decay<P>>
 {
-    return Option<T, Traits<T>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
+    return Option<T, Traits<T>, Decay<P>>(std::move(p), std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
-template <class T, class P, class... Args>
-auto makeScalarOption(details::InitParser<P> p, Args&&... args)
+template <class T, class P, class... An>
+auto makeScalarOption(details::InitParser<P> p, An&&... an)
     -> Option<T, TraitsBase<T, void>, Decay<P>>
 {
-    return Option<T, TraitsBase<T, void>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
+    return Option<T, TraitsBase<T, void>, Decay<P>>(std::move(p), std::forward<An>(an)...);
 }
 
 } // namespace cl
