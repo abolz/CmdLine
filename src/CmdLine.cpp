@@ -16,21 +16,28 @@ using namespace support::cl;
 // CmdLine
 //
 
-CmdLine::CmdLine(unsigned flags)
-    : flags_(flags)
-    , maxPrefixLength_(0)
+CmdLine::CmdLine()
 {
 }
 
-bool CmdLine::add(OptionBase* opt)
+CmdLine::~CmdLine()
+{
+}
+
+void CmdLine::add(OptionBase* opt)
 {
     if (opt->formatting() == Positional)
     {
+        if (opt->name().empty())
+        {
+            throw std::runtime_error("positional options need a valid name");
+        }
+
         positionals_.push_back(opt);
-        return true;
+        return;
     }
 
-    auto insert = [&](StringRef s, OptionBase* opt) -> bool
+    auto insert = [&](StringRef s, OptionBase* opt)
     {
         // Save the length of the longest prefix option
         if (opt->isPrefix())
@@ -40,7 +47,10 @@ bool CmdLine::add(OptionBase* opt)
         }
 
         // Insert the option into the map
-        return options_.insert({ s, opt }).second;
+        if (!options_.insert({ s, opt }).second)
+        {
+            throw std::runtime_error("duplicate option name detected");
+        }
     };
 
     if (opt->name().empty())
@@ -50,59 +60,38 @@ bool CmdLine::add(OptionBase* opt)
         opt->allowedValues(values);
 
         if (values.empty())
-            return false;
+            throw std::runtime_error("option name is empty and option does not provide allowed values");
 
         for (auto const& s : values)
-        {
-            if (!insert(s, opt))
-                return false;
-        }
+            insert(s, opt);
     }
     else
     {
         for (auto const& s : strings::split(opt->name(), "|"))
-        {
-            if (!insert(s, opt))
-                return false;
-        }
+            insert(s, opt);
     }
-
-    return true;
 }
 
-bool CmdLine::parse(StringVector const& argv)
+void CmdLine::parse(StringVector const& argv)
 {
-    bool success = true;
-    bool dashdash = false; // "--" seen?
+    auto dashdash = false; // "--" seen?
+    auto pos = positionals_.begin(); // The current positional argument - if any
 
-    // The current positional argument - if any
-    auto pos = positionals_.begin();
-
-    // Handle all arguments...
     for (size_t N = 0; N < argv.size(); ++N)
     {
-        if (!handleArg(dashdash, argv, N, pos))
-        {
-            if (flags_ & StopOnFirstError)
-                return false;
-            else
-                success = false;
-        }
+        handleArg(dashdash, argv, N, pos);
     }
 
-    if (flags_ & AllowMissingOptions)
-        return true;
-
-    // Check if all required options have been successfully parsed
-    return check() && success;
+    check();
 }
 
-bool CmdLine::expandAndParse(StringVector argv)
+void CmdLine::expandAndParse(StringVector argv)
 {
-    if (!expandResponseFiles(argv))
-        return false;
+    // Recursively expand response files
+    expandResponseFiles(argv);
 
-    return parse(argv);
+    // Then parse the command-line arguments
+    parse(argv);
 }
 
 CmdLine::ConstOptionVector CmdLine::options() const
@@ -111,13 +100,17 @@ CmdLine::ConstOptionVector CmdLine::options() const
 
     // Get the list of all (visible) options
     for (auto const& I : options_)
+    {
         opts.emplace_back(I.second);
+    }
 
     // Sort by name
-    std::stable_sort(opts.begin(), opts.end(),
-        [](OptionBase const* LHS, OptionBase const* RHS) {
-            return LHS->name() < RHS->name();
-        });
+    auto compare = [](OptionBase const* LHS, OptionBase const* RHS)
+    {
+        return LHS->name() < RHS->name();
+    };
+
+    std::stable_sort(opts.begin(), opts.end(), compare);
 
     // Remove duplicates
     opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
@@ -136,12 +129,12 @@ OptionBase* CmdLine::findOption(StringRef name) const
     return I == options_.end() ? 0 : I->second;
 }
 
-bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
+void CmdLine::expandResponseFile(StringVector& argv, size_t i)
 {
-    std::ifstream file(argv[i].substr(1));
+    std::ifstream file;
 
-    if (!file)
-        return error("no such file or directory: \"" + argv[i] + "\"");
+    file.exceptions(std::ios::failbit);
+    file.open(argv[i].substr(1));
 
     // Erase the i-th argument (@file)
     argv.erase(argv.begin() + i);
@@ -151,13 +144,11 @@ bool CmdLine::expandResponseFile(StringVector& argv, size_t i)
     auto E = std::istreambuf_iterator<char>();
 
     tokenizeCommandLineUnix(I, E, std::inserter(argv, argv.begin() + i));
-
-    return true;
 }
 
 // Recursively expand response files.
 // Returns true on success, false otherwise.
-bool CmdLine::expandResponseFiles(StringVector& argv)
+void CmdLine::expandResponseFiles(StringVector& argv)
 {
     // Response file counter to prevent infinite recursion...
     size_t responseFilesLeft = 100;
@@ -170,19 +161,16 @@ bool CmdLine::expandResponseFiles(StringVector& argv)
             continue;
         }
 
-        if (!expandResponseFile(argv, i))
-            return false;
+        expandResponseFile(argv, i);
 
         if (--responseFilesLeft == 0)
-            return error("too many response files encountered");
+            throw std::runtime_error("too many response files encountered");
     }
-
-    return true;
 }
 
 // Process a single command line argument.
 // Returns true on success, false otherwise.
-bool CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
+void CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
 {
     StringRef arg = argv[i];
 
@@ -190,71 +178,65 @@ bool CmdLine::handleArg(bool& dashdash, StringVector const& argv, size_t& i, Opt
     if (arg == "--" && !dashdash)
     {
         dashdash = true;
-        return true;
+        return;
     }
-
-    bool ignoreUnknowns = (flags_ & AllowUnknownOptions) != 0;
 
     // This argument is considered to be positional if it doesn't start with '-', if it is "-"
     // itself, or if we have seen "--" already.
     if (arg[0] != '-' || arg == "-" || dashdash)
     {
-        if (handlePositional(arg, argv, i, pos))
-        {
-            // If the current positional argument has the ConsumeAfter flag set, parse
-            // all following command-line arguments as positional options.
-            if ((*pos)->flags() & ConsumeAfter)
-                dashdash = true;
+        handlePositional(arg, argv, i, pos);
 
-            return true;
+        // If the current positional argument has the ConsumeAfter flag set, parse
+        // all following command-line arguments as positional options.
+        if ((*pos)->flags() & ConsumeAfter)
+        {
+            dashdash = true;
         }
 
-        // Unhandled positional argument...
-        unknowns_.push_back(arg.str());
-
-        return ignoreUnknowns || error("unknown positional option: '" + arg + "'");
+        return;
     }
 
     // Starts with a dash, must be an argument.
-    auto name = arg.drop_front(1);
 
+    // Drop the first leading dash
+    auto name = arg.substr(1);
+
+    // If the name arguments starts with a single hyphen, this is a short option and
+    // might actually be an option group.
     bool short_option = name[0] != '-';
 
     if (!short_option)
-        name = name.drop_front(1);
-
-    bool success = true;
+        name = name.substr(1);
 
     // Try to process this argument as a standard option.
-    if (handleOption(success, name, argv, i))
+    if (handleOption(name, argv, i))
     {
-        return success;
+        return;
     }
 
     // If it's not a standard option and there is no equals sign,
     // check for a prefix option.
-    if (handlePrefix(success, name, i))
+    if (handlePrefix(name, i))
     {
-        return success;
+        return;
     }
 
     // If it's not standard or prefix option, check for an option group
-    if (short_option && handleGroup(success, name, argv, i))
+    if (short_option && handleGroup(name, argv, i))
     {
-        return success;
+        return;
     }
 
-    // Unknown option specified...
-    unknowns_.push_back(arg.str());
-
-    return ignoreUnknowns || error("unknown option '" + arg + "'");
+    // Otherwise it's an unknown option.
+    throw std::runtime_error("unknown option '" + arg + "'");
 }
 
-bool CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
+void CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos)
 {
     if (pos == positionals_.end())
     {
-        return false;
+        throw std::runtime_error("unhandled positional argument");
     }
 
     auto opt = *pos;
@@ -272,11 +254,11 @@ bool CmdLine::handlePositional(StringRef curr, StringVector const& argv, size_t&
 
 // If 'arg' is the name of an option, process the option immediately.
 // Otherwise looks for an equal sign and try again.
-bool CmdLine::handleOption(bool& success, StringRef curr, StringVector const& argv, size_t& i)
+bool CmdLine::handleOption(StringRef curr, StringVector const& argv, size_t& i)
 {
     if (auto opt = findOption(curr)) // Standard option?
     {
-        success = addOccurrence(opt, curr, argv, i);
+        addOccurrence(opt, curr, argv, i);
         return true;
     }
 
@@ -284,20 +266,19 @@ bool CmdLine::handleOption(bool& success, StringRef curr, StringVector const& ar
     auto I = curr.find('=');
 
     if (I == StringRef::npos)
-    {
         return false;
-    }
 
     // Get the option name
-    auto name = curr.front(I);
+    auto name = curr.substr(0, I);
 
     if (auto opt = findOption(name))
     {
         // Include the equals sign in the value if this option is a prefix option.
         // Discard otherwise.
-        StringRef arg = curr.drop_front(opt->isPrefix() ? I : I + 1);
+        if (!opt->isPrefix())
+            I++;
 
-        success = addOccurrence(opt, name, arg, i);
+        addOccurrence(opt, name, curr.substr(I), i);
         return true;
     }
 
@@ -305,18 +286,18 @@ bool CmdLine::handleOption(bool& success, StringRef curr, StringVector const& ar
 }
 
 // Handles prefix options which have an argument specified without an equals sign.
-bool CmdLine::handlePrefix(bool& success, StringRef curr, size_t i)
+bool CmdLine::handlePrefix(StringRef curr, size_t i)
 {
     assert(!curr.empty());
 
     for (auto n = std::min(maxPrefixLength_, curr.size()); n != 0; --n)
     {
-        auto name = curr.front(n);
+        auto name = curr.substr(0, n); // curr.front(n);
         auto opt = findOption(name);
 
         if (opt && opt->isPrefix())
         {
-            success = addOccurrence(opt, name, curr.drop_front(n), i);
+            addOccurrence(opt, name, curr.substr(n), i);
             return true;
         }
     }
@@ -325,7 +306,7 @@ bool CmdLine::handlePrefix(bool& success, StringRef curr, size_t i)
 }
 
 // Process an option group.
-bool CmdLine::handleGroup(bool& success, StringRef curr, StringVector const& argv, size_t& i)
+bool CmdLine::handleGroup(StringRef curr, StringVector const& argv, size_t& i)
 {
     OptionVector group;
 
@@ -350,25 +331,21 @@ bool CmdLine::handleGroup(bool& success, StringRef curr, StringVector const& arg
     {
         if (group[n]->numArgs() == ArgRequired)
         {
-            success = error("option '" + group[n]->displayName()
+            throw std::runtime_error("option '" + group[n]->displayName()
                 + "' requires an argument (must be last in '" + curr + "')");
-            return true;
         }
     }
-
-    success = true;
 
     // Then handle all the options
     for (size_t n = 0; n != group.size(); ++n)
     {
-        success = addOccurrence(group[n], curr.substr(n, 1), argv, i)
-                  && success;
+        addOccurrence(group[n], curr.substr(n, 1), argv, i);
     }
 
     return true;
 }
 
-bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i)
+void CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i)
 {
     StringRef arg;
 
@@ -382,47 +359,42 @@ bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringVector const&
         {
             if (opt->formatting() == Prefix || i + 1 >= argv.size())
             {
-                return error("option '" + opt->displayName() + "' requires an argument");
+                throw std::runtime_error("option '" + opt->displayName() + "' requires an argument");
             }
 
             arg = argv[++i];
         }
     }
 
-    return parse(opt, name, arg, index);
+    parse(opt, name, arg, index);
 }
 
-bool CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i)
+void CmdLine::addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i)
 {
     if (opt->formatting() != Positional)
     {
         // An argument was specified, check if this is allowed.
         if (opt->numArgs() == ArgDisallowed)
         {
-            return error("option '" + opt->displayName() + "' doesn't allow an argument");
+            throw std::runtime_error("option '" + opt->displayName() + "' doesn't allow an argument");
         }
     }
 
-    return parse(opt, name, arg, i);
+    parse(opt, name, arg, i);
 }
 
-bool CmdLine::parse(OptionBase* opt, StringRef name, StringRef arg, size_t i)
+void CmdLine::parse(OptionBase* opt, StringRef name, StringRef arg, size_t i)
 {
     // Check if an occurrence is allowed
     if (!opt->isOccurrenceAllowed())
     {
-        return error("option '" + opt->displayName() + "' already specified");
+        throw std::runtime_error("option '" + opt->displayName() + "' already specified");
     }
 
-    auto add = [&](StringRef name, StringRef arg) -> bool
+    auto add = [&](StringRef name, StringRef arg)
     {
-        if (opt->parse(name, arg, i))
-        {
-            opt->count_++;
-            return true;
-        }
-
-        return error("invalid argument '" + arg + "' for option '" + name + "'");
+        opt->parse(name, arg, i);
+        opt->count_++;
     };
 
     // If this option takes a comma-separated list of arguments, split the string
@@ -430,58 +402,33 @@ bool CmdLine::parse(OptionBase* opt, StringRef name, StringRef arg, size_t i)
     if (opt->flags() & CommaSeparated)
     {
         for (auto v : strings::split(arg, ","))
-        {
-            if (!add(name, v))
-                return false;
-        }
-
-        return true;
+            add(name, v);
     }
-
     // Otherwise, just parse the option.
-    return add(name, arg);
+    else
+    {
+        add(name, arg);
+    }
 }
 
-bool CmdLine::check()
+void CmdLine::check()
 {
-    bool success = true;
-
     for (auto& I : options())
-        success = check(I) && success;
+        check(I);
 
     for (auto& I : positionals())
-        success = check(I) && success;
+        check(I);
 
     for (auto& I : groups_)
-        success = check(I.second) && success;
-
-    return success;
+        I.second->check();
 }
 
-bool CmdLine::check(OptionBase const* opt)
+void CmdLine::check(OptionBase const* opt)
 {
-    if (!opt->isOccurrenceRequired())
-        return true;
-
-    return error("option '" + opt->displayName() + "' missing");
-}
-
-bool CmdLine::check(OptionGroup const* g)
-{
-    if (g->check())
-        return true;
-
-    return error(g->desc());
-}
-
-// Adds an error message. Returns false.
-bool CmdLine::error(std::string str)
-{
-    if (flags_ & PrintErrors)
-        std::cout << "command-line error: " << str << std::endl;
-
-    errors_.push_back(std::move(str));
-    return false;
+    if (opt->isOccurrenceRequired())
+    {
+        throw std::runtime_error("option '" + opt->displayName() + "' missing");
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -493,63 +440,53 @@ OptionGroup::OptionGroup(CmdLine& cmd, std::string name, Type type)
     , type_(type)
 {
     if (!cmd.groups_.insert({name_, this}).second)
+    {
         throw std::runtime_error("failed to register option group '" + name + "'");
+    }
 }
 
-bool OptionGroup::check() const
+void OptionGroup::check() const
 {
     if (type_ == OptionGroup::Default)
-        return true;
+        return;
+
+    auto pred = [](OptionBase const* x)
+    {
+        return x->count() > 0;
+    };
 
     // Count the number of options in this group which have been specified on the command-line
-    size_t N = std::count_if(options_.begin(), options_.end(),
-        [](OptionBase const* x) {
-            return x->count() > 0;
-        });
+    size_t N = std::count_if(options_.begin(), options_.end(), pred);
 
     switch (type_)
     {
     case Default: // prevent warning
-        return true;
+        break;
     case Zero:
-        return N == 0;
+        if (N != 0)
+            throw std::runtime_error("no options in group '" + name_ + "' may be specified");
+        break;
     case ZeroOrOne:
-        return N == 0 || N == 1;
+        if (N != 0 && N != 1)
+            throw std::runtime_error("at most one option in group '" + name_ + "' may be specified");
+        break;
     case One:
-        return N == 1;
+        if (N != 1)
+            throw std::runtime_error("exactly one option in group '" + name_ + "' must be specified");
+        break;
     case OneOrMore:
-        return N >= 1;
+        if (N < 1)
+            throw std::runtime_error("at least one option in group '" + name_ + "' must be specified");
+        break;
     case All:
-        return N == options_.size();
+        if (N != options_.size())
+            throw std::runtime_error("all options in group '" + name_ + "' must be specified");
+        break;
     case ZeroOrAll:
-        return N == 0 || N == options_.size();
+        if (N != 0 && N != options_.size())
+            throw std::runtime_error("none or all options in group '" + name_ + "' must be specified");
+        break;
     }
-
-    return true; // prevent warning
-}
-
-std::string OptionGroup::desc() const
-{
-    switch (type_)
-    {
-    case Default:
-        return "any number of options in group '" + name_ + "' may be specified";
-    case Zero:
-        return "no options in group '" + name_ + "' may be specified";
-    case ZeroOrOne:
-        return "at most one option in group '" + name_ + "' may be specified";
-    case One:
-        return "exactly one option in group '" + name_ + "' must be specified";
-    case OneOrMore:
-        return "at least one option in group '" + name_ + "' must be specified";
-    case All:
-        return "all options in group '" + name_ + "' must be specified";
-    case ZeroOrAll:
-        return "none or all options in group '" + name_ + "' must be specified";
-    }
-
-    assert(!"internal error");
-    return "xxx";
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -613,9 +550,6 @@ bool OptionBase::isOccurrenceRequired() const
 
 void OptionBase::applyRec()
 {
-    assert((formatting_ != Positional || !name_.empty())
-        && "positional options need a name");
-
     if (argName_.empty())
         argName_ = "arg";
 }

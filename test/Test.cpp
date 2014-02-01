@@ -23,12 +23,12 @@ namespace cl
     template <class T, class U>
     struct Parser<std::pair<T, U>>
     {
-        bool operator ()(StringRef name, StringRef arg, size_t i, std::pair<T, U>& value) const
+        void operator ()(StringRef name, StringRef arg, size_t i, std::pair<T, U>& value) const
         {
             auto p = strings::split(arg, ":")();
 
-            return Parser<T>()(name, p.first, i, value.first)
-                && Parser<U>()(name, p.second, i, value.second);
+            Parser<T>()(name, p.first, i, value.first);
+            Parser<U>()(name, p.second, i, value.second);
         }
     };
 
@@ -51,10 +51,9 @@ namespace cl
 
 struct WFlagParser
 {
-    bool operator ()(StringRef name, StringRef /*arg*/, size_t /*i*/, bool& value) const
+    void operator ()(StringRef name, StringRef /*arg*/, size_t /*i*/, bool& value) const
     {
         value = !name.starts_with("Wno-");
-        return true;
     }
 };
 
@@ -70,7 +69,7 @@ int main(int argc, char* argv[])
 {
     //----------------------------------------------------------------------------------------------
 
-    cl::CmdLine cmd(cl::PrintErrors);
+    cl::CmdLine cmd;
 
                     //------------------------------------------------------------------------------
 
@@ -226,8 +225,6 @@ int main(int argc, char* argv[])
             value.erase(arg.str());
         else
             value.insert(arg.str());
-
-        return true;
     };
 
     auto targets = cl::makeScalarOption<std::set<std::string>>(
@@ -243,19 +240,13 @@ int main(int argc, char* argv[])
 
     //----------------------------------------------------------------------------------------------
 
-    bool success = cmd.parse({ argv + 1, argv + argc });
-
-    if (help.count() || !success)
+    try
     {
-        cl::help(std::cout, cmd);
-        return 0;
+        cmd.parse({ argv + 1, argv + argc });
     }
-
-    if (!success)
+    catch (std::exception& e)
     {
-        for (auto const& s : cmd.errors())
-            std::cout << "error: " << s << "\n";
-
+        std::cout << "error: " << e.what() << std::endl;
         return -1;
     }
 

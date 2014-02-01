@@ -18,14 +18,16 @@ typedef std::vector<std::string> Argv;
 
 bool parse(cl::CmdLine& cmd, Argv const& argv)
 {
-    if (!cmd.parse(argv))
+    try
     {
-        //for (auto const& s : cmd.getErrors())
-        //    std::cout << "NOTE : " << s << "\n";
+        cmd.parse(argv);
+        return true;
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "ERROR: " << e.what() << std::endl;
         return false;
     }
-
-    return true;
 }
 
 template <class T>
@@ -34,41 +36,6 @@ static std::string to_pretty_string(T const& object)
     std::ostringstream str;
     str << pretty(object);
     return str.str();
-}
-
-TEST(CmdLineTest, ArgOptionalPass1)
-{
-    cl::CmdLine cmd;
-    auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
-
-    EXPECT_TRUE( cmd.parse({"-a"}) );
-    EXPECT_EQ( a.count(), 1 );
-    EXPECT_EQ( a.value(), "" );
-}
-
-TEST(CmdLineTest, ArgOptionalPass2)
-{
-    cl::CmdLine cmd;
-    auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
-
-    EXPECT_TRUE( cmd.parse({"-a=xxx"}) );
-    EXPECT_EQ( a.count(), 1 );
-    EXPECT_EQ( a.value(), "xxx" );
-}
-
-TEST(CmdLineTest, ArgOptionalFail1)
-{
-    cl::CmdLine cmd;
-    auto a = cl::makeOption<std::string>(cmd, "a", cl::ArgOptional);
-
-    EXPECT_FALSE( cmd.parse({"-a", "xxx"}) );
-    EXPECT_EQ( a.count(), 1 );
-    EXPECT_EQ( a.value(), "" );
-
-    auto e = cmd.errors();
-
-    ASSERT_EQ(e.size(), 1);
-    EXPECT_EQ(e[0], "unknown positional option: 'xxx'");
 }
 
 TEST(CmdLineTest, Flags1)
@@ -163,11 +130,11 @@ TEST(CmdLineTest, Grouping1)
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-baa"                 }, {2,1}, {1,1}, {0,0} ) ); // check for option group
     EXPECT_NO_FATAL_FAILURE( test(false, { "--baa"                }, {0,0}, {0,0}, {0,0} ) ); // no check for option group
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-ba", "-a"            }, {2,1}, {1,1}, {0,0} ) );
-    EXPECT_NO_FATAL_FAILURE( test(false, { "--ba", "-a"           }, {1,1}, {0,0}, {0,0} ) ); // no check for option group
+    EXPECT_NO_FATAL_FAILURE( test(false, { "--ba", "-a"           }, {0,0}, {0,0}, {0,0} ) ); // no check for option group
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab", "-ba"           }, {1,1}, {1,1}, {1,1} ) );
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-ab1", "-ba"          }, {1,1}, {1,1}, {1,1} ) );
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab=1", "-ba"         }, {1,1}, {1,1}, {0,0} ) ); // invalid value for -ab
-    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab", "1", "-ba"      }, {1,1}, {1,1}, {1,1} ) ); // unhandled positional
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab=1", "-ba"         }, {0,0}, {0,0}, {0,0} ) ); // invalid value for -ab
+    EXPECT_NO_FATAL_FAILURE( test(false, { "-ab", "1", "-ba"      }, {0,0}, {0,0}, {1,1} ) ); // unhandled positional
 }
 
 TEST(CmdLineTest, Grouping2)
@@ -179,7 +146,7 @@ TEST(CmdLineTest, Grouping2)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd(cl::PrintErrors);
+        cl::CmdLine cmd;
 
         auto a = cl::makeOption<bool>(cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
         auto b = cl::makeOption<bool>(cmd, "v", cl::Grouping, cl::ArgDisallowed);
@@ -572,54 +539,54 @@ TEST(CmdLineTest, Map4)
     EXPECT_NO_FATAL_FAILURE( test(false, {"-O2", "-O1"      }, {1,2}) );
 }
 
-TEST(CmdLineTest, Ignore1)
-{
-    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
-    {
-        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+//TEST(CmdLineTest, Ignore1)
+//{
+//    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
+//    {
+//        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+//
+//        cl::CmdLine cmd(cl::AllowUnknownOptions);
+//
+//        auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
+//            cl::Positional, cl::ZeroOrMore
+//            );
+//
+//        auto y = cl::makeOption<bool>(cmd, "y");
+//
+//        bool actual_result = cmd.parse(argv);
+//        EXPECT_EQ(result, actual_result);
+//        EXPECT_EQ(unknowns, cmd.unknowns());
+//    };
+//
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
+//}
 
-        cl::CmdLine cmd(cl::AllowUnknownOptions);
-
-        auto x = cl::makeOption<std::vector<std::string>>(cmd, "x",
-            cl::Positional, cl::ZeroOrMore
-            );
-
-        auto y = cl::makeOption<bool>(cmd, "y");
-
-        bool actual_result = cmd.parse(argv);
-        EXPECT_EQ(result, actual_result);
-        EXPECT_EQ(unknowns, cmd.unknowns());
-    };
-
-    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
-}
-
-TEST(CmdLineTest, Ignore2)
-{
-    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
-    {
-        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
-
-        cl::CmdLine cmd(cl::AllowUnknownOptions);
-
-        auto y = cl::makeOption<bool>(cmd, "y");
-
-        bool actual_result = cmd.parse(argv);
-        EXPECT_EQ(result, actual_result);
-        EXPECT_EQ(unknowns, cmd.unknowns());
-    };
-
-    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"x"}, {"x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"x", "y"}, {"x", "y"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y=1"}, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
-}
+//TEST(CmdLineTest, Ignore2)
+//{
+//    auto test = [](bool result, Argv const& argv, std::vector<std::string> const& unknowns)
+//    {
+//        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
+//
+//        cl::CmdLine cmd(cl::AllowUnknownOptions);
+//
+//        auto y = cl::makeOption<bool>(cmd, "y");
+//
+//        bool actual_result = cmd.parse(argv);
+//        EXPECT_EQ(result, actual_result);
+//        EXPECT_EQ(unknowns, cmd.unknowns());
+//    };
+//
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {}, {}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x"}, {"-x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"x"}, {"x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"x", "y"}, {"x", "y"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y"}, {"-x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y=1"}, {"-x"}) );
+//    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y=hello"}, {"-x"}) );
+//}
 
 TEST(CmdLineTest, OptionGroup1)
 {
@@ -627,7 +594,7 @@ TEST(CmdLineTest, OptionGroup1)
     {
         SCOPED_TRACE("parsing: " + to_pretty_string(argv));
 
-        cl::CmdLine cmd(cl::PrintErrors);
+        cl::CmdLine cmd;
 
         cl::OptionGroup gr1(cmd, "gr1");
         cl::OptionGroup gr2(cmd, "gr2", cl::OptionGroup::ZeroOrAll);

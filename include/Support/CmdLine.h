@@ -24,17 +24,6 @@ namespace cl
 {
 
 //--------------------------------------------------------------------------------------------------
-// CmdLine flags
-//
-
-enum CmdLineFlags : unsigned {
-    AllowMissingOptions     = 0x01, // Do not check if all options have been specified
-    AllowUnknownOptions     = 0x02, // Ignore unknown options
-    PrintErrors             = 0x04, // Print errors to std::cerr
-    StopOnFirstError        = 0x08, // Stop parsing when the first error is encountered
-};
-
-//--------------------------------------------------------------------------------------------------
 // Option flags
 //
 
@@ -83,49 +72,37 @@ class CmdLine
     friend class OptionGroup;
 
 public:
-    using OptionMap         = std::map<StringRef, OptionBase*>;
-    using OptionGroups      = std::map<StringRef, OptionGroup*>;
-    using OptionVector      = std::vector<OptionBase*>;
+    using OptionMap = std::map<StringRef, OptionBase*>;
+    using OptionGroups = std::map<StringRef, OptionGroup*>;
+    using OptionVector = std::vector<OptionBase*>;
     using ConstOptionVector = std::vector<OptionBase const*>;
-    using StringVector      = std::vector<std::string>;
+    using StringVector = std::vector<std::string>;
 
 private:
-    // CmdLine flags
-    unsigned flags_;
     // List of options
     OptionMap options_;
     // List of option groups and associated options
     OptionGroups groups_;
     // List of positional options
     OptionVector positionals_;
-    // List of error message
-    StringVector errors_;
-    // List of unknown command line arguments
-    StringVector unknowns_;
     // The length of the longest prefix option
     size_t maxPrefixLength_;
 
 public:
-    explicit CmdLine(unsigned flags = 0);
+    // Constructor.
+    CmdLine();
+
+    // Destructor.
+    ~CmdLine();
 
     // Adds the given option to the command line
-    bool add(OptionBase* opt);
+    void add(OptionBase* opt);
 
     // Parse the given command line arguments
-    bool parse(StringVector const& argv);
+    void parse(StringVector const& argv);
 
     // Expand response files and parse the command line arguments
-    bool expandAndParse(StringVector argv);
-
-    // Returns the list of errors
-    StringVector const& errors() const {
-        return errors_;
-    }
-
-    // Returns the list of unknown command line arguments
-    StringVector const& unknowns() const {
-        return unknowns_;
-    }
+    void expandAndParse(StringVector argv);
 
     // Returns the list of (unique) options, sorted by name.
     ConstOptionVector options() const;
@@ -134,31 +111,28 @@ public:
     ConstOptionVector positionals() const;
 
     // Check if all required options have been specified
-    bool check();
+    void check();
 
 private:
     OptionBase* findOption(StringRef name) const;
 
-    bool expandResponseFile(StringVector& argv, size_t i);
-    bool expandResponseFiles(StringVector& argv);
+    void expandResponseFile(StringVector& argv, size_t i);
+    void expandResponseFiles(StringVector& argv);
 
-    bool handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
+    void handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
 
-    bool handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
+    void handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
 
-    bool handleOption(bool& success, StringRef curr, StringVector const& argv, size_t& i);
-    bool handlePrefix(bool& success, StringRef curr, size_t i);
-    bool handleGroup(bool& success, StringRef curr, StringVector const& argv, size_t& i);
+    bool handleOption(StringRef curr, StringVector const& argv, size_t& i);
+    bool handlePrefix(StringRef curr, size_t i);
+    bool handleGroup(StringRef curr, StringVector const& argv, size_t& i);
 
-    bool addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i);
-    bool addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i);
+    void addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i);
+    void addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i);
 
-    bool parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
+    void parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
 
-    bool check(OptionBase const* opt);
-    bool check(OptionGroup const* g);
-
-    bool error(std::string str);
+    void check(OptionBase const* opt);
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -218,36 +192,36 @@ inline auto init(T&& value) -> Initializer<T&&>
 template <class T>
 struct Parser
 {
-    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, T& value) const
+    void operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
     {
         StringRefStream stream(arg);
-        return (stream >> std::setbase(0) >> value) && stream.eof();
+
+        if (!(stream >> std::setbase(0) >> value) || !stream.eof())
+        {
+            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
+        }
     }
 };
 
 template <>
 struct Parser<bool>
 {
-    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, bool& value) const
+    void operator()(StringRef name, StringRef arg, size_t /*i*/, bool& value) const
     {
-        if (arg.empty() || arg == "1" || arg == "true")
+        if (arg.empty() || arg == "1" || arg == "true" || arg == "on")
             value = true;
-        else if (arg == "0" || arg == "false")
+        else if (arg == "0" || arg == "false" || arg == "off")
             value = false;
         else
-            return false;
-
-        return true;
+            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
     }
 };
 
 template <>
 struct Parser<std::string>
 {
-    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, std::string& value) const
-    {
+    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, std::string& value) const {
         value.assign(arg.data(), arg.size());
-        return true;
     }
 };
 
@@ -280,8 +254,8 @@ void descriptions(std::reference_wrapper<P> const& parser, std::vector<StringRef
 template <class T>
 struct MapParser
 {
-    using MapType       = std::map<std::string, std::pair<T, std::string>>;
-    using MapValueType  = typename MapType::value_type;
+    using MapType = std::map<std::string, std::pair<T, std::string>>;
+    using MapValueType = typename MapType::value_type;
 
     struct Init : MapValueType
     {
@@ -299,18 +273,15 @@ struct MapParser
     {
     }
 
-    bool operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
+    void operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
     {
         // If the arg is empty, the option is specified by name
         auto I = map.find(arg.empty() ? name.str() : arg.str());
 
-        if (I != map.end())
-        {
-            value = I->second.first;
-            return true;
-        }
+        if (I == map.end())
+            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
 
-        return false;
+        value = I->second.first;
     }
 };
 
@@ -351,7 +322,8 @@ namespace details
         template <class U>
         static auto test(U&& u)
             -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
-        static auto test(Any) -> std::false_type;
+        static auto test(Any)
+            -> std::false_type;
     };
 
     template <class T>
@@ -432,10 +404,7 @@ public:
     explicit OptionGroup(CmdLine& cmd, std::string name, Type type = Default);
 
     // Checks whether this group is valid
-    bool check() const;
-
-    // Returns a description for this group
-    std::string desc() const;
+    void check() const;
 
 private:
     // The name of this option group
@@ -564,9 +533,7 @@ protected:
     void applyRec(CmdLine& cmd, An&&... an)
     {
         applyRec(std::forward<An>(an)...);
-
-        if (!cmd.add(this))
-            throw std::runtime_error("failed to register option");
+        cmd.add(this);
     }
 
     void applyRec(); // End recursion - check for valid flags
@@ -579,7 +546,7 @@ private:
     bool isOccurrenceRequired() const;
 
     // Parses the given value and stores the result.
-    virtual bool parse(StringRef spec, StringRef value, size_t i) = 0;
+    virtual void parse(StringRef spec, StringRef value, size_t i) = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -703,8 +670,7 @@ public:
     explicit Option(DefaultInitParser, Args&&... args)
         : BaseType(std::forward<Args>(args)...)
     {
-        this->apply(IsScalar::value ? Optional : ZeroOrMore);
-        this->applyRec(std::forward<Args>(args)...);
+        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
     }
 
     template <class P, class... Args>
@@ -712,8 +678,7 @@ public:
         : BaseType(std::forward<Args>(args)...)
         , parser_(p)
     {
-        this->apply(IsScalar::value ? Optional : ZeroOrMore);
-        this->applyRec(std::forward<Args>(args)...);
+        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
     }
 
     // Returns the parser
@@ -727,39 +692,37 @@ public:
     }
 
     // Returns a list of allowed values for this option
-    void allowedValues(StringRefVector& vec) const override final
+    virtual void allowedValues(StringRefVector& vec) const override final
     {
         using cl::allowedValues;
         allowedValues(parser(), vec);
     }
 
     // Returns a list of descriptions for any allowed value for this option
-    void descriptions(StringRefVector& vec) const override final
+    virtual void descriptions(StringRefVector& vec) const override final
     {
         using cl::descriptions;
         descriptions(parser(), vec);
     }
 
 private:
-    bool parse(StringRef spec, StringRef value, size_t i, std::false_type)
+    void parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
         element_type t;
 
-        if (parser_(spec, value, i, t))
-        {
-            inserter_type()(this->value(), std::move(t));
-            return true;
-        }
+        // Parse...
+        parser_(spec, value, i, t);
 
-        return false;
+        // and insert into the container
+        inserter_type()(this->value(), std::move(t));
     }
 
-    bool parse(StringRef spec, StringRef value, size_t i, std::true_type) {
-        return parser_(spec, value, i, this->value());
+    void parse(StringRef spec, StringRef value, size_t i, std::true_type) {
+        parser_(spec, value, i, this->value());
     }
 
-    bool parse(StringRef spec, StringRef value, size_t i) override {
-        return parse(spec, value, i, IsScalar());
+    virtual void parse(StringRef spec, StringRef value, size_t i) override final {
+        parse(spec, value, i, IsScalar());
     }
 };
 

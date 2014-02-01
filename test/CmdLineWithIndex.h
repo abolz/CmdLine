@@ -43,10 +43,10 @@ struct WithIndex
 template <class T>
 struct Parser<WithIndex<T>>
 {
-    bool operator()(StringRef name, StringRef arg, size_t i, WithIndex<T>& value) const
+    void operator()(StringRef name, StringRef arg, size_t i, WithIndex<T>& value) const
     {
-        value.index = static_cast<int>(i);
-        return Parser<T>()(name, arg, i, value.value);
+        Parser<T>()(name, arg, i, value.value);
+        value.index = i;
     }
 };
 
