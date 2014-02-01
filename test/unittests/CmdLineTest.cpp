@@ -384,7 +384,7 @@ TEST(CmdLineTest, Map1)
         });
 
         auto x = cl::makeOption<int>(
-            cl::initParser(xParser),
+            cl::InitParser, xParser,
             cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
@@ -427,7 +427,7 @@ TEST(CmdLineTest, Map2)
         });
 
         auto x = cl::makeOption<int>(
-            cl::initParser(xParser),
+            cl::InitParser, xParser,
             cmd,
             cl::Required,
             cl::ArgDisallowed
@@ -468,7 +468,7 @@ TEST(CmdLineTest, Map3)
         });
 
         auto x = cl::makeOption<int>(
-            cl::initParser(xParser),
+            cl::InitParser, xParser,
             cmd,
             cl::Required,
             cl::Prefix,
@@ -509,7 +509,7 @@ TEST(CmdLineTest, Map4)
         });
 
         auto x = cl::makeOption<int>(
-            cl::initParser(xParser),
+            cl::InitParser, xParser,
             cmd, "O",
             cl::Required,
             cl::Prefix,

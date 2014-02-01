@@ -19,7 +19,7 @@ namespace support
 namespace cl
 {
 
-    template <class T, class TraitsT, class ParserT>
+    template <class T, template <class> class TraitsT, class ParserT>
     void prettyPrint(std::ostream& stream, Option<T, TraitsT, ParserT> const& option)
     {
         stream << option.name() << ":\n";
@@ -46,9 +46,9 @@ struct WFlagParser
 
 template <class... Args>
 inline auto makeWFlag(Args&&... args)
-    -> decltype( cl::makeOption<bool>(cl::initParser(WFlagParser())) )
+    -> decltype( cl::makeOption<bool>(cl::InitParser, WFlagParser()) )
 {
-    return cl::makeOption<bool>(cl::initParser(WFlagParser()),
+    return cl::makeOption<bool>(cl::InitParser, WFlagParser(),
                     std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore);
 }
 
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
     });
 
     auto opt = cl::makeOption<OptimizationLevel>(
-        cl::initParser(std::ref(optParser)),
+        cl::InitParser, std::ref(optParser),
         cmd,
         cl::ArgDisallowed,
         cl::ArgName("optimization level"),
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
     });
 
     auto simpson = cl::makeOption<Simpson>(
-        cl::initParser(simpsonParser),
+        cl::InitParser, simpsonParser,
         cmd, "simpson",
         cl::ArgRequired,
         cl::init(SideshowBob)
@@ -162,16 +162,14 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto f = cl::makeOption<std::map<std::string, int>>(
-        cl::initParser(
-            [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
-            {
-                auto p = strings::split(arg, ":")();
+    auto f = cl::makeOption<std::map<std::string, int>, cl::Traits>(
+        cl::InitParser, [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
+        {
+            auto p = strings::split(arg, ":")();
 
-                cl::Parser<std::string>()(name, p.first, i, value.first);
-                cl::Parser<int>()(name, p.second, i, value.second);
-            }
-        ),
+            cl::Parser<std::string>()(name, p.first, i, value.first);
+            cl::Parser<int>()(name, p.second, i, value.second);
+        },
         cmd, "f",
         cl::ArgName("string:int"),
         cl::ArgRequired,
@@ -201,8 +199,8 @@ int main(int argc, char* argv[])
             value.insert(arg.str());
     };
 
-    auto targets = cl::makeScalarOption<std::set<std::string>>(
-        cl::initParser(targetsParser),
+    auto targets = cl::makeOption<std::set<std::string>, cl::ScalarType>(
+        cl::InitParser, targetsParser,
         cmd, "without-|with-",
         cl::ArgName("target"),
         cl::ArgRequired,

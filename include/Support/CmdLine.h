@@ -233,11 +233,11 @@ std::vector<StringRef> allowedValues(P const& /*parser*/)
 template <class T>
 struct MapParser
 {
-    using MapType = std::map<std::string, T>;
+    using map_type = std::map<std::string, T>;
 
-    MapType map;
+    map_type map;
 
-    explicit MapParser(std::initializer_list<typename MapType::value_type> ilist)
+    explicit MapParser(std::initializer_list<typename map_type::value_type> ilist)
         : map(ilist)
     {
     }
@@ -290,15 +290,18 @@ namespace details
     inline auto HasInsert(T&& t)
         -> decltype(Inserter()(t, std::declval<typename T::value_type>()));
 
-    inline auto HasInsert(AnyType) -> NotAType;
+    inline auto HasInsert(AnyType)
+        -> NotAType;
 
     template <class T, class = decltype(HasInsert(std::declval<T>()))>
-    struct DefaultTraits : BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>
+    struct DefaultTraits
+        : BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>
     {
     };
 
     template <class T>
-    struct DefaultTraits<T, NotAType> : BasicTraits<T>
+    struct DefaultTraits<T, NotAType>
+        : BasicTraits<T>
     {
     };
 }
@@ -317,6 +320,9 @@ template <>
 struct Traits<std::string> : BasicTraits<std::string>
 {
 };
+
+template <class T>
+using ScalarType = BasicTraits<T>;
 
 //--------------------------------------------------------------------------------------------------
 // OptionGroup
@@ -507,46 +513,20 @@ public:
 };
 
 //--------------------------------------------------------------------------------------------------
-// InitParser
-//
-
-namespace details
-{
-    struct DefaultInitParser {};
-
-    template <class T>
-    struct InitParser
-    {
-        T value;
-
-        explicit InitParser(T x) : value(std::forward<T>(x))
-        {
-        }
-
-        operator T() { // extract
-            return std::forward<T>(value);
-        }
-    };
-}
-
-template <class T>
-inline auto initParser(T&& value) -> details::InitParser<T&&>
-{
-    return details::InitParser<T&&>(std::forward<T>(value));
-}
-
-//--------------------------------------------------------------------------------------------------
 // Option
 //
 
-template <class T, class TraitsT = Traits<T>, class ParserT = Parser<typename TraitsT::element_type>>
+enum DefaultInitParserTag { DefaultInitParser };
+enum InitParserTag { InitParser };
+
+template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::element_type>>
 class Option : public BasicOption<T>
 {
     using BaseType = BasicOption<T>;
     using StringRefVector = std::vector<StringRef>;
 
-    using ElementType = typename TraitsT::element_type;
-    using InserterType = typename TraitsT::inserter_type;
+    using ElementType = typename TraitsT<T>::element_type;
+    using InserterType = typename TraitsT<T>::inserter_type;
     using IsScalar = typename std::is_void<InserterType>::type;
 
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
@@ -558,16 +538,16 @@ public:
     using parser_type = UnwrapReferenceWrapper<ParserT>;
 
     template <class... An>
-    explicit Option(details::DefaultInitParser, An&&... an)
+    explicit Option(DefaultInitParserTag, An&&... an)
         : BaseType(std::forward<An>(an)...)
     {
         this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
     template <class P, class... An>
-    explicit Option(details::InitParser<P> p, An&&... an)
+    explicit Option(InitParserTag, P&& p, An&&... an)
         : BaseType(std::forward<An>(an)...)
-        , parser_(p)
+        , parser_(std::forward<P>(p))
     {
         this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
@@ -604,39 +584,23 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
-// make[Scalar]Option
+// makeOption
 //
 
 // Construct a new Option with a default constructed parser
-template <class T, class... An>
+template <class T, template <class> class TraitsT = Traits, class... An>
 auto makeOption(An&&... an)
-    -> Option<T>
+    -> Option<T, TraitsT>
 {
-    return Option<T>(details::DefaultInitParser(), std::forward<An>(an)...);
-}
-
-// Construct a new Option with a default constructed parser
-template <class T, class... An>
-auto makeScalarOption(An&&... an)
-    -> Option<T, BasicTraits<T>>
-{
-    return Option<T, BasicTraits<T>>(details::DefaultInitParser(), std::forward<An>(an)...);
+    return Option<T, TraitsT>(DefaultInitParser, std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
-template <class T, class P, class... An>
-auto makeOption(details::InitParser<P> p, An&&... an)
-    -> Option<T, Traits<T>, Decay<P>>
+template <class T, template <class> class TraitsT = Traits, class P, class... An>
+auto makeOption(InitParserTag, P&& p, An&&... an)
+    -> Option<T, TraitsT, Decay<P>>
 {
-    return Option<T, Traits<T>, Decay<P>>(std::move(p), std::forward<An>(an)...);
-}
-
-// Construct a new Option, initialize the parser with the given value
-template <class T, class P, class... An>
-auto makeScalarOption(details::InitParser<P> p, An&&... an)
-    -> Option<T, BasicTraits<T>, Decay<P>>
-{
-    return Option<T, BasicTraits<T>, Decay<P>>(std::move(p), std::forward<An>(an)...);
+    return Option<T, TraitsT, Decay<P>>(InitParser, std::forward<P>(p), std::forward<An>(an)...);
 }
 
 } // namespace cl
