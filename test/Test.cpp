@@ -14,6 +14,8 @@
 
 using namespace support;
 
+#define RETURN(...) -> decltype((__VA_ARGS__)) { return __VA_ARGS__; }
+
 namespace support
 {
 namespace cl
@@ -45,12 +47,10 @@ struct WFlagParser
 };
 
 template <class... Args>
-inline auto makeWFlag(Args&&... args)
-    -> decltype( cl::makeOption<bool>(cl::InitParser, WFlagParser()) )
-{
-    return cl::makeOption<bool>(cl::InitParser, WFlagParser(),
-                    std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore);
-}
+auto makeWFlag(Args&&... args)
+RETURN(
+    cl::makeOption<bool>(cl::InitParser, WFlagParser(), std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore)
+)
 
 int main(int argc, char* argv[])
 {
@@ -143,18 +143,16 @@ int main(int argc, char* argv[])
         Homer, Marge, Bart, Lisa, Maggie, SideshowBob
     };
 
-    auto simpsonParser = cl::MapParser<Simpson>({
-        { "homer",        Homer       },
-        { "marge",        Marge       },
-        { "bart",         Bart        },
-        { "el barto",     Bart        },
-        { "lisa",         Lisa        },
-        { "maggie",       Maggie      },
-//      { "sideshow bob", SideshowBob },
-    });
-
     auto simpson = cl::makeOption<Simpson>(
-        cl::InitParser, simpsonParser,
+        {
+            { "homer",        Homer       },
+            { "marge",        Marge       },
+            { "bart",         Bart        },
+            { "el barto",     Bart        },
+            { "lisa",         Lisa        },
+            { "maggie",       Maggie      },
+//          { "sideshow bob", SideshowBob },
+        },
         cmd, "simpson",
         cl::ArgRequired,
         cl::init(SideshowBob)
@@ -191,23 +189,22 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto targetsParser = [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
-    {
-        if (name.starts_with("without-"))
-            value.erase(arg.str());
-        else
-            value.insert(arg.str());
-    };
-
-    auto targets = cl::makeOption<std::set<std::string>, cl::ScalarType>(
-        cl::InitParser, targetsParser,
+    auto targets = cl::makeOption<std::set<std::string>, cl::ScalarType>
+    (
+        cl::InitParser, [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
+        {
+            if (name.starts_with("without-"))
+                value.erase(arg.str());
+            else
+                value.insert(arg.str());
+        },
         cmd, "without-|with-",
         cl::ArgName("target"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::Prefix,
         cl::ZeroOrMore
-        );
+    );
 
     //----------------------------------------------------------------------------------------------
 
@@ -223,23 +220,20 @@ int main(int argc, char* argv[])
 
     //----------------------------------------------------------------------------------------------
 
+    std::cout << pretty(debug_level) << std::endl;
     std::cout << pretty(f) << std::endl;
+    std::cout << pretty(files) << std::endl;
     std::cout << pretty(g) << std::endl;
     std::cout << pretty(gh) << std::endl;
     std::cout << pretty(h) << std::endl;
     std::cout << pretty(I) << std::endl;
     std::cout << pretty(opt) << std::endl;
     std::cout << pretty(simpson) << std::endl;
+    std::cout << pretty(targets) << std::endl;
+    std::cout << pretty(Wsign_compare) << std::endl;
+    std::cout << pretty(Wsign_conversion) << std::endl;
     std::cout << pretty(y_ref) << std::endl;
     std::cout << pretty(z) << std::endl;
-    std::cout << pretty(debug_level) << std::endl;
-    std::cout << pretty(Wsign_conversion) << std::endl;
-    std::cout << pretty(Wsign_compare) << std::endl;
-    std::cout << pretty(targets) << std::endl;
-
-    std::cout << "Files:\n";
-    for (auto& s : files.value())
-        std::cout << "  \"" << s << "\"" << std::endl;
 
     //----------------------------------------------------------------------------------------------
 

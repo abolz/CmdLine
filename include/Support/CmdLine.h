@@ -234,10 +234,11 @@ template <class T>
 struct MapParser
 {
     using map_type = std::map<std::string, T>;
+    using map_value_type = typename map_type::value_type;
 
     map_type map;
 
-    explicit MapParser(std::initializer_list<typename map_type::value_type> ilist)
+    explicit MapParser(std::initializer_list<map_value_type> ilist)
         : map(ilist)
     {
     }
@@ -601,6 +602,14 @@ auto makeOption(InitParserTag, P&& p, An&&... an)
     -> Option<T, TraitsT, Decay<P>>
 {
     return Option<T, TraitsT, Decay<P>>(InitParser, std::forward<P>(p), std::forward<An>(an)...);
+}
+
+// Construct a new Option, initialize the a map-parser with the given values
+template <class T, template <class> class TraitsT = Traits, class... An>
+auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ilist, An&&... an)
+    -> Option<T, TraitsT, MapParser<T>>
+{
+    return Option<T, TraitsT, MapParser<T>>(InitParser, ilist, std::forward<An>(an)...);
 }
 
 } // namespace cl
