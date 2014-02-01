@@ -4,12 +4,23 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <type_traits>
 #include <utility>
 
 namespace support
 {
+
+//--------------------------------------------------------------------------------------------------
+// Misc.
+//
+
+struct NotAType {};
+
+struct AnyType {
+    template <class... Ts> AnyType(Ts&&...) {}
+};
 
 //--------------------------------------------------------------------------------------------------
 // Alias templates
@@ -33,14 +44,12 @@ using RemoveCV = typename std::remove_cv<T>::type;
 namespace details
 {
     template <class T>
-    struct RemoveCVRec
-    {
+    struct RemoveCVRec {
         using type = RemoveCV<T>;
     };
 
     template <template <class...> class T, class... A>
-    struct RemoveCVRec<T<A...>>
-    {
+    struct RemoveCVRec<T<A...>> {
         using type = T<typename RemoveCVRec<A>::type...>;
     };
 }
@@ -53,5 +62,21 @@ using IsSame = typename std::is_same<T, U>::type;
 
 template <class From, class To>
 using IsConvertible = typename std::is_convertible<From, To>::type;
+
+namespace details
+{
+    template <class T>
+    struct UnwrapReferenceWrapper {
+        using type = T;
+    };
+
+    template <class T>
+    struct UnwrapReferenceWrapper<std::reference_wrapper<T>> {
+        using type = T;
+    };
+}
+
+template <class T>
+using UnwrapReferenceWrapper = typename details::UnwrapReferenceWrapper<T>::type;
 
 } // namespace support
