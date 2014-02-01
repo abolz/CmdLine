@@ -19,18 +19,6 @@ namespace support
 namespace cl
 {
 
-    template <class T, class U>
-    struct Parser<std::pair<T, U>>
-    {
-        void operator ()(StringRef name, StringRef arg, size_t i, std::pair<T, U>& value) const
-        {
-            auto p = strings::split(arg, ":")();
-
-            Parser<T>()(name, p.first, i, value.first);
-            Parser<U>()(name, p.second, i, value.second);
-        }
-    };
-
     template <class T, class TraitsT, class ParserT>
     void prettyPrint(std::ostream& stream, Option<T, TraitsT, ParserT> const& option)
     {
@@ -175,6 +163,15 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto f = cl::makeOption<std::map<std::string, int>>(
+        cl::initParser(
+            [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
+            {
+                auto p = strings::split(arg, ":")();
+
+                cl::Parser<std::string>()(name, p.first, i, value.first);
+                cl::Parser<int>()(name, p.second, i, value.second);
+            }
+        ),
         cmd, "f",
         cl::ArgName("string:int"),
         cl::ArgRequired,
