@@ -309,6 +309,13 @@ std::vector<StringRef> descriptions(MapParser<T> const& parser)
 // Traits
 //
 
+template <class ElementT, class InserterT>
+struct TraitsBase
+{
+    using element_type = ElementT;
+    using inserter_type = InserterT;
+};
+
 namespace details
 {
     struct Any {
@@ -323,52 +330,28 @@ namespace details
         }
     };
 
-    struct HasInsertImpl
+    template <class T>
+    inline auto HasInsert(T&& t)
+        -> decltype(Inserter()(t, std::declval<typename T::value_type>()), std::true_type());
+
+    inline auto HasInsert(Any)
+        -> std::false_type;
+
+    template <class T, class = decltype(HasInsert(std::declval<T>()))>
+    struct DefaultTraits
+        : TraitsBase<RemoveCVRec<typename T::value_type>, Inserter>
     {
-        template <class U>
-        static auto test(U&& u)
-            -> decltype(u.insert(u.end(), std::declval<typename U::value_type>()), std::true_type());
-        static auto test(Any)
-            -> std::false_type;
     };
 
     template <class T>
-    using HasInsert = decltype(HasInsertImpl::test(std::declval<T>()));
-
-    template <class T, class = HasInsert<T>>
-    struct DefaultElementType {
-        using type = T;
-    };
-
-    template <class T>
-    struct DefaultElementType<T, std::true_type> {
-        using type = RemoveCVRec<typename T::value_type>;
-    };
-
-    template <class T, class = HasInsert<T>>
-    struct DefaultInserter {
-        using type = void;
-    };
-
-    template <class T>
-    struct DefaultInserter<T, std::true_type> {
-        using type = Inserter;
+    struct DefaultTraits<T, std::false_type>
+        : TraitsBase<T, void>
+    {
     };
 }
 
-template <class ElementT, class InserterT = void>
-struct TraitsBase
-{
-    using element_type = ElementT;
-    using inserter_type = InserterT;
-};
-
 template <class T>
-struct Traits
-    : TraitsBase<
-        typename details::DefaultElementType<T>::type,
-        typename details::DefaultInserter<T>::type
-      >
+struct Traits : details::DefaultTraits<T>
 {
 };
 
@@ -379,11 +362,6 @@ struct Traits<T&> : Traits<T>
 
 template <>
 struct Traits<std::string> : TraitsBase<std::string, void>
-{
-};
-
-template <class T>
-struct ScalarTraits : TraitsBase<T, void>
 {
 };
 
@@ -747,9 +725,9 @@ auto makeOption(Args&&... args)
 // Construct a new Option with a default constructed parser
 template <class T, class... Args>
 auto makeScalarOption(Args&&... args)
-    -> Option<T, ScalarTraits<T>>
+    -> Option<T, TraitsBase<T, void>>
 {
-    return Option<T, ScalarTraits<T>>(DefaultInitParser(), std::forward<Args>(args)...);
+    return Option<T, TraitsBase<T, void>>(DefaultInitParser(), std::forward<Args>(args)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
@@ -763,9 +741,9 @@ auto makeOption(InitParser<P> p, Args&&... args)
 // Construct a new Option, initialize the parser with the given value
 template <class T, class P, class... Args>
 auto makeScalarOption(InitParser<P> p, Args&&... args)
-    -> Option<T, ScalarTraits<T>, Decay<P>>
+    -> Option<T, TraitsBase<T, void>, Decay<P>>
 {
-    return Option<T, ScalarTraits<T>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
+    return Option<T, TraitsBase<T, void>, Decay<P>>(std::move(p), std::forward<Args>(args)...);
 }
 
 } // namespace cl
