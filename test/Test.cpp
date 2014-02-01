@@ -8,6 +8,7 @@
 #include "CmdLineWithIndex.h"
 #include "PrettyPrint.h"
 
+#include <forward_list>
 #include <functional>
 #include <iostream>
 #include <set>
@@ -15,6 +16,15 @@
 using namespace support;
 
 #define RETURN(...) -> decltype((__VA_ARGS__)) { return __VA_ARGS__; }
+
+struct ForwardListInserter
+{
+    template <class C, class V>
+    void operator ()(C& c, V&& v) const
+    {
+        c.insert_after(c.end(), std::forward<V>(v));
+    }
+};
 
 namespace support
 {
@@ -34,6 +44,14 @@ namespace cl
     {
         stream << "(" << x.index << ": " << pretty(x.value) << ")";
     }
+
+#if 1
+    // Integrate forward_list into the command line library
+    template <class T>
+    struct Traits<std::forward_list<T>> : BasicTraits<T, ForwardListInserter>
+    {
+    };
+#endif
 
 } // namespace cl
 } // namespace support
@@ -160,7 +178,7 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto f = cl::makeOption<std::map<std::string, int>, cl::Traits>(
+    auto f = cl::makeOption<std::map<std::string, int>, cl::Traits/*default*/>(
         cl::InitParser, [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
         {
             auto p = strings::split(arg, ":")();
@@ -205,6 +223,12 @@ int main(int argc, char* argv[])
         cl::Prefix,
         cl::ZeroOrMore
     );
+
+                    //------------------------------------------------------------------------------
+
+#if 1
+    auto x_list = cl::makeOption<std::forward_list<int>>(cmd, "x_list");
+#endif
 
     //----------------------------------------------------------------------------------------------
 
