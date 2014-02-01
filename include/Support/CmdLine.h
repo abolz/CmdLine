@@ -74,7 +74,6 @@ public:
     using OptionMap = std::map<StringRef, OptionBase*>;
     using OptionGroups = std::map<StringRef, OptionGroup*>;
     using OptionVector = std::vector<OptionBase*>;
-    using ConstOptionVector = std::vector<OptionBase const*>;
     using StringVector = std::vector<std::string>;
 
 private:
@@ -103,17 +102,10 @@ public:
     // Expand response files and parse the command line arguments
     void expandAndParse(StringVector argv);
 
-    // Returns the list of (unique) options, sorted by name.
-    ConstOptionVector options() const;
-
-    // Returns a list of the positional options.
-    ConstOptionVector positionals() const;
-
-    // Check if all required options have been specified
-    void check();
-
 private:
     OptionBase* findOption(StringRef name) const;
+
+    OptionVector getUniqueOptions() const;
 
     void expandResponseFile(StringVector& argv, size_t i);
     void expandResponseFiles(StringVector& argv);
@@ -132,6 +124,7 @@ private:
     void parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
 
     void check(OptionBase const* opt);
+    void check();
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -388,50 +381,14 @@ public:
     // Destructor.
     virtual ~OptionBase();
 
-public:
     // Returns the name of this option
-    std::string const& name() const {
-        return name_;
-    }
+    std::string const& name() const { return name_; }
 
     // Return name of the value
-    std::string const& argName() const {
-        return argName_;
-    }
-
-    // Returns how often the option must/may be specified on the command line
-    NumOccurrences numOccurrences() const {
-        return numOccurrences_;
-    }
-
-    // Returns whether the option expects a value
-    NumArgs numArgs() const {
-        return numArgs_;
-    }
-
-    // Returns how the option might be specified
-    Formatting formatting() const {
-        return formatting_;
-    }
-
-    // Returns other flags
-    MiscFlags flags() const {
-        return miscFlags_;
-    }
+    std::string const& argName() const { return argName_; }
 
     // Returns the number of times this option has been specified on the command line
-    unsigned count() const {
-        return count_;
-    }
-
-    // Returns whether this option may be specified multiple times.
-    bool isUnbounded() const;
-
-    // Returns whether this option must be specified on the command line
-    bool isRequired() const;
-
-    // Returns whether this is a Prefix or MayPrefix option.
-    bool isPrefix() const;
+    unsigned count() const { return count_; }
 
 protected:
     void apply(std::string x)       { name_ = std::move(x); }
@@ -461,6 +418,14 @@ protected:
     void applyRec(CmdLine& cmd, An&&... an)
     {
         applyRec(std::forward<An>(an)...);
+
+        //
+        // NOTE:
+        //
+        // This might call the virtual function allowedValues(). Since applyRec is *only* called
+        // in the body of the constructor of Option<> and this is where allowedValues() is actually
+        // implemented, this is ok.
+        //
         cmd.add(this);
     }
 
@@ -472,6 +437,9 @@ private:
 
     bool isOccurrenceAllowed() const;
     bool isOccurrenceRequired() const;
+    bool isUnbounded() const;
+    bool isRequired() const;
+    bool isPrefix() const;
 
     // Parses the given value and stores the result.
     virtual void parse(StringRef spec, StringRef value, size_t i) = 0;
@@ -522,24 +490,16 @@ public:
     using value_type = RemoveReference<T>;
 
     // Returns the value
-    value_type& value() {
-        return value_;
-    }
+    value_type& value() { return value_; }
 
     // Returns the value
-    value_type const& value() const {
-        return value_;
-    }
+    value_type const& value() const { return value_; }
 
     // Returns a pointer to the value
-    value_type* operator->() {
-        return std::addressof(value_);
-    }
+    value_type* operator->() { return std::addressof(value_); }
 
     // Returns a pointer to the value
-    value_type const* operator->() const {
-        return std::addressof(value_);
-    }
+    value_type const* operator->() const { return std::addressof(value_); }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -586,13 +546,13 @@ class Option : public BasicOption<T>
 public:
     using parser_type = ParserT;
     using traits_type = TraitsT;
-    using element_type = typename traits_type::element_type;
-    using inserter_type = typename traits_type::inserter_type;
 
 private:
-    using IsScalar = typename std::is_void<inserter_type>::type;
+    using ElementType = typename traits_type::element_type;
+    using InserterType = typename traits_type::inserter_type;
+    using IsScalar = typename std::is_void<InserterType>::type;
 
-    static_assert(IsScalar::value || std::is_default_constructible<element_type>::value,
+    static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
         "elements of containers must be default constructible");
 
 public:
@@ -612,25 +572,21 @@ public:
     }
 
     // Returns the parser
-    parser_type& parser() {
-        return parser_;
-    }
+    parser_type& parser() { return parser_; }
 
     // Returns the parser
-    parser_type const& parser() const {
-        return parser_;
-    }
+    parser_type const& parser() const { return parser_; }
 
 private:
     void parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
-        element_type t;
+        ElementType t;
 
         // Parse...
         parser_(spec, value, i, t);
 
         // and insert into the container
-        inserter_type()(this->value(), std::move(t));
+        InserterType()(this->value(), std::move(t));
     }
 
     void parse(StringRef spec, StringRef value, size_t i, std::true_type) {
