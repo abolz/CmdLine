@@ -388,7 +388,6 @@ TEST(CmdLineTest, Map1)
             cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
-            cl::Desc("Specifiy source file type"),
             cl::ZeroOrMore,
             cl::init(0)
             );
@@ -431,8 +430,7 @@ TEST(CmdLineTest, Map2)
             cl::initParser(xParser),
             cmd,
             cl::Required,
-            cl::ArgDisallowed,
-            cl::Desc("Choose an optimization level")
+            cl::ArgDisallowed
             );
 
         bool actual_result = parse(cmd, argv);
@@ -463,10 +461,10 @@ TEST(CmdLineTest, Map3)
         cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
-            { "O0", 0, "No optimizations"             },
-            { "O1", 1, "Enable trivial optimizations" },
-            { "O2", 2, "Enable some optimizations"    },
-            { "O3", 3, "Enable all optimizations"     },
+            { "O0", 0 },
+            { "O1", 1 },
+            { "O2", 2 },
+            { "O3", 3 },
         });
 
         auto x = cl::makeOption<int>(
@@ -474,8 +472,7 @@ TEST(CmdLineTest, Map3)
             cmd,
             cl::Required,
             cl::Prefix,
-            cl::ArgOptional,
-            cl::Desc("Choose an optimization level")
+            cl::ArgOptional
             );
 
         bool actual_result = parse(cmd, argv);
@@ -505,10 +502,10 @@ TEST(CmdLineTest, Map4)
         cl::CmdLine cmd;
 
         auto xParser = cl::MapParser<int>({
-            { "0", 0, "No optimizations"             },
-            { "1", 1, "Enable trivial optimizations" },
-            { "2", 2, "Enable some optimizations"    },
-            { "3", 3, "Enable all optimizations"     },
+            { "0", 0 },
+            { "1", 1 },
+            { "2", 2 },
+            { "3", 3 },
         });
 
         auto x = cl::makeOption<int>(
@@ -516,8 +513,7 @@ TEST(CmdLineTest, Map4)
             cmd, "O",
             cl::Required,
             cl::Prefix,
-            cl::ArgRequired,
-            cl::Desc("Choose an optimization level")
+            cl::ArgRequired
             );
 
         bool actual_result = parse(cmd, argv);
