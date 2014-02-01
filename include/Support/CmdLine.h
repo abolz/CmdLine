@@ -226,25 +226,23 @@ struct Parser<std::string>
 };
 
 template <class P>
-void allowedValues(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
-{
+std::vector<StringRef> allowedValues(P const& /*parser*/) {
+    return {};
 }
 
 template <class P>
-void allowedValues(std::reference_wrapper<P> const& parser, std::vector<StringRef>& vec)
-{
-    allowedValues(parser.get(), vec);
+std::vector<StringRef> allowedValues(std::reference_wrapper<P> const& parser) {
+    return allowedValues(parser.get());
 }
 
 template <class P>
-void descriptions(P const& /*parser*/, std::vector<StringRef>& /*vec*/)
-{
+std::vector<StringRef> descriptions(P const& /*parser*/) {
+    return {};
 }
 
 template <class P>
-void descriptions(std::reference_wrapper<P> const& parser, std::vector<StringRef>& vec)
-{
-    descriptions(parser.get(), vec);
+std::vector<StringRef> descriptions(std::reference_wrapper<P> const& parser) {
+    return descriptions(parser.get());
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -286,17 +284,25 @@ struct MapParser
 };
 
 template <class T>
-void allowedValues(MapParser<T> const& parser, std::vector<StringRef>& vec)
+std::vector<StringRef> allowedValues(MapParser<T> const& parser)
 {
+    std::vector<StringRef> vec;
+
     for (auto const& I : parser.map)
         vec.emplace_back(I.first);
+
+    return vec;
 }
 
 template <class T>
-void descriptions(MapParser<T> const& parser, std::vector<StringRef>& vec)
+std::vector<StringRef> descriptions(MapParser<T> const& parser)
 {
+    std::vector<StringRef> vec;
+
     for (auto const& I : parser.map)
         vec.emplace_back(I.second.second);
+
+    return vec;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -499,10 +505,10 @@ public:
     bool isPrefix() const;
 
     // Returns a list of allowed values for this option
-    virtual void allowedValues(std::vector<StringRef>& vec) const = 0;
+    virtual std::vector<StringRef> allowedValues() const = 0;
 
     // Returns a list of descriptions for any allowed value for this option
-    virtual void descriptions(std::vector<StringRef>& vec) const = 0;
+    virtual std::vector<StringRef> descriptions() const = 0;
 
 protected:
     void apply(std::string x)       { name_ = std::move(x); }
@@ -692,17 +698,17 @@ public:
     }
 
     // Returns a list of allowed values for this option
-    virtual void allowedValues(StringRefVector& vec) const override final
+    virtual std::vector<StringRef> allowedValues() const override final
     {
         using cl::allowedValues;
-        allowedValues(parser(), vec);
+        return allowedValues(parser());
     }
 
     // Returns a list of descriptions for any allowed value for this option
-    virtual void descriptions(StringRefVector& vec) const override final
+    virtual std::vector<StringRef> descriptions() const override final
     {
         using cl::descriptions;
-        descriptions(parser(), vec);
+        return descriptions(parser());
     }
 
 private:

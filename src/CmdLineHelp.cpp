@@ -156,10 +156,8 @@ void cl::help(std::ostream& stream, OptionBase const* o)
 //    if (o->desc.empty())
 //        return;
 
-    std::vector<StringRef> values;
-
     // Get the list of allowed values for this option.
-    o->allowedValues(values);
+    auto values = o->allowedValues();
 
     // If the option does not have a restricted set of allowed values,
     // just print the short usage and the description for the option.
@@ -174,10 +172,8 @@ void cl::help(std::ostream& stream, OptionBase const* o)
     // This option only allows a limited set of input values.
     // Show all valid values and their descriptions.
 
-    std::vector<StringRef> descr;
-
     // Get the list of descriptions for the allowed values.
-    o->descriptions(descr);
+    auto descr = o->descriptions();
 
     assert(descr.size() == values.size() && "not supported");
 

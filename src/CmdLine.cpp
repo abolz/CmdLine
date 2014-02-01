@@ -55,9 +55,7 @@ void CmdLine::add(OptionBase* opt)
 
     if (opt->name().empty())
     {
-        std::vector<StringRef> values;
-
-        opt->allowedValues(values);
+        auto values = opt->allowedValues();
 
         if (values.empty())
             throw std::runtime_error("option name is empty and option does not provide allowed values");
