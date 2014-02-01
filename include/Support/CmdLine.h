@@ -55,8 +55,7 @@ enum Formatting : unsigned char {
 enum MiscFlags : unsigned char {
     None                    = 0,
     CommaSeparated          = 0x01, // Should this list split between commas?
-    Hidden                  = 0x02, // Do not show this option in the usage
-    ConsumeAfter            = 0x04, // Handle all following arguments as positional arguments
+    ConsumeAfter            = 0x02, // Handle all following arguments as positional arguments
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -149,19 +148,6 @@ struct ArgName
 };
 
 //--------------------------------------------------------------------------------------------------
-// Desc
-//
-
-struct Desc
-{
-    std::string value;
-
-    explicit Desc(std::string x) : value(std::move(x))
-    {
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
 // Initializer
 //
 
@@ -238,16 +224,6 @@ std::vector<StringRef> allowedValues(std::reference_wrapper<P> const& parser) {
     return allowedValues(parser.get());
 }
 
-template <class P>
-std::vector<StringRef> descriptions(P const& /*parser*/) {
-    return {};
-}
-
-template <class P>
-std::vector<StringRef> descriptions(std::reference_wrapper<P> const& parser) {
-    return descriptions(parser.get());
-}
-
 //--------------------------------------------------------------------------------------------------
 // MapParser
 //
@@ -255,22 +231,12 @@ std::vector<StringRef> descriptions(std::reference_wrapper<P> const& parser) {
 template <class T>
 struct MapParser
 {
-    using MapType = std::map<std::string, std::pair<T, std::string>>;
-    using MapValueType = typename MapType::value_type;
-
-    struct Init : MapValueType
-    {
-        Init(std::string name, T value, std::string desc = "")
-            : MapValueType{std::move(name), {std::move(value), std::move(desc)}}
-        {
-            assert(!this->first.empty() && "empty keys are not allowed");
-        }
-    };
+    using MapType = std::map<std::string, T>;
 
     MapType map;
 
-    explicit MapParser(std::initializer_list<Init> ilist)
-        : map(ilist.begin(), ilist.end())
+    explicit MapParser(std::initializer_list<typename MapType::value_type> ilist)
+        : map(ilist)
     {
     }
 
@@ -282,7 +248,7 @@ struct MapParser
         if (I == map.end())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
 
-        value = I->second.first;
+        value = I->second;
     }
 };
 
@@ -293,17 +259,6 @@ std::vector<StringRef> allowedValues(MapParser<T> const& parser)
 
     for (auto const& I : parser.map)
         vec.emplace_back(I.first);
-
-    return vec;
-}
-
-template <class T>
-std::vector<StringRef> descriptions(MapParser<T> const& parser)
-{
-    std::vector<StringRef> vec;
-
-    for (auto const& I : parser.map)
-        vec.emplace_back(I.second.second);
 
     return vec;
 }
@@ -414,8 +369,6 @@ class OptionBase
     std::string name_;
     // The name of the value of this option
     std::string argName_;
-    // The help message for this option
-    std::string desc_;
     // Controls how often the option must/may be specified on the command line
     NumOccurrences numOccurrences_;
     // Controls whether the option expects a value
@@ -444,11 +397,6 @@ public:
     // Return name of the value
     std::string const& argName() const {
         return argName_;
-    }
-
-    // Resturns the description of this option
-    std::string const& desc() const {
-        return desc_;
     }
 
     // Returns how often the option must/may be specified on the command line
@@ -485,16 +433,9 @@ public:
     // Returns whether this is a Prefix or MayPrefix option.
     bool isPrefix() const;
 
-    // Returns a list of allowed values for this option
-    virtual std::vector<StringRef> allowedValues() const = 0;
-
-    // Returns a list of descriptions for any allowed value for this option
-    virtual std::vector<StringRef> descriptions() const = 0;
-
 protected:
     void apply(std::string x)       { name_ = std::move(x); }
     void apply(ArgName x)           { argName_ = std::move(x.value); }
-    void apply(Desc x)              { desc_ = std::move(x.value); }
     void apply(NumOccurrences x)    { numOccurrences_ = x; }
     void apply(NumArgs x)           { numArgs_ = x; }
     void apply(Formatting x)        { formatting_ = x; }
@@ -534,6 +475,9 @@ private:
 
     // Parses the given value and stores the result.
     virtual void parse(StringRef spec, StringRef value, size_t i) = 0;
+
+    // Returns a list of allowed values for this option
+    virtual std::vector<StringRef> allowedValues() const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -677,20 +621,6 @@ public:
         return parser_;
     }
 
-    // Returns a list of allowed values for this option
-    virtual std::vector<StringRef> allowedValues() const override final
-    {
-        using cl::allowedValues;
-        return allowedValues(parser());
-    }
-
-    // Returns a list of descriptions for any allowed value for this option
-    virtual std::vector<StringRef> descriptions() const override final
-    {
-        using cl::descriptions;
-        return descriptions(parser());
-    }
-
 private:
     void parse(StringRef spec, StringRef value, size_t i, std::false_type)
     {
@@ -709,6 +639,12 @@ private:
 
     virtual void parse(StringRef spec, StringRef value, size_t i) override final {
         parse(spec, value, i, IsScalar());
+    }
+
+    virtual std::vector<StringRef> allowedValues() const override final
+    {
+        using cl::allowedValues;
+        return allowedValues(parser());
     }
 };
 

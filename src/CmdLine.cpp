@@ -494,7 +494,6 @@ void OptionGroup::check() const
 OptionBase::OptionBase()
     : name_()
     , argName_()
-    , desc_("**** Documentation missing ****")
     , numOccurrences_(Optional)
     , numArgs_(ArgOptional)
     , formatting_(DefaultFormatting)

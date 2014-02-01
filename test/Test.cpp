@@ -2,7 +2,6 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/CmdLineHelp.h"
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
@@ -76,8 +75,7 @@ int main(int argc, char* argv[])
     auto help = cl::makeOption<std::string>(
         cmd, "help",
         cl::ArgName("option"),
-        cl::ArgOptional,
-        cl::Hidden
+        cl::ArgOptional
         );
 
                     //------------------------------------------------------------------------------
@@ -86,7 +84,6 @@ int main(int argc, char* argv[])
 
     auto y_ref = cl::makeOption<double&>(cmd, "y",
         cl::ArgName("float"),
-        cl::Desc("Enter a floating-point number"),
         cl::ArgRequired,
         cl::init(y)
         );
@@ -101,10 +98,9 @@ int main(int argc, char* argv[])
 
     auto z = cl::makeOption<std::set<int>>(cmd, "z",
         cl::ArgName("int"),
-        cl::Desc("A list of integers"),
-        cl::ZeroOrMore,
         cl::ArgRequired,
-        cl::CommaSeparated
+        cl::CommaSeparated,
+        cl::ZeroOrMore
         );
 
                     //------------------------------------------------------------------------------
@@ -115,19 +111,10 @@ int main(int argc, char* argv[])
 
     auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(cmd, "I",
         cl::ArgName("dir"),
-        cl::Desc(
-            // Test the word wrap algorithm...
-            "Add the directory dir to the list of directories to be searched for header files. "
-            "Directories named by -I are searched before the standard system include directories. "
-            "If the directory dir is a standard system include directory, the option is ignored to "
-            "ensure that the default search order for system directories and the special treatment "
-            "of system headers are not defeated . If dir begins with =, then the = will be replaced "
-            "by the sysroot prefix; see --sysroot and -isysroot."
-            ),
-        cl::Prefix,
         cl::ArgRequired,
-        cl::ZeroOrMore,
-        cl::init(Iinit)
+        cl::init(Iinit),
+        cl::Prefix,
+        cl::ZeroOrMore
         );
 
                     //------------------------------------------------------------------------------
@@ -147,20 +134,19 @@ int main(int argc, char* argv[])
     };
 
     auto optParser = cl::MapParser<OptimizationLevel>({
-        { "O0", OL_None,      "No optimizations"             },
-        { "O1", OL_Trivial,   "Enable trivial optimizations" },
-        { "O2", OL_Default,   "Enable some optimizations"    },
-        { "O3", OL_Expensive, "Enable all optimizations"     }
+        { "O0", OL_None      },
+        { "O1", OL_Trivial   },
+        { "O2", OL_Default   },
+        { "O3", OL_Expensive },
     });
 
     auto opt = cl::makeOption<OptimizationLevel>(
         cl::initParser(std::ref(optParser)),
         cmd,
-        cl::ArgName("optimization level"),
-        cl::Required,
         cl::ArgDisallowed,
-        cl::Desc("Choose an optimization level"),
-        cl::init(OL_None)
+        cl::ArgName("optimization level"),
+        cl::init(OL_None),
+        cl::Required
         );
 
                     //------------------------------------------------------------------------------
@@ -170,19 +156,18 @@ int main(int argc, char* argv[])
     };
 
     auto simpsonParser = cl::MapParser<Simpson>({
-        { "homer",        Homer,       "Homer Jay Simpson"            },
-        { "marge",        Marge,       "Marjorie Simpson"             },
-        { "bart",         Bart,        "Bartholomew JoJo Simpson"     },
-        { "el barto",     Bart,        "?"                            },
-        { "lisa",         Lisa,        "Lisa Marie Simpson"           },
-        { "maggie",       Maggie,      "Margaret Simpson"             },
-//      { "sideshow bob", SideshowBob, "Robert Underdunk Terwilliger" },
+        { "homer",        Homer       },
+        { "marge",        Marge       },
+        { "bart",         Bart        },
+        { "el barto",     Bart        },
+        { "lisa",         Lisa        },
+        { "maggie",       Maggie      },
+//      { "sideshow bob", SideshowBob },
     });
 
     auto simpson = cl::makeOption<Simpson>(
         cl::initParser(simpsonParser),
         cmd, "simpson",
-        cl::Desc("Choose a Simpson"),
         cl::ArgRequired,
         cl::init(SideshowBob)
         );
@@ -192,30 +177,22 @@ int main(int argc, char* argv[])
     auto f = cl::makeOption<std::map<std::string, int>>(
         cmd, "f",
         cl::ArgName("string:int"),
-        cl::CommaSeparated,
-        cl::ArgRequired
+        cl::ArgRequired,
+        cl::CommaSeparated
         );
 
                     //------------------------------------------------------------------------------
 
     auto debug_level = cl::makeOption<int>(cmd, "debug-level|d",
-        cl::Desc("Specify a debug-level"),
-        cl::Optional,
-        cl::ArgRequired
+        cl::ArgRequired,
+        cl::Optional
         );
 
                     //------------------------------------------------------------------------------
 
-    auto Wsign_conversion = makeWFlag(
-        cmd, "Wsign-conversion|Wno-sign-conversion",
-        cl::Desc("Warn for implicit conversions that may change the sign of an integer value.")
-        );
+    auto Wsign_conversion = makeWFlag(cmd, "Wsign-conversion|Wno-sign-conversion");
 
-    auto Wsign_compare = makeWFlag(
-        cmd, "Wsign-compare|Wno-sign-compare",
-        cl::Desc("Warn when a comparison between signed and unsigned values could produce "
-                 "an incorrect result when the signed value is converted to unsigned.")
-        );
+    auto Wsign_compare = makeWFlag(cmd, "Wsign-compare|Wno-sign-compare");
 
                     //------------------------------------------------------------------------------
 
@@ -230,11 +207,10 @@ int main(int argc, char* argv[])
     auto targets = cl::makeScalarOption<std::set<std::string>>(
         cl::initParser(targetsParser),
         cmd, "without-|with-",
-        cl::Desc("Specifiy which targets to build"),
         cl::ArgName("target"),
-        cl::Prefix,
         cl::ArgRequired,
         cl::CommaSeparated,
+        cl::Prefix,
         cl::ZeroOrMore
         );
 
