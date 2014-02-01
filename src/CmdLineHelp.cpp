@@ -14,12 +14,15 @@ using namespace support::cl;
 // Misc.
 //
 
-static const size_t kMaxWidth   = 78;
-static const size_t kIndent     = 2;
-static const size_t kOffset     = kMaxWidth / 3;
+namespace
+{
+
+const size_t kMaxWidth   = 78;
+const size_t kIndent     = 2;
+const size_t kOffset     = kMaxWidth / 3;
 
 // Returns a string consisting of N spaces.
-static StringRef Spaces(size_t N)
+StringRef Spaces(size_t N)
 {
     static std::vector<char> str(100, ' ');
 
@@ -29,7 +32,21 @@ static StringRef Spaces(size_t N)
     return { &str[0], N };
 }
 
-std::ostream& cl::operator<<(std::ostream& stream, Aligned const& x)
+struct Aligned
+{
+    // The text to print
+    StringRef text;
+    // Align to
+    size_t indent;
+
+    explicit Aligned(StringRef text, size_t indent)
+        : text(text)
+        , indent(indent)
+    {
+    }
+};
+
+std::ostream& operator<<(std::ostream& stream, Aligned const& x)
 {
     if (x.text.size() < x.indent)
         return stream << x.text << Spaces(x.indent - x.text.size());
@@ -37,7 +54,24 @@ std::ostream& cl::operator<<(std::ostream& stream, Aligned const& x)
     return stream << x.text << "\n" << Spaces(x.indent);
 }
 
-std::ostream& cl::operator<<(std::ostream& stream, Wrapped const& x)
+struct Wrapped
+{
+    // The text to wrap
+    StringRef text;
+    // Indentation for all but the first line
+    size_t indent;
+    // The maximum width of a single line of text
+    size_t maxWidth;
+
+    explicit Wrapped(StringRef text, size_t indent, size_t maxWidth)
+        : text(text)
+        , indent(indent)
+        , maxWidth(maxWidth)
+    {
+    }
+};
+
+std::ostream& operator<<(std::ostream& stream, Wrapped const& x)
 {
     bool first = true;
 
@@ -58,6 +92,31 @@ std::ostream& cl::operator<<(std::ostream& stream, Wrapped const& x)
 
     return stream;
 }
+
+template <class Iterator>
+void PrintHelp(std::ostream& stream, StringRef text, Iterator first, Iterator last)
+{
+    if (first == last)
+        return;
+
+    stream << text << "\n";
+
+    for (; first != last; ++first)
+        help(stream, *first);
+
+    stream << "\n";
+}
+
+template <class Range>
+void PrintHelp(std::ostream& stream, StringRef text, Range const& range)
+{
+    using std::begin;
+    using std::end;
+
+    PrintHelp(stream, text, begin(range), end(range));
+}
+
+} // namespace
 
 //--------------------------------------------------------------------------------------------------
 // Help
@@ -92,29 +151,6 @@ std::string cl::usage(OptionBase const* o)
 
     assert(!"internal error");
     return {};
-}
-
-template <class Iterator>
-static void PrintHelp(std::ostream& stream, StringRef text, Iterator first, Iterator last)
-{
-    if (first == last)
-        return;
-
-    stream << text << "\n";
-
-    for (; first != last; ++first)
-        help(stream, *first);
-
-    stream << "\n";
-}
-
-template <class Range>
-static void PrintHelp(std::ostream& stream, StringRef text, Range const& range)
-{
-    using std::begin;
-    using std::end;
-
-    PrintHelp(stream, text, begin(range), end(range));
 }
 
 void cl::help(std::ostream& stream, CmdLine const& cmd, StringRef overview)
