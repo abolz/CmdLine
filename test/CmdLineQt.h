@@ -16,10 +16,9 @@ namespace cl
 template <>
 struct Parser<QString>
 {
-    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QString& value) const
+    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QString& value) const
     {
         value.fromUtf8(arg.data(), arg.size());
-        return true;
     }
 };
 #endif
@@ -28,10 +27,15 @@ struct Parser<QString>
 template <>
 struct Parser<QUrl>
 {
-    bool operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QUrl& value) const
+    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QUrl& value) const
     {
-        value.setEncodedUrl(QByteArray(arg.data(), arg.size()), QUrl::StrictMode);
-        return value.isValid();
+        value.setUrl(QString::fromUtf8(arg.data(), arg.size()), QUrl::StrictMode);
+
+        if (!value.isValid())
+        {
+            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'"
+                + " not a valid URL");
+        }
     }
 };
 #endif
