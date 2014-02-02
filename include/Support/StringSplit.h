@@ -250,41 +250,6 @@ public:
 };
 
 //--------------------------------------------------------------------------------------------------
-// WrapDelimiter
-//
-
-class WrapDelimiter
-{
-    // The maximum length of a single line
-    size_t Len;
-    // The list of separators
-    StringRef Spaces;
-
-public:
-    explicit WrapDelimiter(size_t Len_, StringRef Spaces_ = " ")
-        : Len(Len_)
-        , Spaces(Spaces_)
-    {
-        assert(Len > 0);
-    }
-
-    auto operator()(StringRef Str) const -> std::pair<size_t, size_t>
-    {
-        // If the string fits into the current line, just return this last line.
-        if (Str.size() <= Len)
-            return { StringRef::npos, 0 };
-
-        // Otherwise, search for the first space preceding the line length.
-        auto Pos = Str.find_last_of(Spaces, Len);
-
-        if (Pos != StringRef::npos)
-            return { Pos, 1 }; // There is a space.
-        else
-            return { Len, 0 }; // No space in current line, break at Len.
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
 // split
 //
 
@@ -320,10 +285,10 @@ namespace details
 }
 
 template <class StringT, class DelimiterT>
-auto split(StringT&& S, DelimiterT&& D)
-    -> SplitRange<details::StoredType<StringT>, typename std::decay<DelimiterT>::type>
+auto split(StringT&& S, DelimiterT D)
+    -> SplitRange<details::StoredType<StringT>, DelimiterT>
 {
-    return { std::forward<StringT>(S), std::forward<DelimiterT>(D) };
+    return { std::forward<StringT>(S), std::move(D) };
 }
 
 template <class StringT>
