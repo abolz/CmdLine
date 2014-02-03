@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <fstream>
-#include <iostream>
 
 using namespace support;
 using namespace support::cl;
@@ -24,49 +23,49 @@ CmdLine::~CmdLine()
 {
 }
 
-void CmdLine::add(OptionBase* opt)
+void CmdLine::add(OptionBase& opt)
 {
-    if (opt->formatting_ == Positional)
+    if (opt.formatting_ == Positional)
     {
-        if (opt->name().empty())
+        if (opt.name().empty())
         {
             throw std::runtime_error("positional options need a valid name");
         }
 
-        positionals_.push_back(opt);
+        positionals_.push_back(&opt);
         return;
     }
 
-    auto insert = [&](StringRef s, OptionBase* opt)
+    auto insert = [&](StringRef s)
     {
         // Save the length of the longest prefix option
-        if (opt->isPrefix())
+        if (opt.isPrefix())
         {
             if (maxPrefixLength_ < s.size())
                 maxPrefixLength_ = s.size();
         }
 
         // Insert the option into the map
-        if (!options_.insert({ s, opt }).second)
+        if (!options_.insert({ s, &opt }).second)
         {
             throw std::runtime_error("duplicate option name detected");
         }
     };
 
-    if (opt->name().empty())
+    if (opt.name().empty())
     {
-        auto values = opt->getAllowedValues();
+        auto values = opt.getAllowedValues();
 
         if (values.empty())
             throw std::runtime_error("option name is empty and option does not provide allowed values");
 
-        for (auto const& s : values)
-            insert(s, opt);
+        for (auto s : values)
+            insert(s);
     }
     else
     {
-        for (auto const& s : strings::split(opt->name(), "|"))
-            insert(s, opt);
+        for (auto s : strings::split(opt.name(), "|"))
+            insert(s);
     }
 }
 
@@ -536,8 +535,4 @@ bool OptionBase::isRequired() const
 bool OptionBase::isPrefix() const
 {
     return formatting_ == Prefix || formatting_ == MayPrefix;
-}
-
-void OptionBase::applyRec()
-{
 }

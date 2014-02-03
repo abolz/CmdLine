@@ -79,35 +79,42 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto help = cl::makeOption<std::string>(
-        cmd, "help",
+        "help",
         cl::ArgName("option"),
         cl::ArgOptional
         );
+    cmd.add(help);
 
                     //------------------------------------------------------------------------------
 
     double y = -1.0;
 
-    auto y_ref = cl::makeOption<double&>(cmd, "y",
+    auto y_ref = cl::makeOption<double&>(
+        "y",
         cl::ArgName("float"),
         cl::ArgRequired,
         cl::init(y)
         );
+    cmd.add(y_ref);
 
                     //------------------------------------------------------------------------------
 
-    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix, cl::ArgRequired);
+    auto g  = cl::makeOption<bool>("g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    cmd.add(g);
+    auto h  = cl::makeOption<bool>("h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    cmd.add(h);
+    auto gh = cl::makeOption<bool>("gh", cl::Prefix, cl::ArgRequired);
+    cmd.add(gh);
 
                     //------------------------------------------------------------------------------
 
-    auto z = cl::makeOption<std::set<int>>(cmd, "z",
+    auto z = cl::makeOption<std::set<int>>("z",
         cl::ArgName("int"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::ZeroOrMore
         );
+    cmd.add(z);
 
                     //------------------------------------------------------------------------------
 
@@ -115,20 +122,22 @@ int main(int argc, char* argv[])
         "eins", "zwei", "drei", "vier", "funf"
     };
 
-    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(cmd, "I",
+    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>("I",
         cl::ArgName("dir"),
         cl::ArgRequired,
         cl::init(Iinit),
         cl::Prefix,
         cl::ZeroOrMore
         );
+    cmd.add(I);
 
                     //------------------------------------------------------------------------------
 
-    auto files = cl::makeOption<std::vector<std::string>>(cmd, "files",
+    auto files = cl::makeOption<std::vector<std::string>>("files",
         cl::Positional,
         cl::ZeroOrMore
         );
+    cmd.add(files);
 
                     //------------------------------------------------------------------------------
 
@@ -148,12 +157,12 @@ int main(int argc, char* argv[])
 
     auto opt = cl::makeOption<OptimizationLevel>(
         cl::InitParser, std::ref(optParser),
-        cmd,
         cl::ArgDisallowed,
         cl::ArgName("optimization level"),
         cl::init(OL_None),
         cl::Required
         );
+    cmd.add(opt);
 
                     //------------------------------------------------------------------------------
 
@@ -171,10 +180,11 @@ int main(int argc, char* argv[])
             { "maggie",       Maggie      },
 //          { "sideshow bob", SideshowBob },
         },
-        cmd, "simpson",
+        "simpson",
         cl::ArgRequired,
         cl::init(SideshowBob)
         );
+    cmd.add(simpson);
 
                     //------------------------------------------------------------------------------
 
@@ -186,24 +196,28 @@ int main(int argc, char* argv[])
             cl::Parser<std::string>()(name, p.first, i, value.first);
             cl::Parser<int>()(name, p.second, i, value.second);
         },
-        cmd, "f",
+        "f",
         cl::ArgName("string:int"),
         cl::ArgRequired,
         cl::CommaSeparated
         );
+    cmd.add(f);
 
                     //------------------------------------------------------------------------------
 
-    auto debug_level = cl::makeOption<int>(cmd, "debug-level|d",
+    auto debug_level = cl::makeOption<int>("debug-level|d",
         cl::ArgRequired,
         cl::Optional
         );
+    cmd.add(debug_level);
 
                     //------------------------------------------------------------------------------
 
-    auto Wsign_conversion = makeWFlag(cmd, "Wsign-conversion|Wno-sign-conversion");
+    auto Wsign_conversion = makeWFlag("Wsign-conversion|Wno-sign-conversion");
+    cmd.add(Wsign_conversion);
 
-    auto Wsign_compare = makeWFlag(cmd, "Wsign-compare|Wno-sign-compare");
+    auto Wsign_compare = makeWFlag("Wsign-compare|Wno-sign-compare");
+    cmd.add(Wsign_compare);
 
                     //------------------------------------------------------------------------------
 
@@ -216,18 +230,20 @@ int main(int argc, char* argv[])
             else
                 value.insert(arg.str());
         },
-        cmd, "without-|with-",
+        "without-|with-",
         cl::ArgName("target"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::Prefix,
         cl::ZeroOrMore
     );
+    cmd.add(targets);
 
                     //------------------------------------------------------------------------------
 
 #if 1
-    auto x_list = cl::makeOption<std::forward_list<int>>(cmd, "x_list");
+    auto x_list = cl::makeOption<std::forward_list<int>>("x_list");
+    cmd.add(x_list);
 #endif
 
     //----------------------------------------------------------------------------------------------

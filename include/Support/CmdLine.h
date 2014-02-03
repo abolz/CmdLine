@@ -93,7 +93,7 @@ public:
     ~CmdLine();
 
     // Adds the given option to the command line
-    void add(OptionBase* opt);
+    void add(OptionBase& opt);
 
     // Parse the given command line arguments
     void parse(StringVector const& argv);
@@ -409,29 +409,12 @@ protected:
     {
     }
 
-    template <class A, class... An>
-    void applyRec(A&& a, An&&... an)
-    {
-        apply(std::forward<A>(a));
-        applyRec(std::forward<An>(an)...);
-    }
-
     template <class... An>
-    void applyRec(CmdLine& cmd, An&&... an)
+    void applyAll(An&&... an)
     {
-        applyRec(std::forward<An>(an)...);
-
-        //
-        // NOTE:
-        //
-        // This might call the virtual function allowedValues(). Since applyRec is *only* called
-        // in the body of the constructor of Option<> and this is where allowedValues() is actually
-        // implemented, this is ok.
-        //
-        cmd.add(this);
+        int t[] = { (apply(std::forward<An>(an)), 0)... };
+        static_cast<void>(t);
     }
-
-    void applyRec();
 
 private:
     StringRef displayName() const;
@@ -461,29 +444,31 @@ class BasicOption : public OptionBase
     T value_;
 
 protected:
-    BasicOption()
+    enum CtorTag { Ctor };
+
+    BasicOption(CtorTag)
         : BaseType()
         , value_() // NOTE: error here if T is a reference type and not initialized using init(T)
     {
     }
 
     template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
-    BasicOption(details::Initializer<T> x, An&&...)
+    BasicOption(CtorTag, details::Initializer<T> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
-    BasicOption(details::Initializer<U> x, An&&...)
+    BasicOption(CtorTag, details::Initializer<U> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class A, class... An>
-    BasicOption(A&&, An&&... an)
-        : BasicOption(std::forward<An>(an)...)
+    BasicOption(CtorTag, A&&, An&&... an)
+        : BasicOption(Ctor, std::forward<An>(an)...)
     {
     }
 
@@ -530,17 +515,17 @@ public:
 
     template <class... An>
     explicit Option(DefaultInitParserTag, An&&... an)
-        : BaseType(std::forward<An>(an)...)
+        : BaseType(BaseType::Ctor, std::forward<An>(an)...)
     {
-        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
+        this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
     template <class P, class... An>
     explicit Option(InitParserTag, P&& p, An&&... an)
-        : BaseType(std::forward<An>(an)...)
+        : BaseType(BaseType::Ctor, std::forward<An>(an)...)
         , parser_(std::forward<P>(p))
     {
-        this->applyRec(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
+        this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
     // Returns the parser
