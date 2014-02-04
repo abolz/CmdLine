@@ -567,16 +567,23 @@ TEST(CmdLineTest, OptionGroup1)
 
         cl::CmdLine cmd;
 
-        cl::OptionGroup gr1(cmd, "gr1");
-        cl::OptionGroup gr2(cmd, "gr2", cl::OptionGroup::ZeroOrAll);
-        cl::OptionGroup gr3(cmd, "gr3", cl::OptionGroup::One);
+        auto gr1 = cl::OptionGroup("gr1");
+        cmd.add(gr1);
+        auto gr2 = cl::OptionGroup("gr2", cl::OptionGroup::ZeroOrAll);
+        cmd.add(gr2);
+        auto gr3 = cl::OptionGroup("gr3", cl::OptionGroup::One);
+        cmd.add(gr3);
 
-        auto x = cl::makeOption<bool>("x", gr1);
+        auto x = cl::makeOption<bool>("x");
         cmd.add(x);
-        auto y = cl::makeOption<bool>("y", gr2);
+        gr1.add(x);
+        auto y = cl::makeOption<bool>("y");
         cmd.add(y);
-        auto z = cl::makeOption<bool>("z", gr2, gr3);
+        gr2.add(y);
+        auto z = cl::makeOption<bool>("z");
         cmd.add(z);
+        gr2.add(z);
+        gr3.add(z);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);

@@ -66,14 +66,11 @@ class OptionGroup;
 
 class CmdLine
 {
-    friend class OptionBase;
-    friend class OptionGroup;
-
 public:
-    using OptionMap = std::map<StringRef, OptionBase*>;
-    using OptionGroups = std::map<StringRef, OptionGroup*>;
-    using OptionVector = std::vector<OptionBase*>;
-    using StringVector = std::vector<std::string>;
+    using OptionMap     = std::map<StringRef, OptionBase*>;
+    using OptionGroups  = std::map<StringRef, OptionGroup*>;
+    using OptionVector  = std::vector<OptionBase*>;
+    using StringVector  = std::vector<std::string>;
 
 private:
     // List of options
@@ -94,6 +91,9 @@ public:
 
     // Adds the given option to the command line
     void add(OptionBase& opt);
+
+    // Adds the given option group to the command line
+    void add(OptionGroup& group);
 
     // Parse the given command line arguments
     void parse(StringVector const& argv);
@@ -321,7 +321,7 @@ using ScalarType = BasicTraits<T>;
 
 class OptionGroup
 {
-    friend class OptionBase;
+    friend class CmdLine;
 
 public:
     enum Type {
@@ -335,7 +335,10 @@ public:
     };
 
 public:
-    explicit OptionGroup(CmdLine& cmd, std::string name, Type type = Default);
+    explicit OptionGroup(std::string name, Type type = Default);
+
+    // Add an option to this group
+    void add(OptionBase& opt);
 
     // Checks whether this group is valid
     void check() const;
@@ -396,13 +399,6 @@ protected:
     void apply(NumArgs x)           { numArgs_ = x; }
     void apply(Formatting x)        { formatting_ = x; }
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
-
-    void apply(OptionGroup& x)
-    {
-        // FIXME:
-        // Check for duplicates
-        x.options_.push_back(this);
-    }
 
     template <class U>
     void apply(details::Initializer<U>)
@@ -498,12 +494,11 @@ enum InitParserTag { InitParser };
 template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::element_type>>
 class Option : public BasicOption<T>
 {
-    using BaseType = BasicOption<T>;
-    using StringRefVector = std::vector<StringRef>;
-
-    using ElementType = typename TraitsT<T>::element_type;
-    using InserterType = typename TraitsT<T>::inserter_type;
-    using IsScalar = typename std::is_void<InserterType>::type;
+    using BaseType          = BasicOption<T>;
+    using StringRefVector   = std::vector<StringRef>;
+    using ElementType       = typename TraitsT<T>::element_type;
+    using InserterType      = typename TraitsT<T>::inserter_type;
+    using IsScalar          = typename std::is_void<InserterType>::type;
 
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
         "elements of containers must be default constructible");

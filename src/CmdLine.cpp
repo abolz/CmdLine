@@ -48,7 +48,7 @@ void CmdLine::add(OptionBase& opt)
         // Insert the option into the map
         if (!options_.insert({ s, &opt }).second)
         {
-            throw std::runtime_error("duplicate option name detected");
+            throw std::runtime_error("option '" + s + "' already exists");
         }
     };
 
@@ -66,6 +66,14 @@ void CmdLine::add(OptionBase& opt)
     {
         for (auto s : strings::split(opt.name(), "|"))
             insert(s);
+    }
+}
+
+void CmdLine::add(OptionGroup& group)
+{
+    if (!groups_.insert({ group.name_, &group }).second)
+    {
+        throw std::runtime_error("option group '" + group.name_ + "' already exists");
     }
 }
 
@@ -425,14 +433,17 @@ void CmdLine::check()
 // OptionGroup
 //
 
-OptionGroup::OptionGroup(CmdLine& cmd, std::string name, Type type)
+OptionGroup::OptionGroup(std::string name, Type type)
     : name_(std::move(name))
     , type_(type)
 {
-    if (!cmd.groups_.insert({name_, this}).second)
-    {
-        throw std::runtime_error("failed to register option group '" + name + "'");
-    }
+}
+
+void OptionGroup::add(OptionBase& opt)
+{
+    // FIXME:
+    // Check for duplicates!
+    options_.push_back(&opt);
 }
 
 void OptionGroup::check() const
