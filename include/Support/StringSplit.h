@@ -134,19 +134,19 @@ private:
     //
     // From N3593:
     //
-    // The result of a Delimiter's find() member function must be a std::StringRef referring to
+    // The result of a Delimiter's find() member function must be a std::string_view referring to
     // one of the following:
     //
     // -    A substring of find()'s argument text referring to the delimiter/separator that was
     //      found.
-    // -    An empty std::StringRef referring to find()'s argument's end iterator, (e.g.,
-    //      std::StringRef(input_text.end(), 0)). This indicates that the delimiter/separator was
+    // -    An empty std::string_view referring to find()'s argument's end iterator, (e.g.,
+    //      std::string_view(input_text.end(), 0)). This indicates that the delimiter/separator was
     //      not found.
     //
-    // [Footnote: An alternative to having a Delimiter's find() function return a std::StringRef
+    // [Footnote: An alternative to having a Delimiter's find() function return a std::string_view
     // is to instead have it return a std::pair<size_t, size_t> where the pair's first member is the
     // position of the found delimiter, and the second member is the length of the found delimiter.
-    // In this case, Not Found could be prepresented as std::make_pair(std::StringRef::npos, 0).
+    // In this case, Not Found could be prepresented as std::make_pair(std::string_view::npos, 0).
     // ---end footnote]
     //
 
@@ -199,7 +199,7 @@ private:
 
 struct KeepEmpty
 {
-    bool operator ()(StringRef Tok) const {
+    bool operator ()(StringRef /*Tok*/) const {
         return true;
     }
 };
@@ -308,10 +308,10 @@ namespace details
     //
     // Rvalue support
     //
-    // As described so far, std::split() may not work correctly if splitting a std::StringRef that
+    // As described so far, std::split() may not work correctly if splitting a std::string_view that
     // refers to a temporary string. In particular, the following will not work:
     //
-    //      for (std::StringRef s : std::split(GetTemporaryString(), "-")) {
+    //      for (std::string_view s : std::split(GetTemporaryString(), "-")) {
     //          s now refers to a temporary string that is no longer valid.
     //      }
     //
