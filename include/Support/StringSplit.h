@@ -38,19 +38,19 @@ public:
     {
     }
 
-    auto operator *() -> reference
+    reference operator *()
     {
         assert(R && "dereferencing end() iterator");
         return R->Tok;
     }
 
-    auto operator ->() -> pointer
+    pointer operator ->()
     {
         assert(R && "dereferencing end() iterator");
         return &R->Tok;
     }
 
-    auto operator ++() -> SplitIterator&
+    SplitIterator& operator ++()
     {
         assert(R && "incrementing end() iterator");
 
@@ -60,18 +60,18 @@ public:
         return *this;
     }
 
-    auto operator ++(int) -> SplitIterator
+    SplitIterator operator ++(int)
     {
         auto t = *this;
         operator ++();
         return t;
     }
 
-    auto operator ==(SplitIterator const& RHS) const -> bool {
+    bool operator ==(SplitIterator const& RHS) const {
         return R == RHS.R;
     }
 
-    auto operator !=(SplitIterator const& RHS) const -> bool {
+    bool operator !=(SplitIterator const& RHS) const {
         return R != RHS.R;
     }
 };
@@ -80,15 +80,17 @@ public:
 // SplitRange
 //
 
-template <class StringT, class DelimiterT>
+template <class StringT, class DelimiterT, class PredicateT>
 class SplitRange
 {
     template <class> friend class SplitIterator;
 
     // The string to split
     StringT Str;
-    // The delimiters
+    // The delimiter
     DelimiterT Delim;
+    // The predicate
+    PredicateT Pred;
     // The current token
     StringRef Tok;
     // The start of the rest of the string
@@ -99,20 +101,21 @@ public:
     using const_iterator = SplitIterator<SplitRange>;
 
 public:
-    SplitRange(StringT Str_, DelimiterT Delim_)
+    SplitRange(StringT Str_, DelimiterT Delim_, PredicateT Pred_)
         : Str(std::move(Str_))
         , Delim(std::move(Delim_))
+        , Pred(std::move(Pred_))
         , Tok(Str)
         , Pos(0)
     {
-        increment();
+        next();
     }
 
-    auto begin() -> iterator {
+    iterator begin() {
         return iterator(this);
     }
 
-    auto end() -> iterator {
+    iterator end() {
         return iterator();
     }
 
@@ -120,10 +123,12 @@ public:
     template <class T> explicit operator T() { return T(begin(), end()); }
 //#endif
 
+//#if !STRINGS_N3593
     // Returns the current token and the rest of the string.
     auto operator ()() const -> std::pair<StringRef, StringRef> {
         return { Tok, StringRef(Str).substr(Pos) };
     }
+//#endif
 
 private:
     //
@@ -147,45 +152,90 @@ private:
 
     void increment(std::pair<size_t, size_t> Sep)
     {
-        auto S = StringRef(Str).substr(Pos);
-
         if (Sep.first == StringRef::npos)
         {
             // There is no further delimiter.
             // The current string is the last token.
-            Tok = S;
+            Tok = StringRef(Str.data() + Pos, Str.size() - Pos);
             Pos = StringRef::npos;
         }
         else
         {
-            assert(Sep.first + Sep.second >= Sep.first);
-            assert(Pos + Sep.first + Sep.second > Pos);
-
             // Delimiter found.
-            Tok = S.substr(0, Sep.first);
+            Tok = StringRef(Str.data() + Pos, Sep.first);
             Pos = Pos + Sep.first + Sep.second;
         }
     }
 
     bool increment()
     {
-        increment(Delim(StringRef(Str).substr(Pos)));
+        increment(Delim({ Str.data() + Pos, Str.size() - Pos }));
         return true;
     }
 
     bool next()
     {
-        if (Pos == StringRef::npos)
-        {
-            // The current string is the last token.
-            // Set the iterator to the past-the-end iterator.
-            return false;
-        }
-        else
-        {
-            // Find the next token and adjust the iterator.
-            return increment();
-        }
+        do {
+            if (Pos == StringRef::npos)
+            {
+                // The current string is the last token.
+                // Set the iterator to the past-the-end iterator.
+                return false;
+            }
+            else
+            {
+                // Find the next token and adjust the iterator.
+                increment();
+            }
+        } while (!Pred(Tok));
+
+        return true;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// KeepEmpty
+//
+
+struct KeepEmpty
+{
+    bool operator ()(StringRef Tok) const {
+        return true;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// SkipEmpty
+//
+
+struct SkipEmpty
+{
+    bool operator ()(StringRef Tok) const {
+        return !Tok.empty();
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// SkipSpace
+//
+
+struct SkipSpace
+{
+    bool operator ()(StringRef Tok) const {
+        return !Tok.trim().empty();
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// Trim
+//
+
+struct Trim
+{
+    bool operator ()(StringRef& Tok) const
+    {
+        Tok = Tok.trim();
+        return !Tok.empty();
     }
 };
 
@@ -193,11 +243,10 @@ private:
 // AnyOfDelimiter
 //
 
-class AnyOfDelimiter
+struct AnyOfDelimiter
 {
     StringRef Chars;
 
-public:
     explicit AnyOfDelimiter(StringRef Chars_)
         : Chars(Chars_)
     {
@@ -212,11 +261,10 @@ public:
 // LiteralDelimiter
 //
 
-class LiteralDelimiter
+struct LiteralDelimiter
 {
     StringRef Needle;
 
-public:
     explicit LiteralDelimiter(StringRef Needle_)
         : Needle(Needle_)
     {
@@ -282,34 +330,32 @@ namespace details
 
     template <class T>
     using StoredType = decltype(TestStoredType(std::declval<T>()));
+
+    //
+    // From N3593:
+    //
+    // The default delimiter when not explicitly specified is std::literal_delimiter
+    //
+
+    template <class T>
+    inline auto TestDelimiter( T )
+        -> T;
+    inline auto TestDelimiter( std::string )
+        -> LiteralDelimiter;
+    inline auto TestDelimiter( StringRef )
+        -> LiteralDelimiter;
+    inline auto TestDelimiter( char const* )
+        -> LiteralDelimiter;
+
+    template <class T>
+    using DelimiterType = decltype(TestDelimiter(std::declval<T>()));
 }
 
-template <class StringT, class DelimiterT>
-auto split(StringT&& S, DelimiterT D)
-    -> SplitRange<details::StoredType<StringT>, DelimiterT>
+template <class S, class D, class P = KeepEmpty>
+auto split(S&& Str, D Delim, P Pred = P())
+    -> SplitRange<details::StoredType<S>, details::DelimiterType<D>, P>
 {
-    return { std::forward<StringT>(S), std::move(D) };
-}
-
-template <class StringT>
-auto split(StringT&& S, std::string D)
-    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
-{
-    return split(std::forward<StringT>(S), LiteralDelimiter(std::move(D)));
-}
-
-template <class StringT>
-auto split(StringT&& S, StringRef D)
-    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
-{
-    return split(std::forward<StringT>(S), LiteralDelimiter(D));
-}
-
-template <class StringT>
-auto split(StringT&& S, char const* D)
-    -> SplitRange<details::StoredType<StringT>, LiteralDelimiter>
-{
-    return split(std::forward<StringT>(S), LiteralDelimiter(D));
+    return { std::forward<S>(Str), details::DelimiterType<D>(std::move(Delim)), std::move(Pred) };
 }
 
 } // namespace strings

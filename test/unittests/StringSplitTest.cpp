@@ -282,6 +282,54 @@ TEST(StringSplitTest, Temp)
     }
 }
 
+TEST(StringSplitTest, KeepEmpty)
+{
+    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", KeepEmpty()));
+
+    ASSERT_EQ(vec.size(), 7);
+    EXPECT_EQ(vec[0], "");
+    EXPECT_EQ(vec[1], " a ");
+    EXPECT_EQ(vec[2], "b ");
+    EXPECT_EQ(vec[3], " c");
+    EXPECT_EQ(vec[4], "");
+    EXPECT_EQ(vec[5], "  ");
+    EXPECT_EQ(vec[6], "d");
+}
+
+TEST(StringSplitTest, SkipEmpty)
+{
+    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", SkipEmpty()));
+
+    ASSERT_EQ(vec.size(), 5);
+    EXPECT_EQ(vec[0], " a ");
+    EXPECT_EQ(vec[1], "b ");
+    EXPECT_EQ(vec[2], " c");
+    EXPECT_EQ(vec[3], "  ");
+    EXPECT_EQ(vec[4], "d");
+}
+
+TEST(StringSplitTest, SkipSpace)
+{
+    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", SkipSpace()));
+
+    ASSERT_EQ(vec.size(), 4);
+    EXPECT_EQ(vec[0], " a ");
+    EXPECT_EQ(vec[1], "b ");
+    EXPECT_EQ(vec[2], " c");
+    EXPECT_EQ(vec[3], "d");
+}
+
+TEST(StringSplitTest, Trim)
+{
+    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", Trim()));
+
+    ASSERT_EQ(vec.size(), 4);
+    EXPECT_EQ(vec[0], "a");
+    EXPECT_EQ(vec[1], "b");
+    EXPECT_EQ(vec[2], "c");
+    EXPECT_EQ(vec[3], "d");
+}
+
 #if 0
 
 #include <boost/range/adaptor/filtered.hpp>
