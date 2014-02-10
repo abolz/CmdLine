@@ -66,10 +66,4 @@ public:
     StringRef strref() const { return Buffer.strref(); }
 };
 
-//--------------------------------------------------------------------------------------------------
-// Formatted output
-//
-
-std::ostream& operator <<(std::ostream& Stream, StringRef Str);
-
 } // namespace support

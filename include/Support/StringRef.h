@@ -266,6 +266,14 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
 }
 
 //--------------------------------------------------------------------------------------------------
+// Formatted output
+//
+
+inline std::ostream& operator <<(std::ostream& Stream, StringRef S) {
+    return Stream << S.str();
+}
+
+//--------------------------------------------------------------------------------------------------
 // String operations
 //
 
