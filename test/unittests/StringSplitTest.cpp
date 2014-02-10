@@ -15,30 +15,6 @@
 using namespace support;
 using namespace support::strings;
 
-template <class Range>
-class RangeConverter
-{
-    Range const& R;
-
-public:
-    RangeConverter(Range const& R)
-        : R(R)
-    {
-    }
-
-    template <class Container>
-    operator Container() const
-    {
-        return Container(R.begin(), R.end());
-    }
-};
-
-template <class Range>
-RangeConverter<Range> convert(Range const& R)
-{
-    return RangeConverter<Range>(R);
-}
-
 TEST(StringSplitTest, EmptyString1)
 {
     auto vec = std::vector<StringRef>(split(StringRef(), ","));
@@ -167,76 +143,148 @@ TEST(StringSplitTest, Test7_1)
     EXPECT_EQ(vec[7], "d");
 }
 
-TEST(StringSplitTest, EmptySepLiteral1)
+TEST(StringSplitTest, EmptySepLiteral)
 {
-    auto vec = std::vector<StringRef>(split("abc", ""));
+    {
+        auto vec = std::vector<StringRef>(split(StringRef(), ""));
 
-#if !SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
-    ASSERT_EQ(vec.size(), 1);
-    EXPECT_EQ(vec[0], "abc");
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "");
+    }
+    {
+        auto vec = std::vector<StringRef>(split(StringRef(), AnyOfDelimiter("")));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("", ""));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("", AnyOfDelimiter("")));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("x", ""));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "x");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("x", AnyOfDelimiter("")));
+
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "x");
+    }
+    {
+        auto vec = std::vector<StringRef>(split("abc", ""));
+
+#if SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
+        ASSERT_EQ(vec.size(), 3);
+        EXPECT_EQ(vec[0], "a");
+        EXPECT_EQ(vec[1], "b");
+        EXPECT_EQ(vec[2], "c");
 #else
-    ASSERT_EQ(vec.size(), 3);
-    EXPECT_EQ(vec[0], "a");
-    EXPECT_EQ(vec[1], "b");
-    EXPECT_EQ(vec[2], "c");
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "abc");
 #endif
-}
+    }
+    {
+        auto vec = std::vector<StringRef>(split("abc", AnyOfDelimiter("")));
 
-TEST(StringSplitTest, EmptySepLiteral2)
-{
-    auto vec = std::vector<StringRef>(split("x", ""));
-
-    ASSERT_EQ(vec.size(), 1);
-    EXPECT_EQ(vec[0], "x");
-}
-
-TEST(StringSplitTest, EmptySepLiteral3)
-{
-    auto vec = std::vector<StringRef>(split("", ""));
-
-    ASSERT_EQ(vec.size(), 1);
-    EXPECT_EQ(vec[0], "");
-}
-
-TEST(StringSplitTest, EmptySepAnyOf)
-{
-    auto vec = std::vector<StringRef>(split("abc", AnyOfDelimiter("")));
-
-    ASSERT_EQ(vec.size(), 1);
-    EXPECT_EQ(vec[0], "abc");
+        ASSERT_EQ(vec.size(), 1);
+        EXPECT_EQ(vec[0], "abc");
+    }
 }
 
 TEST(StringSplitTest, Iterator)
 {
-    auto R = split("a,b,c,d", ",");
-
-    std::vector<StringRef> vec;
-
-    for (auto I = R.begin(), E = R.end(); I != E; ++I)
     {
-        vec.push_back(*I);
-    }
+        auto R = split("a,b,c,d", ",");
 
-    ASSERT_EQ(vec.size(), 4);
-    EXPECT_EQ(vec[0], "a");
-    EXPECT_EQ(vec[1], "b");
-    EXPECT_EQ(vec[2], "c");
-    EXPECT_EQ(vec[3], "d");
+        std::vector<StringRef> vec;
+
+        for (auto I = R.begin(), E = R.end(); I != E; ++I)
+        {
+            vec.push_back(*I);
+        }
+
+        ASSERT_EQ(vec.size(), 4);
+        EXPECT_EQ(vec[0], "a");
+        EXPECT_EQ(vec[1], "b");
+        EXPECT_EQ(vec[2], "c");
+        EXPECT_EQ(vec[3], "d");
+    }
+    {
+        auto R = split("a,b,c,d", ",");
+
+        EXPECT_EQ(*R.begin(), "a");
+        EXPECT_EQ(*R.begin(), "a");
+        EXPECT_EQ(*R.begin(), "a");
+
+        ++R.begin();
+
+        EXPECT_EQ(*R.begin(), "b");
+        EXPECT_EQ(*R.begin(), "b");
+        EXPECT_EQ(*R.begin(), "b");
+    }
+    {
+        auto R = split("a,b,c,d", ",");
+
+        auto I = R.begin();
+        auto J = R.begin();
+
+        ++I;
+
+        EXPECT_EQ(I, I);
+        EXPECT_EQ(*I, *I);
+        EXPECT_EQ(I, J);
+        EXPECT_EQ(*I, *J);
+        EXPECT_EQ(J, J);
+        EXPECT_EQ(*J, *J);
+
+        I = ++J;
+
+        ++J;
+
+        EXPECT_EQ(I, J);
+        EXPECT_EQ(*I, *J);
+    }
 }
 
-TEST(StringSplitTest, Range1)
+template <class T> using IsStringRef = typename std::is_same<T, StringRef>::type;
+template <class T> using IsStdString = typename std::is_same<T, std::string>::type;
+
+TEST(StringSplitTest, StringType)
 {
-    auto R = split("a,b,c,d", ",");
+    // Test Split_string type deduction...
 
-    auto I = R.begin();
-    auto E = R.end();
+    static_assert( IsStringRef< Split_string::type<char*                >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char*&               >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char*&&              >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char (&)[1]          >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char const*          >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char const*&         >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char const*&&        >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<char const (&)[1]    >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef            >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef&           >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef&&          >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef const      >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef const&     >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<StringRef const&&    >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<std::string&         >>::value, "" );
+    static_assert( IsStringRef< Split_string::type<std::string const&   >>::value, "" );
 
-    EXPECT_NE(I, E);
-    EXPECT_EQ(*R.begin(), "a");
-    EXPECT_EQ(*R.begin(), "a");
-    EXPECT_EQ(*R.begin(), "a");
-    EXPECT_EQ(*R.begin(), "a");
-    EXPECT_EQ(*R.begin(), "a");
+    static_assert( IsStdString< Split_string::type<std::string          >>::value, "" );
+    static_assert( IsStdString< Split_string::type<std::string&&        >>::value, "" );
+    static_assert( IsStdString< Split_string::type<std::string const    >>::value, "" );
+    static_assert( IsStdString< Split_string::type<std::string const&&  >>::value, "" );
 }
 
 static std::string make_string()
@@ -329,53 +377,3 @@ TEST(StringSplitTest, Trim)
     EXPECT_EQ(vec[2], "c");
     EXPECT_EQ(vec[3], "d");
 }
-
-#if 0
-
-#include <boost/range/adaptor/filtered.hpp>
-#include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/algorithm.hpp>
-
-TEST(StringSplitTest, AdaptorsTransformed)
-{
-    using namespace boost::adaptors;
-
-    struct AppendX
-    {
-        std::string operator ()(StringRef Str) const {
-            return Str + "+x";
-        }
-    };
-
-    std::vector<std::string> vec
-        = convert(split("a,b,c,d", ",") | transformed(AppendX()));
-
-    ASSERT_EQ(vec.size(), 4);
-    EXPECT_EQ(vec[0], "a+x");
-    EXPECT_EQ(vec[1], "b+x");
-    EXPECT_EQ(vec[2], "c+x");
-    EXPECT_EQ(vec[3], "d+x");
-}
-
-TEST(StringSplitTest, AdaptorsFiltered)
-{
-    using namespace boost::adaptors;
-
-    struct SkipEmpty
-    {
-        bool operator ()(StringRef Str) const {
-            return !Str.empty();
-        }
-    };
-
-    std::vector<std::string> vec
-        = convert(split("a,,,b,,,c,,,d,,,", ",") | filtered(SkipEmpty()));
-
-    ASSERT_EQ(vec.size(), 4);
-    EXPECT_EQ(vec[0], "a");
-    EXPECT_EQ(vec[1], "b");
-    EXPECT_EQ(vec[2], "c");
-    EXPECT_EQ(vec[3], "d");
-}
-
-#endif

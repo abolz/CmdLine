@@ -17,13 +17,13 @@ namespace strings
 {
 
 //--------------------------------------------------------------------------------------------------
-// SplitIterator
+// Split_iterator
 //
 
-template <class SplitRangeT>
-class SplitIterator
+template <class RangeT>
+class Split_iterator
 {
-    SplitRangeT* R;
+    RangeT* R;
 
 public:
     using iterator_category     = std::input_iterator_tag;
@@ -33,7 +33,7 @@ public:
     using difference_type       = ptrdiff_t;
 
 public:
-    SplitIterator(SplitRangeT* R_ = nullptr)
+    Split_iterator(RangeT* R_ = nullptr)
         : R(R_)
     {
     }
@@ -50,7 +50,7 @@ public:
         return &R->Tok;
     }
 
-    SplitIterator& operator ++()
+    Split_iterator& operator ++()
     {
         assert(R && "incrementing end() iterator");
 
@@ -60,30 +60,30 @@ public:
         return *this;
     }
 
-    SplitIterator operator ++(int)
+    Split_iterator operator ++(int)
     {
         auto t = *this;
         operator ++();
         return t;
     }
 
-    bool operator ==(SplitIterator const& RHS) const {
+    bool operator ==(Split_iterator const& RHS) const {
         return R == RHS.R;
     }
 
-    bool operator !=(SplitIterator const& RHS) const {
+    bool operator !=(Split_iterator const& RHS) const {
         return R != RHS.R;
     }
 };
 
 //--------------------------------------------------------------------------------------------------
-// SplitRange
+// Split_range
 //
 
 template <class StringT, class DelimiterT, class PredicateT>
-class SplitRange
+class Split_range
 {
-    template <class> friend class SplitIterator;
+    template <class> friend class Split_iterator;
 
     // The string to split
     StringT Str;
@@ -97,11 +97,11 @@ class SplitRange
     size_t Pos;
 
 public:
-    using iterator = SplitIterator<SplitRange>;
-    using const_iterator = SplitIterator<SplitRange>;
+    using iterator = Split_iterator<Split_range>;
+    using const_iterator = Split_iterator<Split_range>;
 
 public:
-    SplitRange(StringT Str_, DelimiterT Delim_, PredicateT Pred_)
+    Split_range(StringT Str_, DelimiterT Delim_, PredicateT Pred_)
         : Str(std::move(Str_))
         , Delim(std::move(Delim_))
         , Pred(std::move(Pred_))
@@ -132,7 +132,7 @@ public:
 
 private:
     //
-    // From N3593:
+    // N3593:
     //
     // The result of a Delimiter's find() member function must be a std::string_view referring to
     // one of the following:
@@ -150,27 +150,27 @@ private:
     // ---end footnote]
     //
 
-    void increment(std::pair<size_t, size_t> Sep)
+    void increment(StringRef S, std::pair<size_t, size_t> Sep)
     {
         if (Sep.first == StringRef::npos)
         {
             // There is no further delimiter.
             // The current string is the last token.
-            Tok = StringRef(Str.data() + Pos, Str.size() - Pos);
+            Tok = S;
             Pos = StringRef::npos;
         }
         else
         {
             // Delimiter found.
-            Tok = StringRef(Str.data() + Pos, Sep.first);
+            Tok = StringRef(S.data(), Sep.first);
             Pos = Pos + Sep.first + Sep.second;
         }
     }
 
-    bool increment()
+    void increment()
     {
-        increment(Delim({ Str.data() + Pos, Str.size() - Pos }));
-        return true;
+        auto S = StringRef(Str.data() + Pos, Str.size() - Pos);
+        increment(S, Delim(S));
     }
 
     bool next()
@@ -276,7 +276,7 @@ struct LiteralDelimiter
         {
 #if SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
             //
-            // From N3593:
+            // N3593:
             //
             // A delimiter of the empty string results in each character in the input string
             // becoming one element in the output collection. This is a special case. It is done to
@@ -301,10 +301,10 @@ struct LiteralDelimiter
 // split
 //
 
-namespace details
+class Split_string
 {
     //
-    // From N3593:
+    // N3593:
     //
     // Rvalue support
     //
@@ -319,43 +319,56 @@ namespace details
     // returned from std::split().
     //
 
-    inline auto TestStoredType( std::string&& )
+    static auto test(std::string&&)
         -> std::string;
-    inline auto TestStoredType( std::string const& )
+    static auto test(std::string const&&)
+        -> std::string;
+    static auto test(StringRef)
         -> StringRef;
-    inline auto TestStoredType( StringRef )
-        -> StringRef;
-    inline auto TestStoredType( char const* )
+    static auto test(char const*)
         -> StringRef;
 
+public:
     template <class T>
-    using StoredType = decltype(TestStoredType(std::declval<T>()));
+    using type = decltype(test(std::declval<T>()));
+};
 
+class Split_delimiter
+{
     //
-    // From N3593:
+    // N3593:
     //
     // The default delimiter when not explicitly specified is std::literal_delimiter
     //
 
     template <class T>
-    inline auto TestDelimiter( T )
+    static auto test(T)
         -> T;
-    inline auto TestDelimiter( std::string )
+    static auto test(std::string)
         -> LiteralDelimiter;
-    inline auto TestDelimiter( StringRef )
+    static auto test(StringRef)
         -> LiteralDelimiter;
-    inline auto TestDelimiter( char const* )
+    static auto test(char const*)
         -> LiteralDelimiter;
 
+public:
     template <class T>
-    using DelimiterType = decltype(TestDelimiter(std::declval<T>()));
-}
+    using type = decltype(test(std::declval<T>()));
+};
 
+//
+// N3593:
+//
+// The std::split() algorithm takes a std::string_view and a Delimiter as arguments, and it returns
+// a Range of std::string_view objects as output. The std::string_view objects in the returned Range
+// will refer to substrings of the input text. The Delimiter object defines the boundaries between
+// the returned substrings.
+//
 template <class S, class D, class P = KeepEmpty>
 auto split(S&& Str, D Delim, P Pred = P())
-    -> SplitRange<details::StoredType<S>, details::DelimiterType<D>, P>
+    -> Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>
 {
-    return { std::forward<S>(Str), details::DelimiterType<D>(std::move(Delim)), std::move(Pred) };
+    return { std::forward<S>(Str), Split_delimiter::type<D>(std::move(Delim)), std::move(Pred) };
 }
 
 } // namespace strings
