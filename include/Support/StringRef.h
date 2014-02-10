@@ -17,12 +17,11 @@ class StringRef
 {
 public:
     using char_type = char;
+    using traits_type = std::char_traits<char_type>;
 
     using const_reference   = char_type const&;
     using const_pointer     = char_type const*;
     using const_iterator    = char_type const*;
-
-    using traits_type = std::char_traits<char_type>;
 
 private:
     // The string data - an external buffer
@@ -67,7 +66,8 @@ public:
     }
 
     // Construct a StringRef from a std::string.
-    StringRef(std::string const& Str)
+    template <class A>
+    StringRef(std::basic_string<char_type, traits_type, A> const& Str)
         : StringRef(Str.data(), Str.size())
     {
     }
@@ -192,13 +192,17 @@ public:
     }
 
     // Constructs a std::string from this StringRef.
-    std::string str() const {
-        return std::string(begin(), end());
+    template <class A = std::allocator<char_type>>
+    std::basic_string<char_type, traits_type, A> str() const
+    {
+        return std::basic_string<char_type, traits_type, A>(begin(), end());
     }
 
     // Explicitly convert to a std::string
-    explicit operator std::string() const {
-        return str();
+    template <class A = std::allocator<char_type>>
+    explicit operator std::basic_string<char_type, traits_type, A>() const
+    {
+        return str<A>();
     }
 
     // Search for the first character Ch in the sub-string [From, Length)
