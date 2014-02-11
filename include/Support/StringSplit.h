@@ -245,7 +245,7 @@ struct Trim
 
 struct AnyOfDelimiter
 {
-    StringRef Chars;
+    std::string Chars;
 
     explicit AnyOfDelimiter(StringRef Chars_)
         : Chars(Chars_)
@@ -263,7 +263,7 @@ struct AnyOfDelimiter
 
 struct LiteralDelimiter
 {
-    StringRef Needle;
+    std::string Needle;
 
     explicit LiteralDelimiter(StringRef Needle_)
         : Needle(Needle_)
@@ -368,7 +368,8 @@ template <class S, class D, class P = KeepEmpty>
 auto split(S&& Str, D Delim, P Pred = P())
     -> Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>
 {
-    return { std::forward<S>(Str), Split_delimiter::type<D>(std::move(Delim)), std::move(Pred) };
+    using R = Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>;
+    return R(std::forward<S>(Str), Split_delimiter::type<D>(std::move(Delim)), std::move(Pred));
 }
 
 } // namespace strings
