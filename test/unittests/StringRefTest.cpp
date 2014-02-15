@@ -2,7 +2,6 @@
 // See the LICENSE file for details.
 
 #include "Support/StringRef.h"
-#include "Support/StringRefStream.h"
 
 #include <gtest/gtest.h>
 
@@ -118,12 +117,12 @@ void CheckFind()
     EXPECT_EQ(S.find_last_not_of(Y, 0),                 0);
 }
 
-TEST(StringRefTest, CheckStdString)
+TEST(Test, CheckStdString)
 {
     CheckFind<std::string>();
 }
 
-TEST(StringRefTest, CheckStringRef)
+TEST(Test, CheckStringRef)
 {
     CheckFind<StringRef>();
 }
@@ -139,7 +138,7 @@ static void CheckSplit(StringRef str, size_t pos, size_t n, StringRef first, Str
     ASSERT_EQ(S, str);
 }
 
-TEST(StringRefTest, Split)
+TEST(Test, Split)
 {
     EXPECT_NO_FATAL_FAILURE(CheckSplit(""   ,               0,               0, ""   , ""   ));
     EXPECT_NO_FATAL_FAILURE(CheckSplit(""   , StringRef::npos,               0, ""   , ""   ));
@@ -202,7 +201,7 @@ void CheckStream()
     }
 }
 
-TEST(StringRefTest, Stream)
+TEST(Test, Stream)
 {
     EXPECT_NO_FATAL_FAILURE(CheckStream<std::string>());
     EXPECT_NO_FATAL_FAILURE(CheckStream<StringRef>());

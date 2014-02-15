@@ -1,6 +1,8 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
+// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3849.html
+
 #pragma once
 
 #include <cassert>
@@ -266,11 +268,19 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
 }
 
 //--------------------------------------------------------------------------------------------------
+// to_string
+//
+
+inline std::string to_string(StringRef S) {
+    return std::string(S.begin(), S.end());
+}
+
+//--------------------------------------------------------------------------------------------------
 // Formatted output
 //
 
 inline std::ostream& operator <<(std::ostream& Stream, StringRef S) {
-    return Stream << S.str();
+    return Stream << to_string(S);
 }
 
 //--------------------------------------------------------------------------------------------------
