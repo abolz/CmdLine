@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
     auto f = cl::makeOption<std::map<std::string, int>, cl::Traits/*default*/>(
         cl::InitParser, [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
         {
-            auto p = strings::split(arg, ":")();
+            auto p = strings::split_once(arg, ":");
 
             cl::Parser<std::string>()(name, p.first, i, value.first);
             cl::Parser<int>()(name, p.second, i, value.second);

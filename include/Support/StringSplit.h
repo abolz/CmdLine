@@ -11,6 +11,8 @@
 #include <iterator>
 #include <utility>
 
+#define SUPPORT_STD_SPLIT 1
+
 namespace support
 {
 namespace strings
@@ -119,14 +121,11 @@ public:
         return iterator();
     }
 
-//#if !STRINGS_N3593
-    template <class T> explicit operator T() { return T(begin(), end()); }
-//#endif
-
-//#if !STRINGS_N3593
-    // Returns the current token and the rest of the string.
-    auto operator ()() const -> std::pair<StringRef, StringRef> {
-        return { Tok, StringRef(Str).substr(Pos) };
+//#if !SUPPORT_STD_SPLIT
+    template <class ContainerT>
+    explicit operator ContainerT()
+    {
+        return ContainerT(begin(), end());
     }
 //#endif
 
@@ -227,10 +226,10 @@ struct SkipSpace
 };
 
 //--------------------------------------------------------------------------------------------------
-// Trim
+// TrimSpace
 //
 
-struct Trim
+struct TrimSpace
 {
     bool operator ()(StringRef& Tok) const
     {
@@ -252,7 +251,23 @@ struct AnyOfDelimiter
     {
     }
 
-    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t> {
+    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
+    {
+#if SUPPORT_STD_SPLIT
+        if (Chars.empty())
+        {
+            //
+            // N3593:
+            //
+            // A delimiter of the empty string results in each character in the input string
+            // becoming one element in the output collection. This is a special case. It is done to
+            // match the behavior of splitting using the empty string in other programming languages
+            // (e.g., perl).
+            //
+            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+        }
+#endif
+
         return { Str.find_first_of(Chars), 1 };
     }
 };
@@ -274,7 +289,7 @@ struct LiteralDelimiter
     {
         if (Needle.empty())
         {
-#if SUPPORT_STRINGSPLIT_EMPTY_LITERAL_IS_SPECIAL
+#if SUPPORT_STD_SPLIT
             //
             // N3593:
             //
@@ -370,6 +385,23 @@ auto split(S&& Str, D Delim, P Pred = P())
 {
     using R = Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>;
     return R(std::forward<S>(Str), Split_delimiter::type<D>(std::move(Delim)), std::move(Pred));
+}
+
+template <class D, class P = KeepEmpty>
+auto split_once(StringRef Str, D Delim, P Pred = P())
+    -> std::pair<StringRef, StringRef>
+{
+    auto R = split(Str, std::move(Delim), std::move(Pred));
+    auto I = R.begin();
+
+    // Get the first token.
+    // NOTE: R.begin() always returns a dereferencable iterator
+    auto T = *I;
+
+    if (++I == R.end())
+        return { T, StringRef() };
+    else
+        return { T, StringRef(I->data(), Str.size() - (I->data() - Str.data())) };
 }
 
 } // namespace strings
