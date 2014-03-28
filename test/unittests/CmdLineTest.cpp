@@ -388,8 +388,8 @@ TEST(CmdLineTest, Map1)
             { "01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789", 3}
         });
 
-        auto x = cl::makeOption<int>(
-            cl::InitParser, xParser,
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
@@ -431,8 +431,8 @@ TEST(CmdLineTest, Map2)
             { "O3", 3 },
         });
 
-        auto x = cl::makeOption<int>(
-            cl::InitParser, xParser,
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cl::Required,
             cl::ArgDisallowed
             );
@@ -472,8 +472,8 @@ TEST(CmdLineTest, Map3)
             { "O3", 3 },
         });
 
-        auto x = cl::makeOption<int>(
-            cl::InitParser, xParser,
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
             cl::Required,
             cl::Prefix,
             cl::ArgOptional
@@ -513,14 +513,13 @@ TEST(CmdLineTest, Map4)
             { "3", 3 },
         });
 
-        auto x = cl::makeOption<int>(
-            cl::InitParser, xParser,
-            "O",
+        auto x = cl::makeOptionWithParser<int>(
+            xParser,
+            cmd, "O",
             cl::Required,
             cl::Prefix,
             cl::ArgRequired
             );
-        cmd.add(x);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);

@@ -396,6 +396,10 @@ protected:
     OptionBase();
 
 public:
+    enum DefaultInitParserTag { DefaultInitParser };
+    enum InitParserTag { InitParser };
+
+public:
     // Destructor.
     virtual ~OptionBase();
 
@@ -523,9 +527,6 @@ public:
 // Option
 //
 
-enum DefaultInitParserTag { DefaultInitParser };
-enum InitParserTag { InitParser };
-
 template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::element_type>>
 class Option : public BasicOption<T>
 {
@@ -544,14 +545,14 @@ public:
     using parser_type = UnwrapReferenceWrapper<ParserT>;
 
     template <class... An>
-    explicit Option(DefaultInitParserTag, An&&... an)
+    explicit Option(OptionBase::DefaultInitParserTag, An&&... an)
         : BaseType(BaseType::Ctor, std::forward<An>(an)...)
     {
         this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
     }
 
     template <class P, class... An>
-    explicit Option(InitParserTag, P&& p, An&&... an)
+    explicit Option(OptionBase::InitParserTag, P&& p, An&&... an)
         : BaseType(BaseType::Ctor, std::forward<An>(an)...)
         , parser_(std::forward<P>(p))
     {
@@ -599,16 +600,7 @@ auto makeOption(An&&... an)
     -> std::unique_ptr<Option<T, TraitsT>>
 {
     using R = Option<T, TraitsT>;
-    return std::unique_ptr<R>(new R(DefaultInitParser, std::forward<An>(an)...));
-}
-
-// Construct a new Option, initialize the parser with the given value
-template <class T, template <class> class TraitsT = Traits, class P, class... An>
-auto makeOption(InitParserTag, P&& p, An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
-{
-    using R = Option<T, TraitsT, Decay<P>>;
-    return std::unique_ptr<R>(new R(InitParser, std::forward<P>(p), std::forward<An>(an)...));
+    return std::unique_ptr<R>(new R(OptionBase::DefaultInitParser, std::forward<An>(an)...));
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
@@ -617,7 +609,16 @@ auto makeOption(std::initializer_list<typename MapParser<RemoveReference<T>>::ma
     -> std::unique_ptr<Option<T, TraitsT, MapParser<RemoveReference<T>>>>
 {
     using R = Option<T, TraitsT, MapParser<RemoveReference<T>>>;
-    return std::unique_ptr<R>(new R(InitParser, ilist, std::forward<An>(an)...));
+    return std::unique_ptr<R>(new R(OptionBase::InitParser, ilist, std::forward<An>(an)...));
+}
+
+// Construct a new Option, initialize the parser with the given value
+template <class T, template <class> class TraitsT = Traits, class P, class... An>
+auto makeOptionWithParser(P&& p, An&&... an)
+    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
+{
+    using R = Option<T, TraitsT, Decay<P>>;
+    return std::unique_ptr<R>(new R(OptionBase::InitParser, std::forward<P>(p), std::forward<An>(an)...));
 }
 
 } // namespace cl

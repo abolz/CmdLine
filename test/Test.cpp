@@ -67,7 +67,7 @@ struct WFlagParser
 template <class... Args>
 auto makeWFlag(Args&&... args)
 RETURN(
-    cl::makeOption<bool>(cl::InitParser, WFlagParser(), std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore)
+    cl::makeOptionWithParser<bool>(WFlagParser(), std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore)
 )
 
 int main(int argc, char* argv[])
@@ -150,8 +150,8 @@ int main(int argc, char* argv[])
         { "O3", OL_Expensive },
     });
 
-    auto opt = cl::makeOption<OptimizationLevel>(
-        cl::InitParser, std::ref(optParser),
+    auto opt = cl::makeOptionWithParser<OptimizationLevel>(
+        std::ref(optParser),
         cl::ArgDisallowed,
         cl::ArgName("optimization level"),
         cl::init(OL_None),
@@ -183,8 +183,8 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto f = cl::makeOption<std::map<std::string, int>, cl::Traits/*default*/>(
-        cl::InitParser, [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
+    auto f = cl::makeOptionWithParser<std::map<std::string, int>, cl::Traits/*default*/>(
+        [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
         {
             auto p = strings::split_once(arg, ":");
 
@@ -215,23 +215,21 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto targets = cl::makeOption<std::set<std::string>, cl::ScalarType>
-    (
-        cl::InitParser, [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
+    auto targets = cl::makeOptionWithParser<std::set<std::string>, cl::ScalarType>(
+        [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
         {
             if (name.starts_with("without-"))
                 value.erase(arg.str());
             else
                 value.insert(arg.str());
         },
-        "without-|with-",
+        cmd, "without-|with-",
         cl::ArgName("target"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::Prefix,
         cl::ZeroOrMore
     );
-    cmd.add(targets);
 
                     //------------------------------------------------------------------------------
 
