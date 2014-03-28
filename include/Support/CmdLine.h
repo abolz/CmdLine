@@ -65,9 +65,6 @@ enum MiscFlags : unsigned char {
 class OptionBase;
 class OptionGroup;
 
-template <class /*T*/, template <class> class /*TraitsT*/, class /*ParserT*/>
-class Option;
-
 class CmdLine
 {
 public:
