@@ -550,13 +550,9 @@ TEST(CmdLineTest, OptionGroup1)
         auto gr3 = cl::OptionGroup("gr3", cl::OptionGroup::One);
         cmd.add(gr3);
 
-        auto x = cl::makeOption<bool>(cmd, "x");
-        gr1.add(*x);
-        auto y = cl::makeOption<bool>(cmd, "y");
-        gr2.add(*y);
-        auto z = cl::makeOption<bool>(cmd, "z");
-        gr2.add(*z);
-        gr3.add(*z);
+        auto x = cl::makeOption<bool>(cmd, "x", gr1);
+        auto y = cl::makeOption<bool>(cmd, "y", gr2);
+        auto z = cl::makeOption<bool>(cmd, "z", gr2, gr3);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);

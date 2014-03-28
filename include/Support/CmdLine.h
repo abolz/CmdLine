@@ -408,6 +408,7 @@ protected:
     void apply(NumArgs x)           { numArgs_ = x; }
     void apply(Formatting x)        { formatting_ = x; }
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
+    void apply(OptionGroup& x)      { x.add(*this); }
 
     template <class U>
     void apply(details::Initializer<U>)
