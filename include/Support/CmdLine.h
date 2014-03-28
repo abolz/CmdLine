@@ -99,12 +99,6 @@ public:
     // Adds the given option group to the command line
     void add(OptionGroup& group);
 
-    // Adds the given option to the command line
-    template <class X1, template <class> class X2, class X3>
-    void add(std::unique_ptr<Option<X1, X2, X3>> const& opt) {
-        add(*opt);
-    }
-
     // Parse the given command line arguments
     void parse(StringVector const& argv);
 
@@ -350,12 +344,6 @@ public:
 
     // Add an option to this group
     void add(OptionBase& opt);
-
-    // Add an option to this group
-    template <class X1, template <class> class X2, class X3>
-    void add(std::unique_ptr<Option<X1, X2, X3>> const& opt) {
-        add(*opt);
-    }
 
     // Checks whether this group is valid
     void check() const;

@@ -303,12 +303,9 @@ TEST(CmdLineTest, Consume1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>("a");
-        cmd.add(a);
-        auto s = cl::makeOption<std::string>("script", cl::Positional, cl::Required, cl::ConsumeAfter);
-        cmd.add(s);
-        auto x = cl::makeOption<std::vector<std::string>>("arguments", cl::Positional);
-        cmd.add(x);
+        auto a = cl::makeOption<std::string>(cmd, "a");
+        auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
+        auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional);
 
         if (!parse(cmd, argv))
             return false;
@@ -347,10 +344,8 @@ TEST(CmdLineTest, Consume2)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>("a");
-        cmd.add(a);
-        auto s = cl::makeOption<std::vector<std::string>>("script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
-        cmd.add(s);
+        auto a = cl::makeOption<std::string>(cmd, "a");
+        auto s = cl::makeOption<std::vector<std::string>>(cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
 
         if (!parse(cmd, argv))
             return false;
@@ -433,10 +428,10 @@ TEST(CmdLineTest, Map2)
 
         auto x = cl::makeOptionWithParser<int>(
             xParser,
+            cmd,
             cl::Required,
             cl::ArgDisallowed
             );
-        cmd.add(x);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -474,11 +469,11 @@ TEST(CmdLineTest, Map3)
 
         auto x = cl::makeOptionWithParser<int>(
             xParser,
+            cmd,
             cl::Required,
             cl::Prefix,
             cl::ArgOptional
             );
-        cmd.add(x);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -555,16 +550,13 @@ TEST(CmdLineTest, OptionGroup1)
         auto gr3 = cl::OptionGroup("gr3", cl::OptionGroup::One);
         cmd.add(gr3);
 
-        auto x = cl::makeOption<bool>("x");
-        cmd.add(x);
-        gr1.add(x);
-        auto y = cl::makeOption<bool>("y");
-        cmd.add(y);
-        gr2.add(y);
-        auto z = cl::makeOption<bool>("z");
-        cmd.add(z);
-        gr2.add(z);
-        gr3.add(z);
+        auto x = cl::makeOption<bool>(cmd, "x");
+        gr1.add(*x);
+        auto y = cl::makeOption<bool>(cmd, "y");
+        gr2.add(*y);
+        auto z = cl::makeOption<bool>(cmd, "z");
+        gr2.add(*z);
+        gr3.add(*z);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -585,8 +577,7 @@ TEST(CmdLineTest, MapRef)
 
     cl::CmdLine cmd;
 
-    auto x = cl::makeOption<int&>({{"0",0}, {"1",1}, {"2",2}}, cl::init(opt), "opt");
-    cmd.add(x);
+    auto x = cl::makeOption<int&>({{"0",0}, {"1",1}, {"2",2}}, cmd, cl::init(opt), "opt");
 
     bool ok = parse(cmd, {"-opt=1"});
 

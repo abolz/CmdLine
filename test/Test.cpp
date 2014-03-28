@@ -117,22 +117,22 @@ int main(int argc, char* argv[])
         "eins", "zwei", "drei", "vier", "funf"
     };
 
-    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>("I",
+    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(
+        cmd, "I",
         cl::ArgName("dir"),
         cl::ArgRequired,
         cl::init(Iinit),
         cl::Prefix,
         cl::ZeroOrMore
         );
-    cmd.add(I);
 
                     //------------------------------------------------------------------------------
 
-    auto files = cl::makeOption<std::vector<std::string>>("files",
+    auto files = cl::makeOption<std::vector<std::string>>(
+        cmd, "files",
         cl::Positional,
         cl::ZeroOrMore
         );
-    cmd.add(files);
 
                     //------------------------------------------------------------------------------
 
@@ -152,12 +152,12 @@ int main(int argc, char* argv[])
 
     auto opt = cl::makeOptionWithParser<OptimizationLevel>(
         std::ref(optParser),
+        cmd,
         cl::ArgDisallowed,
         cl::ArgName("optimization level"),
         cl::init(OL_None),
         cl::Required
         );
-    cmd.add(opt);
 
                     //------------------------------------------------------------------------------
 
@@ -175,11 +175,10 @@ int main(int argc, char* argv[])
             { "maggie",       Maggie      },
 //          { "sideshow bob", SideshowBob },
         },
-        "simpson",
+        cmd, "simpson",
         cl::ArgRequired,
         cl::init(SideshowBob)
         );
-    cmd.add(simpson);
 
                     //------------------------------------------------------------------------------
 
@@ -207,11 +206,9 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto Wsign_conversion = makeWFlag("Wsign-conversion|Wno-sign-conversion");
-    cmd.add(Wsign_conversion);
+    auto Wsign_conversion = makeWFlag(cmd, "Wsign-conversion|Wno-sign-conversion");
 
-    auto Wsign_compare = makeWFlag("Wsign-compare|Wno-sign-compare");
-    cmd.add(Wsign_compare);
+    auto Wsign_compare = makeWFlag(cmd, "Wsign-compare|Wno-sign-compare");
 
                     //------------------------------------------------------------------------------
 
@@ -234,8 +231,7 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
 #if 1
-    auto x_list = cl::makeOption<std::forward_list<int>>("x_list");
-    cmd.add(x_list);
+    auto x_list = cl::makeOption<std::forward_list<int>>(cmd, "x_list");
 #endif
 
     //----------------------------------------------------------------------------------------------
