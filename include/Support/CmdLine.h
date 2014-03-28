@@ -243,7 +243,8 @@ std::vector<StringRef> allowedValues(P const& /*parser*/)
 template <class T>
 struct MapParser
 {
-    using map_type = std::map<std::string, T>;
+    using value_type = RemoveReference<T>;
+    using map_type = std::map<std::string, value_type>;
     using map_value_type = typename map_type::value_type;
 
     map_type map;
@@ -253,7 +254,7 @@ struct MapParser
     {
     }
 
-    void operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
+    void operator()(StringRef name, StringRef arg, size_t /*i*/, value_type& value) const
     {
         // If the arg is empty, the option is specified by name
         auto I = map.find(arg.empty() ? name.str() : arg.str());
@@ -605,10 +606,10 @@ auto makeOption(An&&... an)
 
 // Construct a new Option, initialize the a map-parser with the given values
 template <class T, template <class> class TraitsT = Traits, class... An>
-auto makeOption(std::initializer_list<typename MapParser<RemoveReference<T>>::map_value_type> ilist, An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT, MapParser<RemoveReference<T>>>>
+auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ilist, An&&... an)
+    -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
 {
-    using R = Option<T, TraitsT, MapParser<RemoveReference<T>>>;
+    using R = Option<T, TraitsT, MapParser<T>>;
     return std::unique_ptr<R>(new R(OptionBase::InitParser, ilist, std::forward<An>(an)...));
 }
 
