@@ -48,26 +48,23 @@ TEST(CmdLineTest, Flags1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>("a");
-        cmd.add(a);
-        auto b = cl::makeOption<bool>("b", cl::Grouping);
-        cmd.add(b);
-        auto c = cl::makeOption<bool>("c", cl::Grouping, cl::ZeroOrMore);
-        cmd.add(c);
+        auto a = cl::makeOption<bool>(cmd, "a");
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping, cl::ZeroOrMore);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, +c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, +c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
@@ -97,26 +94,23 @@ TEST(CmdLineTest, Grouping1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>("a", cl::Grouping, cl::ZeroOrMore);
-        cmd.add(a);
-        auto b = cl::makeOption<bool>("b", cl::Grouping);
-        cmd.add(b);
-        auto c = cl::makeOption<bool>("ab", cl::Prefix);
-        cmd.add(c);
+        auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, +c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, +c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
@@ -154,26 +148,23 @@ TEST(CmdLineTest, Grouping2)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>("x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-        cmd.add(a);
-        auto b = cl::makeOption<bool>("v", cl::Grouping, cl::ArgDisallowed);
-        cmd.add(b);
-        auto c = cl::makeOption<std::string>("f", cl::Grouping, cl::ArgRequired);
-        cmd.add(c);
+        auto a = cl::makeOption<bool>(cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cmd, "v", cl::Grouping, cl::ArgDisallowed);
+        auto c = cl::makeOption<std::string>(cmd, "f", cl::Grouping, cl::ArgRequired);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-xvf", "test.tar"       }, {1,1}, {1,1}, {1,"test.tar"} ) );
@@ -192,21 +183,19 @@ TEST(CmdLineTest, Prefix)
 
         cl::CmdLine cmd;
 
-        auto r = cl::makeOption<std::string>("r", cl::Prefix, cl::ArgRequired);
-        cmd.add(r);
-        auto o = cl::makeOption<std::string>("o", cl::Prefix, cl::ArgOptional);
-        cmd.add(o);
+        auto r = cl::makeOption<std::string>(cmd, "r", cl::Prefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cmd, "o", cl::Prefix, cl::ArgOptional);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(r_val.first, r.count());
-        EXPECT_EQ(o_val.first, o.count());
+        EXPECT_EQ(r_val.first, r->count());
+        EXPECT_EQ(o_val.first, o->count());
 
-        if (r.count())
-            EXPECT_EQ(r_val.second, r.value());
-        if (o.count())
-            EXPECT_EQ(o_val.second, o.value());
+        if (r->count())
+            EXPECT_EQ(r_val.second, r->value());
+        if (o->count())
+            EXPECT_EQ(o_val.second, o->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
@@ -234,21 +223,19 @@ TEST(CmdLineTest, MayPrefix)
 
         cl::CmdLine cmd;
 
-        auto r = cl::makeOption<std::string>("r", cl::MayPrefix, cl::ArgRequired);
-        cmd.add(r);
-        auto o = cl::makeOption<std::string>("o", cl::MayPrefix, cl::ArgOptional);
-        cmd.add(o);
+        auto r = cl::makeOption<std::string>(cmd, "r", cl::MayPrefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cmd, "o", cl::MayPrefix, cl::ArgOptional);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(r_val.first, r.count());
-        EXPECT_EQ(o_val.first, o.count());
+        EXPECT_EQ(r_val.first, r->count());
+        EXPECT_EQ(o_val.first, o->count());
 
-        if (r.count())
-            EXPECT_EQ(r_val.second, r.value());
-        if (o.count())
-            EXPECT_EQ(o_val.second, o.value());
+        if (r->count())
+            EXPECT_EQ(r_val.second, r->value());
+        if (o->count())
+            EXPECT_EQ(o_val.second, o->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
@@ -274,22 +261,18 @@ TEST(CmdLineTest, Equals)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>("a", cl::Prefix, cl::ArgRequired);
-        cmd.add(a);
-        auto b = cl::makeOption<std::string>("b", cl::Prefix, cl::ArgOptional);
-        cmd.add(b);
-        auto c = cl::makeOption<std::string>("c", cl::ArgRequired);
-        cmd.add(c);
-        auto d = cl::makeOption<std::string>("d", cl::ArgOptional);
-        cmd.add(d);
+        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
+        auto b = cl::makeOption<std::string>(cmd, "b", cl::Prefix, cl::ArgOptional);
+        auto c = cl::makeOption<std::string>(cmd, "c", cl::ArgRequired);
+        auto d = cl::makeOption<std::string>(cmd, "d", cl::ArgOptional);
 
         if (!parse(cmd, argv))
             return false;
 
-        if (a.count()) EXPECT_EQ(a.value(), val);
-        if (b.count()) EXPECT_EQ(b.value(), val);
-        if (c.count()) EXPECT_EQ(c.value(), val);
-        if (d.count()) EXPECT_EQ(d.value(), val);
+        if (a->count()) EXPECT_EQ(a->value(), val);
+        if (b->count()) EXPECT_EQ(b->value(), val);
+        if (c->count()) EXPECT_EQ(c->value(), val);
+        if (d->count()) EXPECT_EQ(d->value(), val);
 
         return true;
     };
@@ -330,11 +313,11 @@ TEST(CmdLineTest, Consume1)
         if (!parse(cmd, argv))
             return false;
 
-        if (s.count())
-            EXPECT_EQ(s.value(), s_val);
+        if (s->count())
+            EXPECT_EQ(s->value(), s_val);
 
-        if (x.count())
-            EXPECT_EQ(x.value(), x_val);
+        if (x->count())
+            EXPECT_EQ(x->value(), x_val);
         else
             EXPECT_TRUE(x_val.empty());
 
@@ -372,8 +355,8 @@ TEST(CmdLineTest, Consume2)
         if (!parse(cmd, argv))
             return false;
 
-        if (s.count())
-            EXPECT_EQ(s.value(), s_val);
+        if (s->count())
+            EXPECT_EQ(s->value(), s_val);
 
         return true;
     };
@@ -407,21 +390,20 @@ TEST(CmdLineTest, Map1)
 
         auto x = cl::makeOption<int>(
             cl::InitParser, xParser,
-            "x",
+            cmd, "x",
             cl::ArgRequired,
             cl::ArgName("lang"),
             cl::ZeroOrMore,
             cl::init(0)
             );
-        cmd.add(x);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {                  }, {0,0}) );
@@ -459,10 +441,10 @@ TEST(CmdLineTest, Map2)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
@@ -501,10 +483,10 @@ TEST(CmdLineTest, Map3)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
@@ -543,10 +525,10 @@ TEST(CmdLineTest, Map4)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );

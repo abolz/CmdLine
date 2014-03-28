@@ -79,42 +79,37 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto help = cl::makeOption<std::string>(
-        "help",
+        cmd, "help",
         cl::ArgName("option"),
         cl::ArgOptional
         );
-    cmd.add(help);
 
                     //------------------------------------------------------------------------------
 
     double y = -1.0;
 
     auto y_ref = cl::makeOption<double&>(
-        "y",
+        cmd, "y",
         cl::ArgName("float"),
         cl::ArgRequired,
         cl::init(y)
         );
-    cmd.add(y_ref);
 
                     //------------------------------------------------------------------------------
 
-    auto g  = cl::makeOption<bool>("g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    cmd.add(g);
-    auto h  = cl::makeOption<bool>("h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    cmd.add(h);
-    auto gh = cl::makeOption<bool>("gh", cl::Prefix, cl::ArgRequired);
-    cmd.add(gh);
+    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix, cl::ArgRequired);
 
                     //------------------------------------------------------------------------------
 
-    auto z = cl::makeOption<std::set<int>>("z",
+    auto z = cl::makeOption<std::set<int>>(
+        cmd, "z",
         cl::ArgName("int"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::ZeroOrMore
         );
-    cmd.add(z);
 
                     //------------------------------------------------------------------------------
 
@@ -196,20 +191,19 @@ int main(int argc, char* argv[])
             cl::Parser<std::string>()(name, p.first, i, value.first);
             cl::Parser<int>()(name, p.second, i, value.second);
         },
-        "f",
+        cmd, "f",
         cl::ArgName("string:int"),
         cl::ArgRequired,
         cl::CommaSeparated
         );
-    cmd.add(f);
 
                     //------------------------------------------------------------------------------
 
     auto debug_level = cl::makeOption<int>("debug-level|d",
+        cmd,
         cl::ArgRequired,
         cl::Optional
         );
-    cmd.add(debug_level);
 
                     //------------------------------------------------------------------------------
 
@@ -260,20 +254,20 @@ int main(int argc, char* argv[])
 
     //----------------------------------------------------------------------------------------------
 
-    std::cout << pretty(debug_level) << std::endl;
-    std::cout << pretty(f) << std::endl;
-    std::cout << pretty(files) << std::endl;
-    std::cout << pretty(g) << std::endl;
-    std::cout << pretty(gh) << std::endl;
-    std::cout << pretty(h) << std::endl;
-    std::cout << pretty(I) << std::endl;
-    std::cout << pretty(opt) << std::endl;
-    std::cout << pretty(simpson) << std::endl;
-    std::cout << pretty(targets) << std::endl;
-    std::cout << pretty(Wsign_compare) << std::endl;
-    std::cout << pretty(Wsign_conversion) << std::endl;
-    std::cout << pretty(y_ref) << std::endl;
-    std::cout << pretty(z) << std::endl;
+    std::cout << pretty(*debug_level) << std::endl;
+    std::cout << pretty(*f) << std::endl;
+    std::cout << pretty(*files) << std::endl;
+    std::cout << pretty(*g) << std::endl;
+    std::cout << pretty(*gh) << std::endl;
+    std::cout << pretty(*h) << std::endl;
+    std::cout << pretty(*I) << std::endl;
+    std::cout << pretty(*opt) << std::endl;
+    std::cout << pretty(*simpson) << std::endl;
+    std::cout << pretty(*targets) << std::endl;
+    std::cout << pretty(*Wsign_compare) << std::endl;
+    std::cout << pretty(*Wsign_conversion) << std::endl;
+    std::cout << pretty(*y_ref) << std::endl;
+    std::cout << pretty(*z) << std::endl;
 
     //----------------------------------------------------------------------------------------------
 

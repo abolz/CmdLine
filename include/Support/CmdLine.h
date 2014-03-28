@@ -9,6 +9,7 @@
 
 #include <iomanip>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -64,6 +65,9 @@ enum MiscFlags : unsigned char {
 class OptionBase;
 class OptionGroup;
 
+template <class /*T*/, template <class> class /*TraitsT*/, class /*ParserT*/>
+class Option;
+
 class CmdLine
 {
 public:
@@ -94,6 +98,12 @@ public:
 
     // Adds the given option group to the command line
     void add(OptionGroup& group);
+
+    // Adds the given option to the command line
+    template <class X1, template <class> class X2, class X3>
+    void add(std::unique_ptr<Option<X1, X2, X3>> const& opt) {
+        add(*opt);
+    }
 
     // Parse the given command line arguments
     void parse(StringVector const& argv);
@@ -340,6 +350,12 @@ public:
     // Add an option to this group
     void add(OptionBase& opt);
 
+    // Add an option to this group
+    template <class X1, template <class> class X2, class X3>
+    void add(std::unique_ptr<Option<X1, X2, X3>> const& opt) {
+        add(*opt);
+    }
+
     // Checks whether this group is valid
     void check() const;
 
@@ -405,11 +421,30 @@ protected:
     {
     }
 
-    template <class... An>
-    void applyAll(An&&... an)
+    void applyAll()
     {
-        int t[] = { (apply(std::forward<An>(an)), 0)... };
-        static_cast<void>(t);
+    }
+
+    template <class A, class... An>
+    void applyAll(A&& a, An&&... an)
+    {
+        apply(std::forward<A>(a));
+        applyAll(std::forward<An>(an)...);
+    }
+
+    template <class... An>
+    void applyAll(CmdLine& cmd, An&&... an)
+    {
+        applyAll(std::forward<An>(an)...);
+
+        //
+        // NOTE:
+        //
+        // This might call the virtual function allowedValues(). Since applyRec is *only* called
+        // in the body of the constructor of Option<> and this is where allowedValues() is actually
+        // implemented, this should be ok.
+        //
+        cmd.add(*this);
     }
 
 private:
@@ -561,28 +596,28 @@ private:
 // Construct a new Option with a default constructed parser
 template <class T, template <class> class TraitsT = Traits, class... An>
 auto makeOption(An&&... an)
-    -> Option<T, TraitsT>
+    -> std::unique_ptr<Option<T, TraitsT>>
 {
     using R = Option<T, TraitsT>;
-    return R(DefaultInitParser, std::forward<An>(an)...);
+    return std::unique_ptr<R>(new R(DefaultInitParser, std::forward<An>(an)...));
 }
 
 // Construct a new Option, initialize the parser with the given value
 template <class T, template <class> class TraitsT = Traits, class P, class... An>
 auto makeOption(InitParserTag, P&& p, An&&... an)
-    -> Option<T, TraitsT, Decay<P>>
+    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
 {
     using R = Option<T, TraitsT, Decay<P>>;
-    return R(InitParser, std::forward<P>(p), std::forward<An>(an)...);
+    return std::unique_ptr<R>(new R(InitParser, std::forward<P>(p), std::forward<An>(an)...));
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
 template <class T, template <class> class TraitsT = Traits, class... An>
 auto makeOption(std::initializer_list<typename MapParser<RemoveReference<T>>::map_value_type> ilist, An&&... an)
-    -> Option<T, TraitsT, MapParser<RemoveReference<T>>>
+    -> std::unique_ptr<Option<T, TraitsT, MapParser<RemoveReference<T>>>>
 {
     using R = Option<T, TraitsT, MapParser<RemoveReference<T>>>;
-    return R(InitParser, ilist, std::forward<An>(an)...);
+    return std::unique_ptr<R>(new R(InitParser, ilist, std::forward<An>(an)...));
 }
 
 } // namespace cl
