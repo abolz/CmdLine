@@ -597,3 +597,18 @@ TEST(CmdLineTest, OptionGroup1)
     EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y"}) );
     EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y", "-z"}) );
 }
+
+TEST(CmdLineTest, MapRef)
+{
+    int opt = 0;
+
+    cl::CmdLine cmd;
+
+    auto x = cl::makeOption<int&>({{"0",0}, {"1",1}, {"2",2}}, cl::init(opt), "opt");
+    cmd.add(x);
+
+    bool ok = parse(cmd, {"-opt=1"});
+
+    EXPECT_EQ(true, ok);
+    EXPECT_EQ(1, opt);
+}

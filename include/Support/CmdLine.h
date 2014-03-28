@@ -563,7 +563,8 @@ template <class T, template <class> class TraitsT = Traits, class... An>
 auto makeOption(An&&... an)
     -> Option<T, TraitsT>
 {
-    return Option<T, TraitsT>(DefaultInitParser, std::forward<An>(an)...);
+    using R = Option<T, TraitsT>;
+    return R(DefaultInitParser, std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the parser with the given value
@@ -571,15 +572,17 @@ template <class T, template <class> class TraitsT = Traits, class P, class... An
 auto makeOption(InitParserTag, P&& p, An&&... an)
     -> Option<T, TraitsT, Decay<P>>
 {
-    return Option<T, TraitsT, Decay<P>>(InitParser, std::forward<P>(p), std::forward<An>(an)...);
+    using R = Option<T, TraitsT, Decay<P>>;
+    return R(InitParser, std::forward<P>(p), std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
 template <class T, template <class> class TraitsT = Traits, class... An>
-auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ilist, An&&... an)
-    -> Option<T, TraitsT, MapParser<T>>
+auto makeOption(std::initializer_list<typename MapParser<RemoveReference<T>>::map_value_type> ilist, An&&... an)
+    -> Option<T, TraitsT, MapParser<RemoveReference<T>>>
 {
-    return Option<T, TraitsT, MapParser<T>>(InitParser, ilist, std::forward<An>(an)...);
+    using R = Option<T, TraitsT, MapParser<RemoveReference<T>>>;
+    return R(InitParser, ilist, std::forward<An>(an)...);
 }
 
 } // namespace cl
