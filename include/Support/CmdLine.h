@@ -488,31 +488,29 @@ class BasicOption : public OptionBase
     T value_;
 
 protected:
-    enum CtorTag { Ctor };
-
-    BasicOption(CtorTag)
+    BasicOption(std::piecewise_construct_t)
         : BaseType()
         , value_() // NOTE: error here if T is a reference type and not initialized using init(T)
     {
     }
 
     template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
-    BasicOption(CtorTag, details::Initializer<T> x, An&&...)
+    BasicOption(std::piecewise_construct_t, details::Initializer<T> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
-    BasicOption(CtorTag, details::Initializer<U> x, An&&...)
+    BasicOption(std::piecewise_construct_t, details::Initializer<U> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
     template <class A, class... An>
-    BasicOption(CtorTag, A&&, An&&... an)
-        : BasicOption(Ctor, std::forward<An>(an)...)
+    BasicOption(std::piecewise_construct_t, A&&, An&&... an)
+        : BasicOption(std::piecewise_construct, std::forward<An>(an)...)
     {
     }
 
@@ -553,11 +551,9 @@ class Option : public BasicOption<T>
 public:
     using parser_type = UnwrapReferenceWrapper<ParserT>;
 
-    enum CtorTag { Ctor };
-
     template <class P, class... An>
-    explicit Option(CtorTag, P&& p, An&&... an)
-        : BaseType(BaseType::Ctor, std::forward<An>(an)...)
+    explicit Option(std::piecewise_construct_t, P&& p, An&&... an)
+        : BaseType(std::piecewise_construct, std::forward<An>(an)...)
         , parser_(std::forward<P>(p))
     {
         this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
@@ -604,7 +600,7 @@ auto makeOption(P&& p, An&&... an)
     -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
 {
     using R = Option<T, TraitsT, Decay<P>>;
-    return std::unique_ptr<R>(new R(R::Ctor, std::forward<P>(p), std::forward<An>(an)...));
+    return std::unique_ptr<R>(new R(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...));
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
@@ -613,7 +609,7 @@ auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ili
     -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
 {
     using R = Option<T, TraitsT, MapParser<T>>;
-    return std::unique_ptr<R>(new R(R::Ctor, ilist, std::forward<An>(an)...));
+    return std::unique_ptr<R>(new R(std::piecewise_construct, ilist, std::forward<An>(an)...));
 }
 
 } // namespace cl
