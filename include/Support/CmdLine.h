@@ -91,10 +91,7 @@ private:
 
 public:
     // Constructor.
-    CmdLine();
-
-    // Constructor.
-    CmdLine(StringVector args);
+    explicit CmdLine(StringVector args = {});
 
     // Destructor.
     ~CmdLine();

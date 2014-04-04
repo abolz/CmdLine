@@ -15,12 +15,14 @@ using namespace support::cl;
 // CmdLine
 //
 
-CmdLine::CmdLine()
-{
-}
-
 CmdLine::CmdLine(StringVector args)
     : args_(std::move(args))
+    , index_(0)
+    , options_()
+    , groups_()
+    , positionals_()
+    , currentPositional_()
+    , maxPrefixLength_(0)
 {
 }
 
