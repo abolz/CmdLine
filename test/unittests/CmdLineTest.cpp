@@ -580,3 +580,29 @@ TEST(CmdLineTest, MapRef)
     EXPECT_EQ(true, ok);
     EXPECT_EQ(1, opt);
 }
+
+TEST(CmdLineTest, Bump)
+{
+    cl::CmdLine cmd;
+
+    auto atoi = [](StringRef str) -> int
+    {
+        if (str.data())
+            return std::atoi(str.data());
+        return 0;
+    };
+
+    auto x = cl::makeOptionWithParser<int>(
+        [&](StringRef name, StringRef arg, int& value) {
+            value += atoi(cmd.bump().data());
+            value += atoi(cmd.bump().data());
+            value += atoi(cmd.bump().data());
+        },
+        cmd, "x", cl::init(0), cl::ArgOptional, cl::ZeroOrMore
+        );
+
+    bool ok = parse(cmd, {"-x", "1", "2", "3", "-x", "4"});
+
+    EXPECT_EQ(true, ok);
+    EXPECT_EQ(10, x->value());
+}

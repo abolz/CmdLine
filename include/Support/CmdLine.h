@@ -74,18 +74,27 @@ public:
     using StringVector  = std::vector<std::string>;
 
 private:
+    // List of command line arguments
+    StringVector args_;
+    // Index of the currently processed argument
+    size_t index_;
     // List of options
     OptionMap options_;
     // List of option groups and associated options
     OptionGroups groups_;
     // List of positional options
     OptionVector positionals_;
+    // Index of the current positional option
+    OptionVector::iterator currentPositional_;
     // The length of the longest prefix option
     size_t maxPrefixLength_;
 
 public:
     // Constructor.
     CmdLine();
+
+    // Constructor.
+    CmdLine(StringVector args);
 
     // Destructor.
     ~CmdLine();
@@ -96,32 +105,43 @@ public:
     // Adds the given option group to the command line
     void add(OptionGroup& group);
 
+    // Parse the command line arguments
+    void parse();
+
     // Parse the given command line arguments
-    void parse(StringVector const& argv);
+    void parse(StringVector argv);
+
+    // Expand response files and parse the command line arguments
+    void expandAndParse();
 
     // Expand response files and parse the command line arguments
     void expandAndParse(StringVector argv);
+
+    // Returns the index of the currently processed argument
+    size_t index() const;
+
+    // Returns the next argument and increments the index
+    StringRef bump();
 
 private:
     OptionBase* findOption(StringRef name) const;
 
     OptionVector getUniqueOptions() const;
 
-    void expandResponseFile(StringVector& argv, size_t i);
-    void expandResponseFiles(StringVector& argv);
+    void expandResponseFile(size_t i);
+    void expandResponseFiles();
 
-    void handleArg(bool& dashdash, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
+    void handleArg(bool& dashdash);
 
-    void handlePositional(StringRef curr, StringVector const& argv, size_t& i, OptionVector::iterator& pos);
+    void handlePositional(StringRef curr);
+    bool handleOption(StringRef curr);
+    bool handlePrefix(StringRef curr);
+    bool handleGroup(StringRef curr);
 
-    bool handleOption(StringRef curr, StringVector const& argv, size_t& i);
-    bool handlePrefix(StringRef curr, size_t i);
-    bool handleGroup(StringRef curr, StringVector const& argv, size_t& i);
+    void addOccurrence(OptionBase* opt, StringRef name);
+    void addOccurrence(OptionBase* opt, StringRef name, StringRef arg);
 
-    void addOccurrence(OptionBase* opt, StringRef name, StringVector const& argv, size_t& i);
-    void addOccurrence(OptionBase* opt, StringRef name, StringRef arg, size_t i);
-
-    void parse(OptionBase* opt, StringRef name, StringRef arg, size_t i);
+    void parse(OptionBase* opt, StringRef name, StringRef arg);
 
     void check(OptionBase const* opt);
     void check();
@@ -174,7 +194,7 @@ inline auto init(T&& value) -> details::Initializer<T&&>
 template <class T>
 struct Parser
 {
-    void operator()(StringRef name, StringRef arg, size_t /*i*/, T& value) const
+    void operator()(StringRef name, StringRef arg, T& value) const
     {
         StringRefStream stream(arg);
 
@@ -188,7 +208,7 @@ struct Parser
 template <>
 struct Parser<bool>
 {
-    void operator()(StringRef name, StringRef arg, size_t /*i*/, bool& value) const
+    void operator()(StringRef name, StringRef arg, bool& value) const
     {
         if (arg.empty() || arg == "1" || arg == "true" || arg == "on")
             value = true;
@@ -202,7 +222,7 @@ struct Parser<bool>
 template <>
 struct Parser<std::string>
 {
-    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, std::string& value) const {
+    void operator()(StringRef /*name*/, StringRef arg, std::string& value) const {
         value.assign(arg.data(), arg.size());
     }
 };
@@ -245,7 +265,7 @@ struct MapParser
     {
     }
 
-    void operator()(StringRef name, StringRef arg, size_t /*i*/, value_type& value) const
+    void operator()(StringRef name, StringRef arg, value_type& value) const
     {
         // If the arg is empty, the option is specified by name
         auto I = map.find(arg.empty() ? name.str() : arg.str());
@@ -448,7 +468,7 @@ private:
     bool isPrefix() const;
 
     // Parses the given value and stores the result.
-    virtual void parse(StringRef spec, StringRef value, size_t i) = 0;
+    virtual void parse(StringRef spec, StringRef value) = 0;
 
     // Returns a list of allowed values for this option
     virtual std::vector<StringRef> getAllowedValues() const = 0;
@@ -553,23 +573,23 @@ public:
     parser_type const& parser() const { return parser_; }
 
 private:
-    void parse(StringRef spec, StringRef value, size_t i, std::false_type)
+    void parse(StringRef spec, StringRef value, std::false_type)
     {
         ElementType t;
 
         // Parse...
-        parser()(spec, value, i, t);
+        parser()(spec, value, t);
 
         // and insert into the container
         InserterType()(this->value(), std::move(t));
     }
 
-    void parse(StringRef spec, StringRef value, size_t i, std::true_type) {
-        parser()(spec, value, i, this->value());
+    void parse(StringRef spec, StringRef value, std::true_type) {
+        parser()(spec, value, this->value());
     }
 
-    virtual void parse(StringRef spec, StringRef value, size_t i) override final {
-        parse(spec, value, i, IsScalar());
+    virtual void parse(StringRef spec, StringRef value) override final {
+        parse(spec, value, IsScalar());
     }
 
     virtual std::vector<StringRef> getAllowedValues() const override final {

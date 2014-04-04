@@ -58,7 +58,7 @@ namespace cl
 
 struct WFlagParser
 {
-    void operator ()(StringRef name, StringRef /*arg*/, size_t /*i*/, bool& value) const
+    void operator ()(StringRef name, StringRef /*arg*/, bool& value) const
     {
         value = !name.starts_with("Wno-");
     }
@@ -113,18 +113,18 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    std::initializer_list<cl::WithIndex<std::string>> Iinit {
-        "eins", "zwei", "drei", "vier", "funf"
-    };
+    //std::initializer_list<cl::WithIndex<std::string>> Iinit {
+    //    "eins", "zwei", "drei", "vier", "funf"
+    //};
 
-    auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(
-        cmd, "I",
-        cl::ArgName("dir"),
-        cl::ArgRequired,
-        cl::init(Iinit),
-        cl::Prefix,
-        cl::ZeroOrMore
-        );
+    //auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(
+    //    cmd, "I",
+    //    cl::ArgName("dir"),
+    //    cl::ArgRequired,
+    //    cl::init(Iinit),
+    //    cl::Prefix,
+    //    cl::ZeroOrMore
+    //    );
 
                     //------------------------------------------------------------------------------
 
@@ -183,12 +183,12 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto f = cl::makeOptionWithParser<std::map<std::string, int>, cl::Traits/*default*/>(
-        [](StringRef name, StringRef arg, size_t i, std::pair<std::string, int>& value)
+        [](StringRef name, StringRef arg, std::pair<std::string, int>& value)
         {
             auto p = strings::split_once(arg, ":");
 
-            cl::Parser<std::string>()(name, p.first, i, value.first);
-            cl::Parser<int>()(name, p.second, i, value.second);
+            cl::Parser<std::string>()(name, p.first, value.first);
+            cl::Parser<int>()(name, p.second, value.second);
         },
         cmd, "f",
         cl::ArgName("string:int"),
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto targets = cl::makeOptionWithParser<std::set<std::string>, cl::ScalarType>(
-        [](StringRef name, StringRef arg, size_t /*i*/, std::set<std::string>& value)
+        [](StringRef name, StringRef arg, std::set<std::string>& value)
         {
             if (name.starts_with("without-"))
                 value.erase(arg.str());
@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(*g) << std::endl;
     std::cout << pretty(*gh) << std::endl;
     std::cout << pretty(*h) << std::endl;
-    std::cout << pretty(*I) << std::endl;
+//  std::cout << pretty(*I) << std::endl;
     std::cout << pretty(*opt) << std::endl;
     std::cout << pretty(*simpson) << std::endl;
     std::cout << pretty(*targets) << std::endl;
