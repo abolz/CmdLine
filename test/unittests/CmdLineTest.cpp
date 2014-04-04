@@ -48,9 +48,9 @@ TEST(CmdLineTest, Flags1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>(cmd, "a");
-        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
-        auto c = cl::makeOption<bool>(cmd, "c", cl::Grouping, cl::ZeroOrMore);
+        auto a = cl::makeOption<bool>(cl::Parser<>(), cmd, "a");
+        auto b = cl::makeOption<bool>(cl::Parser<>(), cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cl::Parser<>(), cmd, "c", cl::Grouping, cl::ZeroOrMore);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -94,9 +94,9 @@ TEST(CmdLineTest, Grouping1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>(cmd, "a", cl::Grouping, cl::ZeroOrMore);
-        auto b = cl::makeOption<bool>(cmd, "b", cl::Grouping);
-        auto c = cl::makeOption<bool>(cmd, "ab", cl::Prefix);
+        auto a = cl::makeOption<bool>(cl::Parser<>(), cmd, "a", cl::Grouping, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cl::Parser<>(), cmd, "b", cl::Grouping);
+        auto c = cl::makeOption<bool>(cl::Parser<>(), cmd, "ab", cl::Prefix);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -148,9 +148,9 @@ TEST(CmdLineTest, Grouping2)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<bool>(cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-        auto b = cl::makeOption<bool>(cmd, "v", cl::Grouping, cl::ArgDisallowed);
-        auto c = cl::makeOption<std::string>(cmd, "f", cl::Grouping, cl::ArgRequired);
+        auto a = cl::makeOption<bool>(cl::Parser<>(), cmd, "x", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+        auto b = cl::makeOption<bool>(cl::Parser<>(), cmd, "v", cl::Grouping, cl::ArgDisallowed);
+        auto c = cl::makeOption<std::string>(cl::Parser<>(), cmd, "f", cl::Grouping, cl::ArgRequired);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -183,8 +183,8 @@ TEST(CmdLineTest, Prefix)
 
         cl::CmdLine cmd;
 
-        auto r = cl::makeOption<std::string>(cmd, "r", cl::Prefix, cl::ArgRequired);
-        auto o = cl::makeOption<std::string>(cmd, "o", cl::Prefix, cl::ArgOptional);
+        auto r = cl::makeOption<std::string>(cl::Parser<>(), cmd, "r", cl::Prefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cl::Parser<>(), cmd, "o", cl::Prefix, cl::ArgOptional);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -223,8 +223,8 @@ TEST(CmdLineTest, MayPrefix)
 
         cl::CmdLine cmd;
 
-        auto r = cl::makeOption<std::string>(cmd, "r", cl::MayPrefix, cl::ArgRequired);
-        auto o = cl::makeOption<std::string>(cmd, "o", cl::MayPrefix, cl::ArgOptional);
+        auto r = cl::makeOption<std::string>(cl::Parser<>(), cmd, "r", cl::MayPrefix, cl::ArgRequired);
+        auto o = cl::makeOption<std::string>(cl::Parser<>(), cmd, "o", cl::MayPrefix, cl::ArgOptional);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -261,10 +261,10 @@ TEST(CmdLineTest, Equals)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>(cmd, "a", cl::Prefix, cl::ArgRequired);
-        auto b = cl::makeOption<std::string>(cmd, "b", cl::Prefix, cl::ArgOptional);
-        auto c = cl::makeOption<std::string>(cmd, "c", cl::ArgRequired);
-        auto d = cl::makeOption<std::string>(cmd, "d", cl::ArgOptional);
+        auto a = cl::makeOption<std::string>(cl::Parser<>(), cmd, "a", cl::Prefix, cl::ArgRequired);
+        auto b = cl::makeOption<std::string>(cl::Parser<>(), cmd, "b", cl::Prefix, cl::ArgOptional);
+        auto c = cl::makeOption<std::string>(cl::Parser<>(), cmd, "c", cl::ArgRequired);
+        auto d = cl::makeOption<std::string>(cl::Parser<>(), cmd, "d", cl::ArgOptional);
 
         if (!parse(cmd, argv))
             return false;
@@ -303,9 +303,9 @@ TEST(CmdLineTest, Consume1)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>(cmd, "a");
-        auto s = cl::makeOption<std::string>(cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
-        auto x = cl::makeOption<std::vector<std::string>>(cmd, "arguments", cl::Positional);
+        auto a = cl::makeOption<std::string>(cl::Parser<>(), cmd, "a");
+        auto s = cl::makeOption<std::string>(cl::Parser<>(), cmd, "script", cl::Positional, cl::Required, cl::ConsumeAfter);
+        auto x = cl::makeOption<std::vector<std::string>>(cl::Parser<>(), cmd, "arguments", cl::Positional);
 
         if (!parse(cmd, argv))
             return false;
@@ -344,8 +344,8 @@ TEST(CmdLineTest, Consume2)
 
         cl::CmdLine cmd;
 
-        auto a = cl::makeOption<std::string>(cmd, "a");
-        auto s = cl::makeOption<std::vector<std::string>>(cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
+        auto a = cl::makeOption<std::string>(cl::Parser<>(), cmd, "a");
+        auto s = cl::makeOption<std::vector<std::string>>(cl::Parser<>(), cmd, "script", cl::Positional, cl::OneOrMore, cl::ConsumeAfter);
 
         if (!parse(cmd, argv))
             return false;
@@ -383,7 +383,7 @@ TEST(CmdLineTest, Map1)
             { "01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789", 3}
         });
 
-        auto x = cl::makeOptionWithParser<int>(
+        auto x = cl::makeOption<int>(
             xParser,
             cmd, "x",
             cl::ArgRequired,
@@ -426,7 +426,7 @@ TEST(CmdLineTest, Map2)
             { "O3", 3 },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
+        auto x = cl::makeOption<int>(
             xParser,
             cmd,
             cl::Required,
@@ -467,7 +467,7 @@ TEST(CmdLineTest, Map3)
             { "O3", 3 },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
+        auto x = cl::makeOption<int>(
             xParser,
             cmd,
             cl::Required,
@@ -508,7 +508,7 @@ TEST(CmdLineTest, Map4)
             { "3", 3 },
         });
 
-        auto x = cl::makeOptionWithParser<int>(
+        auto x = cl::makeOption<int>(
             xParser,
             cmd, "O",
             cl::Required,
@@ -550,9 +550,9 @@ TEST(CmdLineTest, OptionGroup1)
         auto gr3 = cl::OptionGroup("gr3", cl::OptionGroup::One);
         cmd.add(gr3);
 
-        auto x = cl::makeOption<bool>(cmd, "x", gr1);
-        auto y = cl::makeOption<bool>(cmd, "y", gr2);
-        auto z = cl::makeOption<bool>(cmd, "z", gr2, gr3);
+        auto x = cl::makeOption<bool>(cl::Parser<>(), cmd, "x", gr1);
+        auto y = cl::makeOption<bool>(cl::Parser<>(), cmd, "y", gr2);
+        auto z = cl::makeOption<bool>(cl::Parser<>(), cmd, "z", gr2, gr3);
 
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
@@ -585,23 +585,27 @@ TEST(CmdLineTest, Bump)
 {
     cl::CmdLine cmd;
 
-    auto atoi = [](StringRef str) -> int
+    auto atoi = [](StringRef str)
     {
-        if (str.data())
-            return std::atoi(str.data());
-        return 0;
+        // using .data() is ok here...
+        return str.data() ? std::atoi(str.data()) : 0;
     };
 
-    auto x = cl::makeOptionWithParser<int>(
-        [&](StringRef name, StringRef arg, int& value) {
-            value += atoi(cmd.bump().data());
-            value += atoi(cmd.bump().data());
-            value += atoi(cmd.bump().data());
-        },
+    auto parser = [&](int& value)
+    {
+        value += atoi(cmd.bump());
+        value += atoi(cmd.bump());
+        value += atoi(cmd.bump());
+    };
+
+    auto x = cl::makeOption<int>(
+//        parser,
+        std::bind(parser, std::placeholders::_3),
         cmd, "x", cl::init(0), cl::ArgOptional, cl::ZeroOrMore
         );
 
     bool ok = parse(cmd, {"-x", "1", "2", "3", "-x", "4"});
+//    bool ok = parse(cmd, {"-x", "1", "xxxx", "3", "-x", "4"});
 
     EXPECT_EQ(true, ok);
     EXPECT_EQ(10, x->value());

@@ -5,7 +5,6 @@
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
-#include "CmdLineWithIndex.h"
 #include "PrettyPrint.h"
 
 #include <forward_list>
@@ -39,12 +38,6 @@ namespace cl
         stream << "  value = " << pretty(option.value());
     }
 
-    template <class T>
-    void prettyPrint(std::ostream& stream, WithIndex<T> const& x)
-    {
-        stream << "(" << x.index << ": " << pretty(x.value) << ")";
-    }
-
 #if 1
     // Integrate forward_list into the command line library
     template <class T>
@@ -67,7 +60,7 @@ struct WFlagParser
 template <class... Args>
 auto makeWFlag(Args&&... args)
 RETURN(
-    cl::makeOptionWithParser<bool>(WFlagParser(), std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore)
+    cl::makeOption<bool>(WFlagParser(), std::forward<Args>(args)..., cl::ArgDisallowed, cl::ZeroOrMore)
 )
 
 int main(int argc, char* argv[])
@@ -79,7 +72,7 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
     auto help = cl::makeOption<std::string>(
-        cmd, "help",
+        cl::Parser<>(), cmd, "help",
         cl::ArgName("option"),
         cl::ArgOptional
         );
@@ -89,7 +82,7 @@ int main(int argc, char* argv[])
     double y = -1.0;
 
     auto y_ref = cl::makeOption<double&>(
-        cmd, "y",
+        cl::Parser<>(), cmd, "y",
         cl::ArgName("float"),
         cl::ArgRequired,
         cl::init(y)
@@ -97,14 +90,14 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto g  = cl::makeOption<bool>(cmd, "g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    auto h  = cl::makeOption<bool>(cmd, "h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
-    auto gh = cl::makeOption<bool>(cmd, "gh", cl::Prefix, cl::ArgRequired);
+    auto g  = cl::makeOption<bool>(cl::Parser<>(), cmd, "g", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    auto h  = cl::makeOption<bool>(cl::Parser<>(), cmd, "h", cl::Grouping, cl::ArgDisallowed, cl::ZeroOrMore);
+    auto gh = cl::makeOption<bool>(cl::Parser<>(), cmd, "gh", cl::Prefix, cl::ArgRequired);
 
                     //------------------------------------------------------------------------------
 
     auto z = cl::makeOption<std::set<int>>(
-        cmd, "z",
+        cl::Parser<>(), cmd, "z",
         cl::ArgName("int"),
         cl::ArgRequired,
         cl::CommaSeparated,
@@ -113,22 +106,21 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    //std::initializer_list<cl::WithIndex<std::string>> Iinit {
-    //    "eins", "zwei", "drei", "vier", "funf"
-    //};
-
-    //auto I = cl::makeOption<std::vector<cl::WithIndex<std::string>>>(
-    //    cmd, "I",
-    //    cl::ArgName("dir"),
-    //    cl::ArgRequired,
-    //    cl::init(Iinit),
-    //    cl::Prefix,
-    //    cl::ZeroOrMore
-    //    );
+    auto I = cl::makeOption<std::vector<std::pair<std::string, size_t>>>(
+        [&](StringRef /*name*/, StringRef arg, std::pair<std::string, size_t>& value) {
+            value = { arg.str(), cmd.index() };
+        },
+        cmd, "I",
+        cl::ArgName("dir"),
+        cl::ArgRequired,
+        cl::Prefix,
+        cl::ZeroOrMore
+        );
 
                     //------------------------------------------------------------------------------
 
     auto files = cl::makeOption<std::vector<std::string>>(
+        cl::Parser<>(),
         cmd, "files",
         cl::Positional,
         cl::ZeroOrMore
@@ -150,7 +142,7 @@ int main(int argc, char* argv[])
         { "O3", OL_Expensive },
     });
 
-    auto opt = cl::makeOptionWithParser<OptimizationLevel>(
+    auto opt = cl::makeOption<OptimizationLevel>(
         std::ref(optParser),
         cmd,
         cl::ArgDisallowed,
@@ -182,13 +174,13 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto f = cl::makeOptionWithParser<std::map<std::string, int>, cl::Traits/*default*/>(
+    auto f = cl::makeOption<std::map<std::string, int>, cl::Traits/*default*/>(
         [](StringRef name, StringRef arg, std::pair<std::string, int>& value)
         {
             auto p = strings::split_once(arg, ":");
 
-            cl::Parser<std::string>()(name, p.first, value.first);
-            cl::Parser<int>()(name, p.second, value.second);
+            cl::Parser<>()(name, p.first, value.first);
+            cl::Parser<>()(name, p.second, value.second);
         },
         cmd, "f",
         cl::ArgName("string:int"),
@@ -198,8 +190,9 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto debug_level = cl::makeOption<int>("debug-level|d",
-        cmd,
+    auto debug_level = cl::makeOption<int>(
+        cl::Parser<>(),
+        cmd, "debug-level|d",
         cl::ArgRequired,
         cl::Optional
         );
@@ -212,7 +205,7 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
-    auto targets = cl::makeOptionWithParser<std::set<std::string>, cl::ScalarType>(
+    auto targets = cl::makeOption<std::set<std::string>, cl::ScalarType>(
         [](StringRef name, StringRef arg, std::set<std::string>& value)
         {
             if (name.starts_with("without-"))
@@ -231,7 +224,7 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
 #if 1
-    auto x_list = cl::makeOption<std::forward_list<int>>(cmd, "x_list");
+    auto x_list = cl::makeOption<std::forward_list<int>>(cl::Parser<>(), cmd, "x_list");
 #endif
 
     //----------------------------------------------------------------------------------------------
@@ -254,7 +247,7 @@ int main(int argc, char* argv[])
     std::cout << pretty(*g) << std::endl;
     std::cout << pretty(*gh) << std::endl;
     std::cout << pretty(*h) << std::endl;
-//  std::cout << pretty(*I) << std::endl;
+    std::cout << pretty(*I) << std::endl;
     std::cout << pretty(*opt) << std::endl;
     std::cout << pretty(*simpson) << std::endl;
     std::cout << pretty(*targets) << std::endl;

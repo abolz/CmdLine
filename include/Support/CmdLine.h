@@ -191,7 +191,7 @@ inline auto init(T&& value) -> details::Initializer<T&&>
 // Parser
 //
 
-template <class T>
+template <class T = void>
 struct Parser
 {
     void operator()(StringRef name, StringRef arg, T& value) const
@@ -199,9 +199,7 @@ struct Parser
         StringRefStream stream(arg);
 
         if (!(stream >> std::setbase(0) >> value) || !stream.eof())
-        {
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
-        }
     }
 };
 
@@ -227,6 +225,15 @@ struct Parser<std::string>
     }
 };
 
+template <>
+struct Parser<void> // default parser
+{
+    template <class T>
+    void operator ()(StringRef name, StringRef arg, T& value) const {
+        Parser<T>()(name, arg, value);
+    }
+};
+
 //--------------------------------------------------------------------------------------------------
 // allowedValues
 //
@@ -242,8 +249,7 @@ struct Parser<std::string>
 //
 
 template <class P>
-std::vector<StringRef> allowedValues(P const& /*parser*/)
-{
+std::vector<StringRef> allowedValues(P const& /*parser*/) {
     return {};
 }
 
@@ -402,10 +408,6 @@ protected:
     OptionBase();
 
 public:
-    enum DefaultInitParserTag { DefaultInitParser };
-    enum InitParserTag { InitParser };
-
-public:
     // Destructor.
     virtual ~OptionBase();
 
@@ -551,15 +553,10 @@ class Option : public BasicOption<T>
 public:
     using parser_type = UnwrapReferenceWrapper<ParserT>;
 
-    template <class... An>
-    explicit Option(OptionBase::DefaultInitParserTag, An&&... an)
-        : BaseType(BaseType::Ctor, std::forward<An>(an)...)
-    {
-        this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
-    }
+    enum CtorTag { Ctor };
 
     template <class P, class... An>
-    explicit Option(OptionBase::InitParserTag, P&& p, An&&... an)
+    explicit Option(CtorTag, P&& p, An&&... an)
         : BaseType(BaseType::Ctor, std::forward<An>(an)...)
         , parser_(std::forward<P>(p))
     {
@@ -601,13 +598,13 @@ private:
 // makeOption
 //
 
-// Construct a new Option with a default constructed parser
-template <class T, template <class> class TraitsT = Traits, class... An>
-auto makeOption(An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT>>
+// Construct a new Option, initialize the parser with the given value
+template <class T, template <class> class TraitsT = Traits, class P, class... An>
+auto makeOption(P&& p, An&&... an)
+    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
 {
-    using R = Option<T, TraitsT>;
-    return std::unique_ptr<R>(new R(OptionBase::DefaultInitParser, std::forward<An>(an)...));
+    using R = Option<T, TraitsT, Decay<P>>;
+    return std::unique_ptr<R>(new R(R::Ctor, std::forward<P>(p), std::forward<An>(an)...));
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
@@ -616,16 +613,7 @@ auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ili
     -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
 {
     using R = Option<T, TraitsT, MapParser<T>>;
-    return std::unique_ptr<R>(new R(OptionBase::InitParser, ilist, std::forward<An>(an)...));
-}
-
-// Construct a new Option, initialize the parser with the given value
-template <class T, template <class> class TraitsT = Traits, class P, class... An>
-auto makeOptionWithParser(P&& p, An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
-{
-    using R = Option<T, TraitsT, Decay<P>>;
-    return std::unique_ptr<R>(new R(OptionBase::InitParser, std::forward<P>(p), std::forward<An>(an)...));
+    return std::unique_ptr<R>(new R(R::Ctor, ilist, std::forward<An>(an)...));
 }
 
 } // namespace cl
