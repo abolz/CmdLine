@@ -232,25 +232,6 @@ struct Parser<void> // default parser
 };
 
 //--------------------------------------------------------------------------------------------------
-// allowedValues
-//
-// Returns a list of values the given parser can handle.
-//
-// NOTE:
-//
-// This function is never called using ADL!
-//
-// If your custom parser only allows a limited set of values, you can explicitly add an overload in
-// the support::cl namespace. Do *NOT* add an overload for any of the types defined in namespace
-// support or support::cl!!
-//
-
-template <class P>
-std::vector<StringRef> allowedValues(P const& /*parser*/) {
-    return {};
-}
-
-//--------------------------------------------------------------------------------------------------
 // MapParser
 //
 
@@ -278,18 +259,17 @@ struct MapParser
 
         value = I->second;
     }
+
+    std::vector<StringRef> allowedValues() const
+    {
+        std::vector<StringRef> vec;
+
+        for (auto const& I : map)
+            vec.emplace_back(I.first);
+
+        return vec;
+    }
 };
-
-template <class T>
-std::vector<StringRef> allowedValues(MapParser<T> const& p)
-{
-    std::vector<StringRef> vec;
-
-    for (auto const& I : p.map)
-        vec.emplace_back(I.first);
-
-    return vec;
-}
 
 //--------------------------------------------------------------------------------------------------
 // Traits
@@ -447,13 +427,6 @@ protected:
     {
         applyAll(std::forward<An>(an)...);
 
-        //
-        // NOTE:
-        //
-        // This might call the virtual function allowedValues(). Since applyRec is *only* called
-        // in the body of the constructor of Option<> and this is where allowedValues() is actually
-        // implemented, this should be ok.
-        //
         cmd.add(*this);
     }
 
@@ -582,8 +555,17 @@ private:
         parse(spec, value, IsScalar());
     }
 
+    template <class X = parser_type>
+    auto allowedValues(details::R1) const -> decltype(std::declval<X const&>().allowedValues()) {
+        return parser().allowedValues();
+    }
+
+    auto allowedValues(details::R2) const -> std::vector<StringRef> {
+        return {};
+    }
+
     virtual std::vector<StringRef> getAllowedValues() const override final {
-        return cl::allowedValues(parser());
+        return allowedValues(details::R1());
     }
 };
 

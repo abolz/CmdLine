@@ -610,3 +610,36 @@ TEST(CmdLineTest, Bump)
     EXPECT_EQ(true, ok);
     EXPECT_EQ(10, x->value());
 }
+
+TEST(CmdLineTest, AllowedValues)
+{
+    auto test = []()
+    {
+        cl::CmdLine cmd;
+
+        enum OptimizationLevel {
+            OL_None,
+            OL_Trivial,
+            OL_Default,
+            OL_Expensive
+        };
+
+        auto optParser = cl::MapParser<OptimizationLevel>({
+            { "O0", OL_None      },
+            { "O1", OL_Trivial   },
+            { "O2", OL_Default   },
+            { "O3", OL_Expensive },
+        });
+
+        auto opt = cl::makeOption<OptimizationLevel>(
+            std::ref(optParser),
+            cmd,
+            cl::ArgDisallowed,
+            cl::ArgName("optimization level"),
+            cl::init(OL_None),
+            cl::Required
+            );
+    };
+
+    EXPECT_NO_FATAL_FAILURE(test());
+}
