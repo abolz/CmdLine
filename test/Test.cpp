@@ -30,8 +30,8 @@ namespace support
 namespace cl
 {
 
-    template <class T, template <class> class TraitsT, class ParserT>
-    void prettyPrint(std::ostream& stream, Option<T, TraitsT, ParserT> const& option)
+    template <class OptionT>
+    void prettyPrint(std::ostream& stream, OptionWrapper<OptionT> const& option)
     {
         stream << option.name() << ":\n";
         stream << "  count = " << option.count() << "\n";
@@ -241,20 +241,20 @@ int main(int argc, char* argv[])
 
     //----------------------------------------------------------------------------------------------
 
-    std::cout << pretty(*debug_level) << std::endl;
-    std::cout << pretty(*f) << std::endl;
-    std::cout << pretty(*files) << std::endl;
-    std::cout << pretty(*g) << std::endl;
-    std::cout << pretty(*gh) << std::endl;
-    std::cout << pretty(*h) << std::endl;
-    std::cout << pretty(*I) << std::endl;
-    std::cout << pretty(*opt) << std::endl;
-    std::cout << pretty(*simpson) << std::endl;
-    std::cout << pretty(*targets) << std::endl;
-    std::cout << pretty(*Wsign_compare) << std::endl;
-    std::cout << pretty(*Wsign_conversion) << std::endl;
-    std::cout << pretty(*y_ref) << std::endl;
-    std::cout << pretty(*z) << std::endl;
+    std::cout << pretty(debug_level) << std::endl;
+    std::cout << pretty(f) << std::endl;
+    std::cout << pretty(files) << std::endl;
+    std::cout << pretty(g) << std::endl;
+    std::cout << pretty(gh) << std::endl;
+    std::cout << pretty(h) << std::endl;
+    std::cout << pretty(I) << std::endl;
+    std::cout << pretty(opt) << std::endl;
+    std::cout << pretty(simpson) << std::endl;
+    std::cout << pretty(targets) << std::endl;
+    std::cout << pretty(Wsign_compare) << std::endl;
+    std::cout << pretty(Wsign_conversion) << std::endl;
+    std::cout << pretty(y_ref) << std::endl;
+    std::cout << pretty(z) << std::endl;
 
     //----------------------------------------------------------------------------------------------
 

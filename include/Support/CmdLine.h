@@ -492,12 +492,6 @@ public:
 
     // Returns the value
     value_type const& value() const { return value_; }
-
-    // Returns a pointer to the value
-    value_type* operator->() { return std::addressof(value_); }
-
-    // Returns a pointer to the value
-    value_type const* operator->() const { return std::addressof(value_); }
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -570,25 +564,126 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
+// OptionWrapper
+//
+
+template <class OptionT>
+class OptionWrapper
+{
+    OptionT* opt;
+
+public:
+    using value_type = typename OptionT::value_type;
+    using parser_type = typename OptionT::parser_type;
+
+public:
+    // Default constructor
+    OptionWrapper()
+        : opt(nullptr)
+    {
+    }
+
+    // Construct a new option
+    template <class... A>
+    OptionWrapper(std::piecewise_construct_t tag, A&&... args)
+        : opt(new OptionT(tag, std::forward<A>(args)...))
+    {
+    }
+
+    // Copy constructor
+    OptionWrapper(OptionWrapper const& rhs)
+        : opt(rhs.opt ? new OptionT(*rhs.opt) : nullptr)
+    {
+    }
+
+    // Move constructor
+    OptionWrapper(OptionWrapper&& rhs)
+        : opt(rhs.release())
+    {
+    }
+
+    // Copy assignment
+    OptionWrapper& operator =(OptionWrapper const& rhs)
+    {
+        reset(rhs.opt ? new OptionT(*rhs.opt) : nullptr);
+        return *this;
+    }
+
+    // Move assignment
+    OptionWrapper& operator =(OptionWrapper&& rhs)
+    {
+        reset(rhs.release());
+        return *this;
+    }
+
+    // Delete the wrapped option
+    ~OptionWrapper() {
+        reset();
+    }
+
+    // Returns the name of this option
+    std::string const& name() const { return opt->name(); }
+
+    // Return name of the value
+    std::string const& argName() const { return opt->argName(); }
+
+    // Returns the number of times this option has been specified on the command line
+    unsigned count() const { return opt->count(); }
+
+    // Returns the value
+    value_type& value() { return opt->value(); }
+
+    // Returns the value
+    value_type const& value() const { return opt->value(); }
+
+    // Returns the parser
+    parser_type& parser() { return opt->parser(); }
+
+    // Returns the parser
+    parser_type const& parser() const { return opt->parser(); }
+
+    // Returns the value
+    value_type& operator*() { return value(); }
+
+    // Returns the value
+    value_type const& operator*() const { return value(); }
+
+    // Returns a pointer to the value
+    value_type* operator->() { return std::addressof(value()); }
+
+    // Returns a pointer to the value
+    value_type const* operator->() const { return std::addressof(value()); }
+
+private:
+    void reset(OptionT* pointer = nullptr) {
+        auto p = opt; opt = pointer; delete p;
+    }
+
+    OptionT* release() {
+        auto p = opt; opt = nullptr; return p;
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
 // makeOption
 //
 
 // Construct a new Option, initialize the parser with the given value
 template <class T, template <class> class TraitsT = Traits, class P, class... An>
 auto makeOption(P&& p, An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT, Decay<P>>>
+    -> OptionWrapper<Option<T, TraitsT, Decay<P>>>
 {
-    using R = Option<T, TraitsT, Decay<P>>;
-    return std::unique_ptr<R>(new R(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...));
+    return OptionWrapper<Option<T, TraitsT, Decay<P>>>(
+        std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...);
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
 template <class T, template <class> class TraitsT = Traits, class... An>
 auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ilist, An&&... an)
-    -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
+    -> OptionWrapper<Option<T, TraitsT, MapParser<T>>>
 {
-    using R = Option<T, TraitsT, MapParser<T>>;
-    return std::unique_ptr<R>(new R(std::piecewise_construct, ilist, std::forward<An>(an)...));
+    return OptionWrapper<Option<T, TraitsT, MapParser<T>>>(
+        std::piecewise_construct, ilist, std::forward<An>(an)...);
 }
 
 } // namespace cl
