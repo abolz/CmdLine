@@ -8,6 +8,13 @@
 #include <algorithm>
 #include <fstream>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 using namespace support;
 using namespace support::cl;
 
@@ -15,14 +22,15 @@ using namespace support::cl;
 // CmdLine
 //
 
-CmdLine::CmdLine(StringVector args)
-    : args_(std::move(args))
+CmdLine::CmdLine(unsigned flags)
+    : args_()
     , index_(0)
     , options_()
     , groups_()
     , positionals_()
     , currentPositional_()
     , maxPrefixLength_(0)
+    , flags_(flags)
 {
 }
 
@@ -78,8 +86,23 @@ void CmdLine::add(OptionGroup& group)
         throw std::runtime_error("option group '" + group.name_ + "' already exists");
 }
 
-void CmdLine::parse()
+void CmdLine::parse(StringVector argv)
 {
+    // Save the list of arguments
+    args_ = std::move(argv);
+
+    // Expand wildcards
+    if (flags_ & ExpandWildcards)
+    {
+        expandWildcards();
+    }
+
+    // Recursively expand response files -- if required
+    if (flags_ & ExpandResponseFiles)
+    {
+        expandResponseFiles();
+    }
+
     auto dashdash = false; // "--" seen?
 
     // The current positional argument - if any
@@ -92,33 +115,6 @@ void CmdLine::parse()
     }
 
     check();
-}
-
-void CmdLine::parse(StringVector argv)
-{
-    // Save the list of arguments
-    args_ = std::move(argv);
-
-    // Then parse
-    parse();
-}
-
-void CmdLine::expandAndParse()
-{
-    // Recursively expand response files
-    expandResponseFiles();
-
-    // Then parse the command-line arguments
-    parse();
-}
-
-void CmdLine::expandAndParse(StringVector argv)
-{
-    // Save the list of the arguments
-    args_ = std::move(argv);
-
-    // Then parse
-    expandAndParse();
 }
 
 size_t CmdLine::index() const
@@ -197,6 +193,107 @@ void CmdLine::expandResponseFiles()
         if (--responseFilesLeft == 0)
             throw std::runtime_error("too many response files encountered");
     }
+}
+
+#ifdef _WIN32
+
+static std::vector<std::string> ListFiles(StringRef pattern, size_t wildpos)
+{
+    assert(wildpos != StringRef::npos);
+
+    // Find first slash or colon before wildcard
+    size_t patternpos = pattern.find_last_of("\\/:", wildpos);
+
+    std::string prefix = "";
+
+    if (patternpos == StringRef::npos)
+    {
+        // Use current directory.
+    }
+    else
+    {
+        // Path specified.
+        // Prefix each filename with the path.
+        prefix.assign(pattern.data(), pattern.data() + patternpos + 1);
+    }
+
+    // Enumerate files
+
+    std::vector<std::string> files;
+
+    //
+    // FIXME:
+    // Use the Unicode version and convert strings to UTF-8?!?!
+    //
+
+    WIN32_FIND_DATAA info;
+    HANDLE hFind = FindFirstFileExA(pattern.data(), FindExInfoStandard, &info, FindExSearchNameMatch, nullptr, 0);
+
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            StringRef arg = info.cFileName;
+
+            if (arg[0] != '.' && !arg.starts_with(".."))
+            {
+                files.push_back(prefix + arg);
+            }
+        }
+        while (FindNextFileA(hFind, &info));
+
+        FindClose(hFind);
+    }
+
+    // Sort the list of files
+    // Ignore case!
+
+    std::sort(files.begin(), files.end(),
+        [](StringRef LHS, StringRef RHS) { return LHS.compare_no_case(RHS) < 0; });
+
+    return files;
+}
+
+#endif
+
+// Expand wild cards
+void CmdLine::expandWildcards()
+{
+#ifdef _WIN32
+
+    size_t i = 0;
+    size_t wildpos = StringRef::npos;
+
+    // Find the first argument containing a '*' or a '?'
+    for (; i != args_.size(); ++i)
+    {
+        wildpos = args_[i].find_first_of("*?");
+
+        if (wildpos != std::string::npos)
+            break;
+    }
+
+    // If there is no '*' or '?' there is nothing to expand...
+    if (wildpos == StringRef::npos)
+        return;
+
+    // Enumerate the files matching the pattern
+    auto files = ListFiles(args_[i], wildpos);
+
+    // If there are no matches, leave the pattern in args_!
+    if (files.empty())
+        return;
+
+    // Erase the i-th argument (pattern)
+    args_.erase(args_.begin() + i);
+
+    // Insert the new arguments
+    auto I = std::make_move_iterator(files.begin());
+    auto E = std::make_move_iterator(files.end());
+
+    std::copy(I, E, std::inserter(args_, args_.begin() + i));
+
+#endif
 }
 
 // Process a single command line argument.
