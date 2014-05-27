@@ -179,6 +179,13 @@ public:
         return c < 0 || (c == 0 && size() < RHS.size());
     }
 
+    // Lexicographically compare this string with another.
+    int compare(StringRef RHS) const;
+
+    // Lexicographically compare this string with another.
+    // Ignore case.
+    int compare_no_case(StringRef RHS) const;
+
     // Returns whether the string starts with Prefix
     bool starts_with(StringRef Prefix) const
     {

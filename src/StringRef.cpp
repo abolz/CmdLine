@@ -3,9 +3,53 @@
 
 #include "Support/StringRef.h"
 
+#ifdef _WIN32
+#include <string.h>
+#else
+#include <strings.h>
+#endif
+
 using namespace support;
 
 size_t const StringRef::npos = static_cast<size_t>(-1);
+
+int StringRef::compare(StringRef RHS) const
+{
+    // Check prefix.
+    int comp = traits_type::compare(data(), RHS.data(), Min(size(), RHS.size()));
+
+    if (comp == 0)
+    {
+        // Prefixes match. Check lengths.
+        if (size() < RHS.size())
+            comp = -1;
+        if (size() > RHS.size())
+            comp = 1;
+    }
+
+    return comp;
+}
+
+int StringRef::compare_no_case(StringRef RHS) const
+{
+    // Check prefix.
+#ifdef _WIN32
+    int comp = ::_strnicmp(data(), RHS.data(), Min(size(), RHS.size()));
+#else
+    int comp = ::strncasecmp(data(), RHS.data(), Min(size(), RHS.size()));
+#endif
+
+    if (comp == 0)
+    {
+        // Prefixes match. Check lengths.
+        if (size() < RHS.size())
+            comp = -1;
+        if (size() > RHS.size())
+            comp = 1;
+    }
+
+    return comp;
+}
 
 size_t StringRef::find(char_type Ch, size_t From) const
 {
