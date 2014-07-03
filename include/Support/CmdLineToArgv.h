@@ -79,12 +79,21 @@ void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIter
     }
 }
 
+struct TokenizeUnix
+{
+    template <class InputIterator, class OutputIterator>
+    void operator ()(InputIterator first, InputIterator last, OutputIterator out) const
+    {
+        tokenizeCommandLineUnix(first, last, out);
+    }
+};
+
 //--------------------------------------------------------------------------------------------------
 // Parses a command line string and returns a list of command line arguments.
 // Using Windows-style escaping.
 //
 template <class InputIterator, class OutputIterator>
-void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputIterator out)
+void tokenizeCommandLineWindows(InputIterator first, InputIterator last, OutputIterator out)
 {
     using CharType = typename std::iterator_traits<InputIterator>::value_type;
     using StringType = std::basic_string<CharType>;
@@ -199,6 +208,15 @@ void tokenizeCommandLineWin(InputIterator first, InputIterator last, OutputItera
         *out++ = std::move(arg);
     }
 }
+
+struct TokenizeWindows
+{
+    template <class InputIterator, class OutputIterator>
+    void operator ()(InputIterator first, InputIterator last, OutputIterator out) const
+    {
+        tokenizeCommandLineWindows(first, last, out);
+    }
+};
 
 } // namespace cl
 } // namespace support

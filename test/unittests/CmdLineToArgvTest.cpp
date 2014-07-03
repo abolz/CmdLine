@@ -71,7 +71,7 @@ static std::wstring toUTF16(std::string const& str)
     return std::wstring(buf.begin(), buf.end());
 }
 
-static std::vector<std::string> stringToArgvWin(std::wstring const& wargs)
+static std::vector<std::string> stringToArgvWindows(std::wstring const& wargs)
 {
     int argc = 0;
     auto argv = ::CommandLineToArgvW(wargs.c_str(), &argc);
@@ -92,7 +92,7 @@ static std::vector<std::string> stringToArgvCL(std::string const& args)
 {
     std::vector<std::string> argv;
 
-    cl::tokenizeCommandLineWin(args.begin(), args.end(), std::back_inserter(argv));
+    cl::tokenizeCommandLineWindows(args.begin(), args.end(), std::back_inserter(argv));
 
     return argv;
 }
@@ -101,7 +101,7 @@ static void compare(std::string const& args)
 {
     SCOPED_TRACE("command-line: \"( " + args + " )\"");
 
-    auto x = stringToArgvWin(toUTF16(args));
+    auto x = stringToArgvWindows(toUTF16(args));
     auto y = stringToArgvCL(args);
 
     EXPECT_EQ(x, y);
