@@ -22,7 +22,7 @@ using namespace support::cl;
 // CmdLine
 //
 
-CmdLine::CmdLine(unsigned flags)
+CmdLine::CmdLine()
     : args_()
     , index_(0)
     , options_()
@@ -30,7 +30,6 @@ CmdLine::CmdLine(unsigned flags)
     , positionals_()
     , currentPositional_()
     , maxPrefixLength_(0)
-    , flags_(flags)
 {
 }
 
@@ -91,18 +90,6 @@ void CmdLine::parse(StringVector argv)
     // Save the list of arguments
     args_ = std::move(argv);
 
-    // Expand wildcards
-    if (flags_ & ExpandWildcards)
-    {
-        expandWildcards();
-    }
-
-    // Recursively expand response files -- if required
-    if (flags_ & ExpandResponseFiles)
-    {
-        expandResponseFiles();
-    }
-
     auto dashdash = false; // "--" seen?
 
     // The current positional argument - if any
@@ -155,145 +142,6 @@ CmdLine::OptionVector CmdLine::getUniqueOptions() const
     opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
 
     return opts;
-}
-
-void CmdLine::expandResponseFile(size_t i)
-{
-    std::ifstream file;
-
-    file.exceptions(std::ios::failbit);
-    file.open(args_[i].substr(1));
-
-    // Erase the i-th argument (@file)
-    args_.erase(args_.begin() + i);
-
-    // Parse the file while inserting new command line arguments before the erased argument
-    auto I = std::istreambuf_iterator<char>(file.rdbuf());
-    auto E = std::istreambuf_iterator<char>();
-
-    tokenizeCommandLineUnix(I, E, std::inserter(args_, args_.begin() + i));
-}
-
-// Recursively expand response files.
-void CmdLine::expandResponseFiles()
-{
-    // Response file counter to prevent infinite recursion...
-    size_t responseFilesLeft = 100;
-
-    for (size_t i = 0; i < args_.size(); /**/)
-    {
-        if (args_[i][0] != '@')
-        {
-            i++;
-            continue;
-        }
-
-        expandResponseFile(i);
-
-        if (--responseFilesLeft == 0)
-            throw std::runtime_error("too many response files encountered");
-    }
-}
-
-#ifdef _WIN32
-
-static std::vector<std::string> ListFiles(StringRef pattern, size_t wildpos)
-{
-    assert(wildpos != StringRef::npos);
-
-    // Find first slash or colon before wildcard
-    size_t patternpos = pattern.find_last_of("\\/:", wildpos);
-
-    std::string prefix = "";
-
-    if (patternpos == StringRef::npos)
-    {
-        // Use current directory.
-    }
-    else
-    {
-        // Path specified.
-        // Prefix each filename with the path.
-        prefix.assign(pattern.data(), pattern.data() + patternpos + 1);
-    }
-
-    // Enumerate files
-
-    std::vector<std::string> files;
-
-    //
-    // FIXME:
-    // Use the Unicode version and convert strings to UTF-8?!?!
-    //
-
-    WIN32_FIND_DATAA info;
-    HANDLE hFind = FindFirstFileExA(pattern.data(), FindExInfoStandard, &info, FindExSearchNameMatch, nullptr, 0);
-
-    if (hFind != INVALID_HANDLE_VALUE)
-    {
-        do
-        {
-            StringRef arg = info.cFileName;
-
-            if (arg[0] != '.' && !arg.starts_with(".."))
-            {
-                files.push_back(prefix + arg);
-            }
-        }
-        while (FindNextFileA(hFind, &info));
-
-        FindClose(hFind);
-    }
-
-    // Sort the list of files
-    // Ignore case!
-
-    std::sort(files.begin(), files.end(),
-        [](StringRef LHS, StringRef RHS) { return LHS.compare_no_case(RHS) < 0; });
-
-    return files;
-}
-
-#endif
-
-// Expand wild cards
-void CmdLine::expandWildcards()
-{
-#ifdef _WIN32
-
-    size_t i = 0;
-    size_t wildpos = StringRef::npos;
-
-    // Find the first argument containing a '*' or a '?'
-    for (; i != args_.size(); ++i)
-    {
-        wildpos = args_[i].find_first_of("*?");
-
-        if (wildpos != std::string::npos)
-            break;
-    }
-
-    // If there is no '*' or '?' there is nothing to expand...
-    if (wildpos == StringRef::npos)
-        return;
-
-    // Enumerate the files matching the pattern
-    auto files = ListFiles(args_[i], wildpos);
-
-    // If there are no matches, leave the pattern in args_!
-    if (files.empty())
-        return;
-
-    // Erase the i-th argument (pattern)
-    args_.erase(args_.begin() + i);
-
-    // Insert the new arguments
-    auto I = std::make_move_iterator(files.begin());
-    auto E = std::make_move_iterator(files.end());
-
-    std::copy(I, E, std::inserter(args_, args_.begin() + i));
-
-#endif
 }
 
 // Process a single command line argument.

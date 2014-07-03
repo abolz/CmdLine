@@ -24,20 +24,6 @@ namespace cl
 {
 
 //--------------------------------------------------------------------------------------------------
-// CmdLine flags
-//
-
-enum CmdLineFlags {
-    // Expand response files?
-    // Response files are text files containing command line arguments and are specified
-    // like '@file.rsp' on the command line.
-    ExpandResponseFiles     = 0x01,
-    // Expand wild cards?
-    // Windows only: This flag is ignored on Unix.
-    ExpandWildcards         = 0x02,
-};
-
-//--------------------------------------------------------------------------------------------------
 // Option flags
 //
 
@@ -102,12 +88,10 @@ private:
     OptionVector::iterator currentPositional_;
     // The length of the longest prefix option
     size_t maxPrefixLength_;
-    // Command line flags
-    unsigned flags_;
 
 public:
     // Constructor.
-    explicit CmdLine(unsigned flags = 0);
+    CmdLine();
 
     // Destructor.
     ~CmdLine();
@@ -131,11 +115,6 @@ private:
     OptionBase* findOption(StringRef name) const;
 
     OptionVector getUniqueOptions() const;
-
-    void expandResponseFile(size_t i);
-    void expandResponseFiles();
-
-    void expandWildcards();
 
     void handleArg(bool& dashdash);
 

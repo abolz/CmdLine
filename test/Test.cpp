@@ -2,6 +2,8 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
+#include "Support/CmdLineExpand.h"
+#include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
@@ -67,8 +69,7 @@ int main(int argc, char* argv[])
 {
     //----------------------------------------------------------------------------------------------
 
-    //cl::CmdLine cmd;
-    cl::CmdLine cmd(cl::ExpandWildcards);
+    cl::CmdLine cmd;
 
                     //------------------------------------------------------------------------------
 
@@ -232,7 +233,13 @@ int main(int argc, char* argv[])
 
     try
     {
-        cmd.parse({ argv + 1, argv + argc });
+        auto args = std::vector<std::string>(argv + 1, argv + argc);
+
+        cl::expandWildcards(args);
+        //cl::expandResponseFiles(args, cl::TokenizeWindows());
+        cl::expandResponseFiles(args, cl::TokenizeUnix());
+
+        cmd.parse(args);
     }
     catch (std::exception& e)
     {
