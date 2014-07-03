@@ -19,8 +19,115 @@ namespace strings
 {
 
 //--------------------------------------------------------------------------------------------------
-// Split_iterator
+// Delimiter
 //
+
+struct AnyOfDelimiter
+{
+    std::string Chars;
+
+    explicit AnyOfDelimiter(StringRef Chars_)
+        : Chars(Chars_)
+    {
+    }
+
+    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
+    {
+#if SUPPORT_STD_SPLIT
+        if (Chars.empty())
+        {
+            //
+            // N3593:
+            //
+            // A delimiter of the empty string results in each character in the input string
+            // becoming one element in the output collection. This is a special case. It is done to
+            // match the behavior of splitting using the empty string in other programming languages
+            // (e.g., perl).
+            //
+            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+        }
+#endif
+
+        return { Str.find_first_of(Chars), 1 };
+    }
+};
+
+struct LiteralDelimiter
+{
+    std::string Needle;
+
+    explicit LiteralDelimiter(StringRef Needle_)
+        : Needle(Needle_)
+    {
+    }
+
+    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
+    {
+        if (Needle.empty())
+        {
+#if SUPPORT_STD_SPLIT
+            //
+            // N3593:
+            //
+            // A delimiter of the empty string results in each character in the input string
+            // becoming one element in the output collection. This is a special case. It is done to
+            // match the behavior of splitting using the empty string in other programming languages
+            // (e.g., perl).
+            //
+            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+#else
+            //
+            // Return the whole string as a token.
+            // Makes LiteralDelimiter("") behave exactly as AnyOfDelimiter("").
+            //
+            return { StringRef::npos, 0 };
+#endif
+        }
+
+        return { Str.find(Needle), Needle.size() };
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// Predicates
+//
+
+struct KeepEmpty
+{
+    bool operator ()(StringRef /*Tok*/) const {
+        return true;
+    }
+};
+
+struct SkipEmpty
+{
+    bool operator ()(StringRef Tok) const {
+        return !Tok.empty();
+    }
+};
+
+struct SkipSpace
+{
+    bool operator ()(StringRef Tok) const {
+        return !Tok.trim().empty();
+    }
+};
+
+struct TrimSpace
+{
+    bool operator ()(StringRef& Tok) const
+    {
+        Tok = Tok.trim();
+        return !Tok.empty();
+    }
+};
+
+//--------------------------------------------------------------------------------------------------
+// Implementation details
+//
+
+namespace details
+{
 
 template <class RangeT>
 class Split_iterator
@@ -77,10 +184,6 @@ public:
         return R != RHS.R;
     }
 };
-
-//--------------------------------------------------------------------------------------------------
-// Split_range
-//
 
 template <class StringT, class DelimiterT, class PredicateT>
 class Split_range
@@ -192,130 +295,6 @@ private:
     }
 };
 
-//--------------------------------------------------------------------------------------------------
-// KeepEmpty
-//
-
-struct KeepEmpty
-{
-    bool operator ()(StringRef /*Tok*/) const {
-        return true;
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// SkipEmpty
-//
-
-struct SkipEmpty
-{
-    bool operator ()(StringRef Tok) const {
-        return !Tok.empty();
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// SkipSpace
-//
-
-struct SkipSpace
-{
-    bool operator ()(StringRef Tok) const {
-        return !Tok.trim().empty();
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// TrimSpace
-//
-
-struct TrimSpace
-{
-    bool operator ()(StringRef& Tok) const
-    {
-        Tok = Tok.trim();
-        return !Tok.empty();
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// AnyOfDelimiter
-//
-
-struct AnyOfDelimiter
-{
-    std::string Chars;
-
-    explicit AnyOfDelimiter(StringRef Chars_)
-        : Chars(Chars_)
-    {
-    }
-
-    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
-    {
-#if SUPPORT_STD_SPLIT
-        if (Chars.empty())
-        {
-            //
-            // N3593:
-            //
-            // A delimiter of the empty string results in each character in the input string
-            // becoming one element in the output collection. This is a special case. It is done to
-            // match the behavior of splitting using the empty string in other programming languages
-            // (e.g., perl).
-            //
-            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
-        }
-#endif
-
-        return { Str.find_first_of(Chars), 1 };
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// LiteralDelimiter
-//
-
-struct LiteralDelimiter
-{
-    std::string Needle;
-
-    explicit LiteralDelimiter(StringRef Needle_)
-        : Needle(Needle_)
-    {
-    }
-
-    auto operator ()(StringRef Str) const -> std::pair<size_t, size_t>
-    {
-        if (Needle.empty())
-        {
-#if SUPPORT_STD_SPLIT
-            //
-            // N3593:
-            //
-            // A delimiter of the empty string results in each character in the input string
-            // becoming one element in the output collection. This is a special case. It is done to
-            // match the behavior of splitting using the empty string in other programming languages
-            // (e.g., perl).
-            //
-            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
-#else
-            //
-            // Return the whole string as a token.
-            // Makes LiteralDelimiter("") behave exactly as AnyOfDelimiter("").
-            //
-            return { StringRef::npos, 0 };
-#endif
-        }
-
-        return { Str.find(Needle), Needle.size() };
-    }
-};
-
-//--------------------------------------------------------------------------------------------------
-// split
-//
-
 class Split_string
 {
     //
@@ -371,6 +350,12 @@ public:
     using type = decltype(test(std::declval<T>()));
 };
 
+} // namespace details
+
+//--------------------------------------------------------------------------------------------------
+// split
+//
+
 //
 // N3593:
 //
@@ -380,16 +365,19 @@ public:
 // the returned substrings.
 //
 template <class S, class D, class P = KeepEmpty>
-auto split(S&& Str, D Delim, P Pred = P())
-    -> Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>
+auto split(S&& Str, D Delim, P Pred = P()) -> details::Split_range< details::Split_string::type<S>, details::Split_delimiter::type<D>, P >
 {
-    using R = Split_range<Split_string::type<S>, Split_delimiter::type<D>, P>;
-    return R(std::forward<S>(Str), Split_delimiter::type<D>(std::move(Delim)), std::move(Pred));
+    using R = details::Split_range< details::Split_string::type<S>, details::Split_delimiter::type<D>, P >;
+
+    return R(std::forward<S>(Str), details::Split_delimiter::type<D>(std::move(Delim)), std::move(Pred));
 }
 
+//--------------------------------------------------------------------------------------------------
+// split_once
+//
+
 template <class D, class P = KeepEmpty>
-auto split_once(StringRef Str, D Delim, P Pred = P())
-    -> std::pair<StringRef, StringRef>
+auto split_once(StringRef Str, D Delim, P Pred = P()) -> std::pair<StringRef, StringRef>
 {
     auto R = split(Str, std::move(Delim), std::move(Pred));
     auto I = R.begin();

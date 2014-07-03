@@ -13,6 +13,8 @@ using namespace support::strings;
 template <class T> using IsStringRef = typename std::is_same<T, StringRef>::type;
 template <class T> using IsStdString = typename std::is_same<T, std::string>::type;
 
+using strings::details::Split_string;
+
 static_assert( IsStringRef< Split_string::type<char*                >>::value, "" );
 static_assert( IsStringRef< Split_string::type<char*&               >>::value, "" );
 static_assert( IsStringRef< Split_string::type<char*&&              >>::value, "" );
