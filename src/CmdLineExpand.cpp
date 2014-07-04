@@ -110,5 +110,9 @@ void support::cl::expandWildcards(std::vector<std::string>& args)
 
     std::copy(I, E, std::inserter(args, args.begin() + i));
 
+#else
+
+    static_cast<void>(args);
+
 #endif
 }

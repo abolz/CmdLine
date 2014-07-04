@@ -6,14 +6,6 @@
 #include "Support/StringSplit.h"
 
 #include <algorithm>
-#include <fstream>
-
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
 
 using namespace support;
 using namespace support::cl;
