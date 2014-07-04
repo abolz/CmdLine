@@ -44,7 +44,10 @@ struct AnyOfDelimiter
             // match the behavior of splitting using the empty string in other programming languages
             // (e.g., perl).
             //
-            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+            if (Str.size() <= 1)
+                return { StringRef::npos, 0 };
+            else
+                return { 1, 0 };
         }
 #endif
 
@@ -74,7 +77,10 @@ struct LiteralDelimiter
             // match the behavior of splitting using the empty string in other programming languages
             // (e.g., perl).
             //
-            return { Str.size() <= 1 ? StringRef::npos : 1, 0 };
+            if (Str.size() <= 1)
+                return { StringRef::npos, 0 };
+            else
+                return { 1, 0 };
 #else
             //
             // Return the whole string as a token.

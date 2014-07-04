@@ -11,8 +11,6 @@
 
 using namespace support;
 
-size_t const StringRef::npos = static_cast<size_t>(-1);
-
 int StringRef::compare(StringRef RHS) const
 {
     // Check prefix.
