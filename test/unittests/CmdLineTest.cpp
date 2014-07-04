@@ -6,6 +6,7 @@
 
 #include "PrettyPrint.h"
 
+#include <functional>
 #include <iostream>
 #include <set>
 #include <sstream>
