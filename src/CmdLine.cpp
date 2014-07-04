@@ -5,8 +5,6 @@
 #include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
 
-#include <algorithm>
-
 using namespace support;
 using namespace support::cl;
 

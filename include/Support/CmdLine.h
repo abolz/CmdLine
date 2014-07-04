@@ -7,9 +7,9 @@
 #include "Support/StringRefStream.h"
 #include "Support/Utility.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <map>
-#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -227,8 +227,8 @@ template <class T>
 struct MapParser
 {
     using value_type = RemoveReference<T>;
-    using map_type = std::map<std::string, value_type>;
-    using map_value_type = typename map_type::value_type;
+    using map_value_type = std::pair<std::string, value_type>;
+    using map_type = std::vector<map_value_type>;
 
     map_type map;
 
@@ -240,7 +240,9 @@ struct MapParser
     void operator()(StringRef name, StringRef arg, value_type& value) const
     {
         // If the arg is empty, the option is specified by name
-        auto I = map.find(arg.empty() ? name.str() : arg.str());
+        auto key = arg.empty() ? name : arg;
+
+        auto I = std::find_if(map.begin(), map.end(), [&](map_value_type const& s) { return s.first == key; });
 
         if (I == map.end())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
@@ -252,7 +254,7 @@ struct MapParser
     {
         std::vector<StringRef> vec;
 
-        for (auto const& I : map)
+        for (auto&& I : map)
             vec.emplace_back(I.first);
 
         return vec;
