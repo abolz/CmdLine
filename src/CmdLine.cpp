@@ -2,7 +2,6 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/CmdLineToArgv.h"
 #include "Support/StringSplit.h"
 
 using namespace support;
@@ -13,12 +12,12 @@ using namespace support::cl;
 //
 
 CmdLine::CmdLine()
-    : args_()
+    : argCurr_()
+    , argLast_()
     , index_(0)
     , options_()
     , groups_()
     , positionals_()
-    , currentPositional_()
     , maxPrefixLength_(0)
 {
 }
@@ -59,12 +58,12 @@ void CmdLine::add(OptionBase& opt)
         if (values.empty())
             throw std::runtime_error("option name is empty and option does not provide allowed values");
 
-        for (auto s : values)
+        for (auto&& s : values)
             insert(s);
     }
     else
     {
-        for (auto s : strings::split(opt.name(), "|"))
+        for (auto&& s : strings::split(opt.name(), "|"))
             insert(s);
     }
 }
@@ -75,23 +74,19 @@ void CmdLine::add(OptionGroup& group)
         throw std::runtime_error("option group '" + group.name_ + "' already exists");
 }
 
-void CmdLine::parse(StringVector argv)
+void CmdLine::parse(StringVector const& argv)
 {
     // Save the list of arguments
-    args_ = std::move(argv);
+    argCurr_ = argv.begin();
+    argLast_ = argv.end();
 
-    auto dashdash = false; // "--" seen?
+    // Parse...
+    parse();
+}
 
-    // The current positional argument - if any
-    currentPositional_ = positionals_.begin();
-
-    // Handle all arguments
-    for (index_ = 0; index_ < args_.size(); ++index_)
-    {
-        handleArg(dashdash);
-    }
-
-    check();
+bool CmdLine::empty() const
+{
+    return argCurr_ == argLast_;
 }
 
 size_t CmdLine::index() const
@@ -99,12 +94,49 @@ size_t CmdLine::index() const
     return index_;
 }
 
-StringRef CmdLine::bump()
+StringRef CmdLine::curr() const
 {
-    if (index_ + 1 >= args_.size())
+    if (empty())
         return {};
 
-    return args_[++index_];
+    return StringRef(*argCurr_);
+}
+
+StringRef CmdLine::bump()
+{
+    if (empty())
+        return {};
+
+    ++argCurr_;
+    ++index_;
+
+    return curr();
+}
+
+void CmdLine::parse()
+{
+    // Handle all arguments
+    if (!empty())
+    {
+        // "--" seen?
+        auto dashdash = false;
+
+        // The current positional argument - if any
+        auto pos = positionals_.begin();
+
+        while (!empty())
+        {
+            handleArg(dashdash, pos);
+
+            bump();
+        }
+    }
+
+    // Check if all required options have been specified
+    check();
+
+    // Clear argument list
+    argCurr_ = argLast_ = {};
 }
 
 OptionBase* CmdLine::findOption(StringRef name) const
@@ -118,7 +150,7 @@ CmdLine::OptionVector CmdLine::getUniqueOptions() const
     OptionVector opts;
 
     // Get the list of all (visible) options
-    for (auto const& I : options_)
+    for (auto&& I : options_)
         opts.emplace_back(I.second);
 
     // Sort by name
@@ -135,9 +167,11 @@ CmdLine::OptionVector CmdLine::getUniqueOptions() const
 }
 
 // Process a single command line argument.
-void CmdLine::handleArg(bool& dashdash)
+void CmdLine::handleArg(bool& dashdash, OptionVector::iterator& pos)
 {
-    StringRef arg = args_[index_];
+    assert(!empty());
+
+    StringRef arg(*argCurr_);
 
     // Stop parsing if "--" has been found
     if (arg == "--" && !dashdash)
@@ -150,11 +184,11 @@ void CmdLine::handleArg(bool& dashdash)
     // itself, or if we have seen "--" already.
     if (arg[0] != '-' || arg == "-" || dashdash)
     {
-        handlePositional(arg);
+        handlePositional(arg, pos);
 
         // If the current positional argument has the ConsumeAfter flag set, parse
         // all following command-line arguments as positional options.
-        if ((*currentPositional_)->miscFlags_ & ConsumeAfter)
+        if ((*pos)->miscFlags_ & ConsumeAfter)
             dashdash = true;
 
         return;
@@ -189,19 +223,19 @@ void CmdLine::handleArg(bool& dashdash)
     throw std::runtime_error("unknown option '" + arg + "'");
 }
 
-void CmdLine::handlePositional(StringRef curr)
+void CmdLine::handlePositional(StringRef curr, OptionVector::iterator& pos)
 {
-    if (currentPositional_ == positionals_.end())
+    if (pos == positionals_.end())
         throw std::runtime_error("unhandled positional argument");
 
-    auto opt = *currentPositional_;
+    auto opt = *pos;
 
     // If the current positional argument does not allow any further
     // occurrence try the next.
     if (!opt->isOccurrenceAllowed())
     {
-        ++currentPositional_;
-        return handlePositional(curr);
+        ++pos;
+        return handlePositional(curr, pos);
     }
 
     // The value of a positional option is the argument itself.
@@ -248,7 +282,7 @@ bool CmdLine::handlePrefix(StringRef curr)
 
     for (auto n = std::min(maxPrefixLength_, curr.size()); n != 0; --n)
     {
-        auto name = curr.substr(0, n); // curr.front(n);
+        auto name = curr.substr(0, n);
         auto opt = findOption(name);
 
         if (opt && opt->isPrefix())
@@ -309,10 +343,10 @@ void CmdLine::addOccurrence(OptionBase* opt, StringRef name)
         // command line, so that "-o file" is possible instead of "-o=file"
         if (opt->numArgs_ == ArgRequired)
         {
-            if (opt->formatting_ == Prefix || index_ + 1 >= args_.size())
-                throw std::runtime_error("option '" + opt->displayName() + "' requires an argument");
+            arg = bump();
 
-            arg = args_[++index_];
+            if (opt->formatting_ == Prefix || empty())
+                throw std::runtime_error("option '" + opt->displayName() + "' requires an argument");
         }
     }
 

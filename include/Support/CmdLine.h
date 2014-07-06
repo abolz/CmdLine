@@ -74,8 +74,10 @@ public:
     using StringVector  = std::vector<std::string>;
 
 private:
-    // List of command line arguments
-    StringVector args_;
+    // The current argument
+    StringVector::const_iterator argCurr_;
+    // End of command line arguments
+    StringVector::const_iterator argLast_;
     // Index of the currently processed argument
     size_t index_;
     // List of options
@@ -84,8 +86,6 @@ private:
     OptionGroups groups_;
     // List of positional options
     OptionVector positionals_;
-    // Index of the current positional option
-    OptionVector::iterator currentPositional_;
     // The length of the longest prefix option
     size_t maxPrefixLength_;
 
@@ -103,22 +103,47 @@ public:
     void add(OptionGroup& group);
 
     // Parse the given command line arguments
-    void parse(StringVector argv);
+    void parse(StringVector const& argv);
+
+    // Parse the given command line arguments
+    template <class Iterator>
+    void parse(Iterator first, Iterator last)
+    {
+        parse(StringVector(first, last));
+    }
+
+    // Parse the given command line arguments
+    template <class T>
+    void parse(T const& argv)
+    {
+        using std::begin;
+        using std::end;
+
+        parse(StringVector(begin(argv), end(argv)));
+    }
+
+    // Returns whether all command line arguments have been processed
+    bool empty() const;
 
     // Returns the index of the currently processed argument
     size_t index() const;
+
+    // Returns the current command line argument
+    StringRef curr() const;
 
     // Returns the next argument and increments the index
     StringRef bump();
 
 private:
+    void parse();
+
     OptionBase* findOption(StringRef name) const;
 
     OptionVector getUniqueOptions() const;
 
-    void handleArg(bool& dashdash);
+    void handleArg(bool& dashdash, OptionVector::iterator& pos);
 
-    void handlePositional(StringRef curr);
+    void handlePositional(StringRef curr, OptionVector::iterator& pos);
     bool handleOption(StringRef curr);
     bool handlePrefix(StringRef curr);
     bool handleGroup(StringRef curr);
