@@ -74,14 +74,14 @@ void CmdLine::add(OptionGroup& group)
         throw std::runtime_error("option group '" + group.name_ + "' already exists");
 }
 
-void CmdLine::parse(StringVector const& argv)
+void CmdLine::parse(StringVector const& argv, bool checkRequired)
 {
     // Save the list of arguments
     argCurr_ = argv.begin();
     argLast_ = argv.end();
 
     // Parse...
-    parse();
+    parse(checkRequired);
 }
 
 bool CmdLine::empty() const
@@ -113,27 +113,25 @@ StringRef CmdLine::bump()
     return curr();
 }
 
-void CmdLine::parse()
+void CmdLine::parse(bool checkRequired)
 {
+    // "--" seen?
+    auto dashdash = false;
+
+    // The current positional argument - if any
+    auto pos = positionals_.begin();
+
     // Handle all arguments
-    if (!empty())
+    while (!empty())
     {
-        // "--" seen?
-        auto dashdash = false;
+        handleArg(dashdash, pos);
 
-        // The current positional argument - if any
-        auto pos = positionals_.begin();
-
-        while (!empty())
-        {
-            handleArg(dashdash, pos);
-
-            bump();
-        }
+        bump();
     }
 
     // Check if all required options have been specified
-    check();
+    if (checkRequired)
+        check();
 
     // Clear argument list
     argCurr_ = argLast_ = {};

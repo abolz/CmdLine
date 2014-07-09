@@ -103,23 +103,23 @@ public:
     void add(OptionGroup& group);
 
     // Parse the given command line arguments
-    void parse(StringVector const& argv);
+    void parse(StringVector const& argv, bool checkRequired = true);
 
     // Parse the given command line arguments
     template <class Iterator>
-    void parse(Iterator first, Iterator last)
+    void parse(Iterator first, Iterator last, bool checkRequired = true)
     {
-        parse(StringVector(first, last));
+        parse(StringVector(first, last), checkRequired);
     }
 
     // Parse the given command line arguments
     template <class T>
-    void parse(T const& argv)
+    void parse(T const& argv, bool checkRequired = true)
     {
         using std::begin;
         using std::end;
 
-        parse(StringVector(begin(argv), end(argv)));
+        parse(StringVector(begin(argv), end(argv)), checkRequired);
     }
 
     // Returns whether all command line arguments have been processed
@@ -135,7 +135,7 @@ public:
     StringRef bump();
 
 private:
-    void parse();
+    void parse(bool checkRequired);
 
     OptionBase* findOption(StringRef name) const;
 
