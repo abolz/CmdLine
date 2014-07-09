@@ -251,7 +251,7 @@ struct Parser<void> // default parser
 template <class T>
 struct MapParser
 {
-    using value_type = RemoveReference<T>;
+    using value_type = remove_reference_t<T>;
     using map_value_type = std::pair<std::string, value_type>;
     using map_type = std::vector<map_value_type>;
 
@@ -311,7 +311,7 @@ namespace details
     };
 
     template <class T>
-    auto TestInsert(R1) -> BasicTraits<RemoveCVRec<typename T::value_type>, Inserter>;
+    auto TestInsert(R1) -> BasicTraits<remove_cv_rec_t<typename T::value_type>, Inserter>;
 
     template <class T>
     auto TestInsert(R2) -> BasicTraits<T>;
@@ -479,14 +479,14 @@ protected:
     {
     }
 
-    template <class... An, class X = T, class = EnableIf<std::is_reference<X>>>
+    template <class... An, class X = T, class = enable_if_t<std::is_reference<X>::value>>
     BasicOption(std::piecewise_construct_t, details::Initializer<T> x, An&&...)
         : BaseType()
         , value_(x)
     {
     }
 
-    template <class U, class... An, class X = T, class = DisableIf<std::is_reference<X>>>
+    template <class U, class... An, class X = T, class = enable_if_t<!std::is_reference<X>::value>>
     BasicOption(std::piecewise_construct_t, details::Initializer<U> x, An&&...)
         : BaseType()
         , value_(x)
@@ -500,7 +500,7 @@ protected:
     }
 
 public:
-    using value_type = RemoveReference<T>;
+    using value_type = remove_reference_t<T>;
 
     // Returns the value
     value_type& value() { return value_; }
@@ -528,7 +528,7 @@ class Option : public BasicOption<T>
     ParserT parser_;
 
 public:
-    using parser_type = UnwrapReferenceWrapper<ParserT>;
+    using parser_type = unwrap_reference_wrapper_t<ParserT>;
 
     template <class P, class... An>
     explicit Option(std::piecewise_construct_t, P&& p, An&&... an)
@@ -686,9 +686,9 @@ private:
 // Construct a new Option, initialize the parser with the given value
 template <class T, template <class> class TraitsT = Traits, class P, class... An>
 auto makeOption(P&& p, An&&... an)
-    -> OptionWrapper<Option<T, TraitsT, Decay<P>>>
+    -> OptionWrapper<Option<T, TraitsT, decay_t<P>>>
 {
-    return OptionWrapper<Option<T, TraitsT, Decay<P>>>(
+    return OptionWrapper<Option<T, TraitsT, decay_t<P>>>(
         std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...);
 }
 
