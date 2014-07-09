@@ -106,6 +106,7 @@ function add_unittest(name)
         files { "test/unittests/" .. name .. ".cpp" }
 end
 
+add_unittest("CmdLineExpandTest")
 add_unittest("CmdLineTest")
 add_unittest("CmdLineToArgvTest")
 add_unittest("StringRefTest")
