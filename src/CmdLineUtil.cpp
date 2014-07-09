@@ -1,11 +1,10 @@
 // This file is distributed under the MIT license.
 // See the LICENSE file for details.
 
-#include "Support/CmdLineExpand.h"
+#include "Support/CmdLineUtil.h"
 #include "Support/StringRef.h"
 
 #include <algorithm>
-#include <iterator>
 
 #ifdef _WIN32
 #include <windows.h>

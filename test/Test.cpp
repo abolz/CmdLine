@@ -2,8 +2,7 @@
 // See the LICENSE file for details.
 
 #include "Support/CmdLine.h"
-#include "Support/CmdLineExpand.h"
-#include "Support/CmdLineToArgv.h"
+#include "Support/CmdLineUtil.h"
 #include "Support/StringSplit.h"
 
 #include "CmdLineQt.h"
