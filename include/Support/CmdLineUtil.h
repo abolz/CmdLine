@@ -3,10 +3,11 @@
 
 #pragma once
 
+#include "Support/Utility.h"
+
 #include <cctype>
+#include <algorithm>
 #include <fstream>
-#include <iterator>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,207 +18,231 @@ namespace cl
 {
 
 //--------------------------------------------------------------------------------------------------
-// Parses a command line string and returns a list of command line arguments.
+// Parses a single argument from a command line string.
 // Using Unix-style escaping.
 //
 template <class InputIterator, class OutputIterator>
-void tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIterator out)
+std::pair<InputIterator, OutputIterator>
+tokenizeStepUnix(InputIterator first, InputIterator last, OutputIterator out)
 {
+    //
     // See:
+    //
     // http://www.gnu.org/software/bash/manual/bashref.html#Quoting
     // http://wiki.bash-hackers.org/syntax/quoting
+    //
 
-    using CharType = typename std::iterator_traits<InputIterator>::value_type;
-    using StringType = std::basic_string<CharType>;
-
-    StringType arg;
-
-    CharType quoteChar = 0;
+    decltype(*first) quoteChar = 0;
 
     for (; first != last; ++first)
     {
         auto ch = *first;
 
-        // Quoting a single character using the backslash?
-        if (quoteChar == '\\')
+        if (quoteChar == '\\') // Quoting a single character using the backslash?
         {
-            arg.push_back(ch);
+            *out++ = ch;
             quoteChar = 0;
-            continue;
         }
-
-        // Currently quoting using ' or "?
-        if (quoteChar && ch != quoteChar)
+        else if (quoteChar && ch != quoteChar) // Currently quoting using ' or "?
         {
-            arg.push_back(ch);
-            continue;
+            *out++ = ch;
         }
-
-        // Toggle quoting?
-        if (ch == '\'' || ch == '\"' || ch == '\\')
+        else if (ch == '\'' || ch == '\"' || ch == '\\') // Toggle quoting?
         {
             quoteChar = quoteChar ? 0 : ch;
-            continue;
         }
-
-        // Arguments are separated by whitespace
-        if (std::isspace(ch))
+        else if (std::isspace(ch)) // Arguments are separated by whitespace
         {
-            if (arg.size() != 0)
-            {
-                *out++ = std::move(arg);
-                arg = StringType();
-            }
-            continue;
+            return { ++first, out };
         }
-
-        // Nothing special...
-        arg.push_back(ch);
+        else // Nothing special...
+        {
+            *out++ = ch;
+        }
     }
 
-    // Append the last argument - if any
-    if (arg.size() != 0)
+    return { first, out };
+}
+
+//--------------------------------------------------------------------------------------------------
+// Parses a command line string and returns a list of command line arguments.
+// Using Unix-style escaping.
+//
+template <
+    class InputIterator,
+    class OutputIterator,
+    class String = std::basic_string<typename std::iterator_traits<InputIterator>::value_type>
+    >
+OutputIterator
+tokenizeCommandLineUnix(InputIterator first, InputIterator last, OutputIterator out, String arg = String())
+{
+    while (first != last)
     {
-        *out++ = std::move(arg);
+        arg.clear();
+
+        first = tokenizeStepUnix(first, last, std::back_inserter(arg)).first;
+
+        if (!arg.empty())
+        {
+            *out++ = arg;
+        }
     }
+
+    return out;
 }
 
 struct TokenizeUnix
 {
-    template <class InputIterator, class OutputIterator>
-    void operator ()(InputIterator first, InputIterator last, OutputIterator out) const
+    template <
+        class InputIterator,
+        class OutputIterator,
+        class String = std::basic_string<typename std::iterator_traits<InputIterator>::value_type>
+        >
+    OutputIterator
+    operator ()(InputIterator first, InputIterator last, OutputIterator out, String arg = String()) const
     {
-        tokenizeCommandLineUnix(first, last, out);
+        return tokenizeCommandLineUnix(first, last, out, arg);
     }
 };
 
 //--------------------------------------------------------------------------------------------------
-// Parses a command line string and returns a list of command line arguments.
+// Parses a single argument from a command line string.
 // Using Windows-style escaping.
 //
 template <class InputIterator, class OutputIterator>
-void tokenizeCommandLineWindows(InputIterator first, InputIterator last, OutputIterator out)
+std::pair<InputIterator, OutputIterator>
+tokenizeStepWindows(InputIterator first, InputIterator last, OutputIterator out, bool& quoting)
 {
-    using CharType = typename std::iterator_traits<InputIterator>::value_type;
-    using StringType = std::basic_string<CharType>;
-
-    StringType arg;
-
     unsigned numBackslashes = 0;
 
-    bool quoting = false;
     bool recentlyClosed = false;
+
+    quoting = false;
 
     for (; first != last; ++first)
     {
         auto ch = *first;
 
-        if (ch == '\"')
+        if (ch == '\"' && recentlyClosed)
         {
+            recentlyClosed = false;
+
             //
-            // If a closing " is followed immediately by another ", the
-            // 2nd " is accepted literally and added to the parameter.
+            // If a closing " is followed immediately by another ", the 2nd " is accepted literally
+            // and added to the parameter.
             //
             // See:
             // http://www.daviddeley.com/autohotkey/parameters/parameters.htm#WINCRULESDOC
             //
-            if (recentlyClosed)
-            {
-                arg.push_back(ch);
+            *out++ = '\"';
+        }
+        else if (ch == '\"')
+        {
+            //
+            // If an even number of backslashes is followed by a double quotation mark, one backslash
+            // is placed in the argv array for every pair of backslashes, and the double quotation mark
+            // is interpreted as a string delimiter.
+            //
+            // If an odd number of backslashes is followed by a double quotation mark, one backslash
+            // is placed in the argv array for every pair of backslashes, and the double quotation mark
+            // is "escaped" by the remaining backslash, causing a literal double quotation mark (")
+            // to be placed in argv.
+            //
 
-                recentlyClosed = false;
+            bool even = (numBackslashes % 2) == 0;
+
+            for (numBackslashes /= 2; numBackslashes != 0; --numBackslashes)
+            {
+                *out++ = '\\';
+            }
+
+            if (even)
+            {
+                recentlyClosed = quoting; // Remember if this is a closing "
+                quoting = !quoting;
             }
             else
             {
-                arg.append(numBackslashes / 2, '\\');
-
-                if (numBackslashes % 2)
-                {
-                    //
-                    // If an odd number of backslashes is followed by a double
-                    // quotation mark, one backslash is placed in the argv array
-                    // for every pair of backslashes, and the double quotation
-                    // mark is "escaped" by the remaining backslash, causing a
-                    // literal double quotation mark (") to be placed in argv.
-                    //
-                    arg.push_back(ch);
-                }
-                else
-                {
-                    //
-                    // If an even number of backslashes is followed by a double
-                    // quotation mark, one backslash is placed in the argv array
-                    // for every pair of backslashes, and the double quotation
-                    // mark is interpreted as a string delimiter.
-                    //
-                    quoting = !quoting;
-
-                    // Remember if this is a closing "
-                    recentlyClosed = !quoting;
-                }
-
-                numBackslashes = 0;
+                *out++ = '\"';
             }
+        }
+        else if (ch == '\\')
+        {
+            recentlyClosed = false;
+
+            ++numBackslashes;
         }
         else
         {
             recentlyClosed = false;
 
-            if (ch == '\\')
+            //
+            // Backslashes are interpreted literally, unless they immediately precede a double
+            // quotation mark.
+            //
+            for (; numBackslashes != 0; --numBackslashes)
             {
-                numBackslashes++;
+                *out++ = '\\';
             }
-            else
+
+            if (!quoting && std::isspace(ch))
             {
                 //
-                // Backslashes are interpreted literally, unless they
-                // immediately precede a double quotation mark.
+                // Arguments are delimited by white space, which is either a space or a tab.
                 //
-                arg.append(numBackslashes, '\\');
-
-                if (!quoting && std::isspace(ch))
-                {
-                    //
-                    // Arguments are delimited by white space, which is either a
-                    // space or a tab.
-                    //
-                    // A string surrounded by double quotation marks ("string") is
-                    // interpreted as a single argument, regardless of white space
-                    // contained within. A quoted string can be embedded in an
-                    // argument.
-                    //
-                    if (arg.size() != 0)
-                    {
-                        *out++ = std::move(arg);
-                        arg = StringType();
-                    }
-                }
-                else
-                {
-                    arg.push_back(ch);
-                }
-
-                numBackslashes = 0;
+                // A string surrounded by double quotation marks ("string") is interpreted as a
+                // single argument, regardless of white space contained within. A quoted string can
+                // be embedded in an argument.
+                //
+                return { ++first, out };
             }
+
+            *out++ = ch;
         }
     }
 
-    // Append any trailing backslashes
-    arg.append(numBackslashes, '\\');
+    return { first, out };
+}
 
-    // Append the last argument - if any
-    if (quoting || arg.size() != 0)
+//--------------------------------------------------------------------------------------------------
+// Parses a command line string and returns a list of command line arguments.
+// Using Windows-style escaping.
+//
+template <
+    class InputIterator,
+    class OutputIterator,
+    class String = std::basic_string<typename std::iterator_traits<InputIterator>::value_type>
+    >
+OutputIterator
+tokenizeCommandLineWindows(InputIterator first, InputIterator last, OutputIterator out, String arg = String())
+{
+    while (first != last)
     {
-        *out++ = std::move(arg);
+        bool quoting = false;
+
+        arg.clear();
+
+        first = tokenizeStepWindows(first, last, std::back_inserter(arg), quoting).first;
+
+        if (!arg.empty() || (/*first == last &&*/ quoting))
+        {
+            *out++ = arg;
+        }
     }
+
+    return out;
 }
 
 struct TokenizeWindows
 {
-    template <class InputIterator, class OutputIterator>
-    void operator ()(InputIterator first, InputIterator last, OutputIterator out) const
+    template <
+        class InputIterator,
+        class OutputIterator,
+        class String = std::basic_string<typename std::iterator_traits<InputIterator>::value_type>
+        >
+    OutputIterator operator ()(InputIterator first, InputIterator last, OutputIterator out, String arg = String()) const
     {
-        tokenizeCommandLineWindows(first, last, out);
+        return tokenizeCommandLineWindows(first, last, out, arg);
     }
 };
 
@@ -227,30 +252,27 @@ struct TokenizeWindows
 // See:
 // http://blogs.msdn.com/b/twistylittlepassagesallalike/archive/2011/04/23/everyone-quotes-arguments-the-wrong-way.aspx
 //
-// This routine appends the given argument to a command line such
-// that CommandLineToArgvW will return the argument string unchanged.
-// Arguments in a command line should be separated by spaces; this
-// function does not add these spaces.
+// This routine appends the given argument to a command line such that CommandLineToArgvW will
+// return the argument string unchanged. Arguments in a command line should be separated by spaces;
+// this function does not add these spaces.
 //
 template <class InputIterator, class OutputIterator>
-void quoteSingleArgWindows(InputIterator first, InputIterator last, OutputIterator out)
+OutputIterator
+quoteSingleArgWindows(InputIterator first, InputIterator last, OutputIterator out)
 {
-    //
-    // TODO:
-    // Only add quotes if the input range contains whitespace?!
-    //
-
-    *out++ = '"';
-
     unsigned numBackslashes = 0;
+
+    *out++ = '\"';
 
     for (; first != last; ++first)
     {
-        if (*first == '\\')
+        auto ch = *first;
+
+        if (ch == '\\')
         {
             ++numBackslashes;
         }
-        else if (*first == '"')
+        else if (ch == '\"')
         {
             //
             // Escape all backslashes and the following
@@ -269,7 +291,7 @@ void quoteSingleArgWindows(InputIterator first, InputIterator last, OutputIterat
             numBackslashes = 0;
         }
 
-        *out++ = *first;
+        *out++ = ch;
     }
 
     //
@@ -282,18 +304,18 @@ void quoteSingleArgWindows(InputIterator first, InputIterator last, OutputIterat
         *out++ = '\\';
     }
 
-    *out++ = '"';
+    *out++ = '\"';
+
+    return out;
 }
 
 //--------------------------------------------------------------------------------------------------
 // Quote command line arguments. Using Windows-style escaping.
 //
 template <class InputIterator, class OutputIterator>
-void quoteArgsWindows(InputIterator first, InputIterator last, OutputIterator out)
+std::pair<InputIterator, OutputIterator>
+quoteArgsWindows(InputIterator first, InputIterator last, OutputIterator out)
 {
-    using std::begin;
-    using std::end;
-
     for (; first != last; ++first)
     {
         auto I = begin(*first);
@@ -302,67 +324,90 @@ void quoteArgsWindows(InputIterator first, InputIterator last, OutputIterator ou
         if (I == E)
         {
             //
-            // If a command line ends with an opening " CommandLineToArgvW will append
-            // an empty argument to the list of command line arguments. If there is an
-            // empty argument in the input range, add an " and return, since only the
-            // last argument might be empty.
+            // If a command line string ends while currently quoting, CommandLineToArgvW
+            // will add the current argument to the argv array regardless whether the current
+            // argument is empty or not.
             //
-            *out++ = '"';
+            // So if we have an empty argument here add an opening " and return. This should
+            // be the last argument though...
+            //
+            // XXX:
+            // return { last, out }; ?!?!?!
+            //
+            *out++ = '\"';
             break;
         }
 
         //
         // Append the current argument
         //
-        quoteSingleArgWindows(I, E, out);
+        out = quoteSingleArgWindows(I, E, out);
 
         //
         // Separate arguments with spaces
         //
         *out++ = ' ';
     }
+
+    return { first, out };
+}
+
+//--------------------------------------------------------------------------------------------------
+// Expand a single response file at the given position.
+//
+template <class Container, class Tokenizer>
+typename Container::iterator
+expandResponseFile(Container& cont, typename Container::iterator at, Tokenizer tokenize)
+{
+    using Buffer = typename Container::value_type;
+
+    auto off = std::distance(begin(cont), at);
+    auto len = size(cont) - 1;
+
+    std::ifstream file;
+
+    file.exceptions(std::ios::failbit);
+    file.open(data(*at) + 1);
+
+    // Erase the i-th argument (@file)
+    cont.erase(at);
+
+    // Parse the file while inserting new command line arguments at the end
+    tokenize(std::istreambuf_iterator<char>(file.rdbuf()),
+             std::istreambuf_iterator<char>(),
+             std::back_inserter(cont),
+             Buffer()
+             );
+
+    auto I = std::next(begin(cont), off);
+
+    // Move the new arguments to the correct position
+    std::rotate(I, std::next(begin(cont), len), end(cont));
+
+    return I;
 }
 
 //--------------------------------------------------------------------------------------------------
 // Recursively expand response files.
 //
-template <class Tokenizer>
-void expandResponseFiles(std::vector<std::string>& args, Tokenizer tokenize)
+template <class Container, class Tokenizer>
+void expandResponseFiles(Container& args, Tokenizer tokenize, size_t maxResponseFiles = 100)
 {
-    // Expand the response file at position i
-    auto expand1 = [&](size_t i)
-    {
-        std::ifstream file;
-
-        file.exceptions(std::ios::failbit);
-        file.open(args[i].substr(1));
-
-        // Erase the i-th argument (@file)
-        args.erase(args.begin() + i);
-
-        // Parse the file while inserting new command line arguments before the erased argument
-        auto I = std::istreambuf_iterator<char>(file.rdbuf());
-        auto E = std::istreambuf_iterator<char>();
-
-        tokenize(I, E, std::inserter(args, args.begin() + i));
-    };
-
-    // Response file counter to prevent infinite recursion...
-    size_t responseFilesLeft = 100;
-
     // Recursively expand respond files...
-    for (size_t i = 0; i < args.size(); /**/)
+    for (auto I = begin(args); I != end(args); )
     {
-        if (args[i][0] != '@')
+        if (empty(*I) || front(*I) != '@')
         {
-            i++;
+            ++I;
             continue;
         }
 
-        expand1(i);
-
-        if (--responseFilesLeft == 0)
+        if (maxResponseFiles == 0)
             throw std::runtime_error("too many response files encountered");
+
+        I = expandResponseFile(args, I, tokenize);
+
+        maxResponseFiles--;
     }
 }
 

@@ -169,6 +169,12 @@ TEST(CmdLineToArgvTest, Win)
         P R"("a b c")",
         P R"("a b c"")",
         P R"("a b c""")",
+        P R"(a b c)",
+        P R"(a\tb c)",
+        P R"(a\nb c)",
+        P R"(a\vb c)",
+        P R"(a\fb c)",
+        P R"(a\rb c)",
     };
 
     for (auto const& s : tests)
