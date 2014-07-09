@@ -26,14 +26,14 @@ namespace pp
     using std::begin;
     using std::end;
 
-    template <class T>
-    void prettyPrint(std::ostream& stream, T const& object);
+    template <class OS, class T>
+    void prettyPrint(OS& stream, T const& object);
 
     // Overload to print strings using double quotation marks...
-    template <class C, class T, class A>
-    void prettyPrint(std::ostream& stream, std::basic_string<C, T, A> const& object)
+    template <class OS, class C, class T, class A>
+    void prettyPrint(OS& stream, std::basic_string<C, T, A> const& object)
     {
-        stream << "\"" << object << "\"";
+        stream << '\"' << object << '\"';
     }
 
     struct IsContainerImpl
@@ -68,51 +68,52 @@ namespace pp
     {
     };
 
-    template <class T>
-    void printTuple(std::ostream& /*stream*/, T const& /*object*/, std::integral_constant<size_t, 0>)
+    template <class OS, class T>
+    void printTuple(OS& /*stream*/, T const& /*object*/, std::integral_constant<size_t, 0>)
     {
     }
 
-    template <class T>
-    void printTuple(std::ostream& stream, T const& object, std::integral_constant<size_t, 1>)
+    template <class OS, class T>
+    void printTuple(OS& stream, T const& object, std::integral_constant<size_t, 1>)
     {
         // Print last element of the tuple
         prettyPrint(stream, std::get<std::tuple_size<T>::value - 1>(object));
     }
 
-    template <class T, size_t N>
-    void printTuple(std::ostream& stream, T const& object, std::integral_constant<size_t, N>)
+    template <class OS, class T, size_t N>
+    void printTuple(OS& stream, T const& object, std::integral_constant<size_t, N>)
     {
         // Print the current element of the tuple
         prettyPrint(stream, std::get<std::tuple_size<T>::value - N>(object));
 
         // Separate the tuple elements
-        stream << ", ";
+        stream << ',';
+        stream << ' ';
 
         // Print the remaining tuple elements
         printTuple(stream, object, std::integral_constant<size_t, N - 1>());
     }
 
-    template <class T>
-    void dispatchTuple(std::ostream& stream, T const& object, std::true_type)
+    template <class OS, class T>
+    void dispatchTuple(OS& stream, T const& object, std::true_type)
     {
-        stream << "{";
+        stream << '{';
 
         printTuple(stream, object, typename std::tuple_size<T>::type());
 
-        stream << "}";
+        stream << '}';
     }
 
-    template <class T>
-    void dispatchTuple(std::ostream& stream, T const& object, std::false_type)
+    template <class OS, class T>
+    void dispatchTuple(OS& stream, T const& object, std::false_type)
     {
         stream << object;
     }
 
-    template <class T>
-    void dispatchContainer(std::ostream& stream, T const& object, std::true_type)
+    template <class OS, class T>
+    void dispatchContainer(OS& stream, T const& object, std::true_type)
     {
-        stream << "[";
+        stream << '[';
 
         auto I = begin(object);
         auto E = end(object);
@@ -124,23 +125,26 @@ namespace pp
                 prettyPrint(stream, *I);
 
                 if (++I != E)
-                    stream << ", ";
+                {
+                    stream << ',';
+                    stream << ' ';
+                }
                 else
                     break;
             }
         }
 
-        stream << "]";
+        stream << ']';
     }
 
-    template <class T>
-    void dispatchContainer(std::ostream& stream, T const& object, std::false_type)
+    template <class OS, class T>
+    void dispatchContainer(OS& stream, T const& object, std::false_type)
     {
         dispatchTuple(stream, object, typename IsTuple<T>::type());
     }
 
-    template <class T>
-    void prettyPrint(std::ostream& stream, T const& object)
+    template <class OS, class T>
+    void prettyPrint(OS& stream, T const& object)
     {
         dispatchContainer(stream, object, typename IsContainer<T>::type());
     }
@@ -156,8 +160,8 @@ namespace pp
         }
     };
 
-    template <class T>
-    inline std::ostream& operator <<(std::ostream& stream, PrettyPrinter<T> const& x)
+    template <class OS, class T>
+    inline OS& operator <<(OS& stream, PrettyPrinter<T> const& x)
     {
         prettyPrint(stream, x.object);
         return stream;
