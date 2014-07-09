@@ -97,14 +97,30 @@ static std::vector<std::string> stringToArgvCL(std::string const& args)
     return argv;
 }
 
+static std::string quoteArgs(std::vector<std::string> const& argv)
+{
+    std::string args;
+
+    cl::quoteArgsWindows(argv.begin(), argv.end(), std::back_inserter(args));
+
+    return args;
+}
+
 static void compare(std::string const& args)
 {
-    SCOPED_TRACE("command-line: \"( " + args + " )\"");
+    SCOPED_TRACE("command-line: R\"(" + args + ")\"");
 
     auto x = stringToArgvWindows(toUTF16(args));
     auto y = stringToArgvCL(args);
 
     EXPECT_EQ(x, y);
+
+    auto s = quoteArgs(y);
+    auto z = stringToArgvCL(s);
+
+    SCOPED_TRACE("quoted: R\"(" + s + ")\"");
+
+    EXPECT_EQ(x, z);
 }
 
 TEST(CmdLineToArgvTest, Win)

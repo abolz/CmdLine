@@ -222,6 +222,108 @@ struct TokenizeWindows
 };
 
 //--------------------------------------------------------------------------------------------------
+// Quote a single command line argument. Using Windows-style escaping.
+//
+// See:
+// http://blogs.msdn.com/b/twistylittlepassagesallalike/archive/2011/04/23/everyone-quotes-arguments-the-wrong-way.aspx
+//
+// This routine appends the given argument to a command line such
+// that CommandLineToArgvW will return the argument string unchanged.
+// Arguments in a command line should be separated by spaces; this
+// function does not add these spaces.
+//
+template <class InputIterator, class OutputIterator>
+void quoteSingleArgWindows(InputIterator first, InputIterator last, OutputIterator out)
+{
+    //
+    // TODO:
+    // Only add quotes if the input range contains whitespace?!
+    //
+
+    *out++ = '"';
+
+    unsigned numBackslashes = 0;
+
+    for (; first != last; ++first)
+    {
+        if (*first == '\\')
+        {
+            ++numBackslashes;
+        }
+        else if (*first == '"')
+        {
+            //
+            // Escape all backslashes and the following
+            // double quotation mark.
+            //
+            for (++numBackslashes; numBackslashes != 0; --numBackslashes)
+            {
+                *out++ = '\\';
+            }
+        }
+        else
+        {
+            //
+            // Backslashes aren't special here.
+            //
+            numBackslashes = 0;
+        }
+
+        *out++ = *first;
+    }
+
+    //
+    // Escape all backslashes, but let the terminating
+    // double quotation mark we add below be interpreted
+    // as a metacharacter.
+    //
+    for (; numBackslashes != 0; --numBackslashes)
+    {
+        *out++ = '\\';
+    }
+
+    *out++ = '"';
+}
+
+//--------------------------------------------------------------------------------------------------
+// Quote command line arguments. Using Windows-style escaping.
+//
+template <class InputIterator, class OutputIterator>
+void quoteArgsWindows(InputIterator first, InputIterator last, OutputIterator out)
+{
+    using std::begin;
+    using std::end;
+
+    for (; first != last; ++first)
+    {
+        auto I = begin(*first);
+        auto E = end(*first);
+
+        if (I == E)
+        {
+            //
+            // If a command line ends with an opening " CommandLineToArgvW will append
+            // an empty argument to the list of command line arguments. If there is an
+            // empty argument in the input range, add an " and return, since only the
+            // last argument might be empty.
+            //
+            *out++ = '"';
+            break;
+        }
+
+        //
+        // Append the current argument
+        //
+        quoteSingleArgWindows(I, E, out);
+
+        //
+        // Separate arguments with spaces
+        //
+        *out++ = ' ';
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 // Recursively expand response files.
 //
 template <class Tokenizer>
