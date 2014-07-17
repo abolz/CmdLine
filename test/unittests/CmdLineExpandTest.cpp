@@ -28,18 +28,28 @@ bool parse(cl::CmdLine& cmd, Argv const& argv)
     }
 }
 
-static void GenerateResponseFiles()
+static void GenerateFiles()
 {
     std::ofstream rsp1("CmdLineExpandTest.rsp1");
     rsp1 << "@CmdLineExpandTest.rsp2 -f1 111 -f2222 -f3=333";
 
     std::ofstream rsp2("CmdLineExpandTest.rsp2");
     rsp2 << "-g1 111 -g2222 -g3=333";
+
+    std::vector<std::string> files = {
+        "file1.txt", "file2.txt", "file3.txt",
+        "file11.txt", "file12.txt", "file13.txt",
+    };
+
+    for (auto&& f : files) {
+        std::ofstream file(f);
+        file << "Hello";
+    }
 }
 
 TEST(CmdLineExpand, Test1)
 {
-    GenerateResponseFiles();
+    GenerateFiles();
 
     cl::CmdLine cmd;
 
@@ -67,13 +77,53 @@ TEST(CmdLineExpand, Test1)
 // VC only: open ifstream using wstring's
 TEST(CmdLineExpand, TestWchar)
 {
-    //GenerateResponseFiles();
+    //GenerateFiles();
 
     std::list<std::wstring> args = { L"-h1", L"111", L"@CmdLineExpandTest.rsp1", L"-h2222", L"-h3=333" };
 
     cl::expandResponseFiles(args, cl::TokenizeWindows());
 
     std::wcout << L"command-line: " << pretty(args) << std::endl;
+}
+
+#endif
+
+#ifdef _WIN32
+
+TEST(CmdLineExpand, TestWildcards)
+{
+    //GenerateFiles();
+
+    {
+        std::vector<std::string> args = {"kjhasfjkhasdf"};
+        support::cl::expandWildcards(args);
+        EXPECT_EQ(1, args.size());
+        std::cout << pretty(args) << std::endl;
+    }
+    {
+        std::vector<std::string> args = {"file*.t?t"};
+        support::cl::expandWildcards(args);
+        EXPECT_EQ(6, args.size());
+        std::cout << pretty(args) << std::endl;
+    }
+    {
+        std::vector<std::string> args = {"file?.txt"};
+        support::cl::expandWildcards(args);
+        EXPECT_EQ(3, args.size());
+        std::cout << pretty(args) << std::endl;
+    }
+    {
+        std::vector<std::string> args = {"file2?.txt", "file1?.txt"};
+        support::cl::expandWildcards(args);
+        EXPECT_EQ(5, args.size());
+        std::cout << pretty(args) << std::endl;
+    }
+    {
+        std::vector<std::string> args = {"file1?.txt", "file2?.txt", "file5?.txt"};
+        support::cl::expandWildcards(args);
+        EXPECT_EQ(6, args.size());
+        std::cout << pretty(args) << std::endl;
+    }
 }
 
 #endif

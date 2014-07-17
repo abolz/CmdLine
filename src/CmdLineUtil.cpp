@@ -14,29 +14,9 @@ using support::StringRef;
 
 #ifdef _WIN32
 
-static std::vector<std::string> EnumerateFiles(StringRef pattern, size_t wildpos)
+static size_t EnumFiles(StringRef pattern, size_t wildpos, std::vector<std::string>& files)
 {
     assert(wildpos != StringRef::npos);
-
-    // Find first slash or colon before wildcard
-    size_t patternpos = pattern.find_last_of("\\/:", wildpos);
-
-    std::string prefix = "";
-
-    if (patternpos == StringRef::npos)
-    {
-        // Use current directory.
-    }
-    else
-    {
-        // Path specified.
-        // Prefix each filename with the path.
-        prefix.assign(pattern.data(), pattern.data() + patternpos + 1);
-    }
-
-    // Enumerate files
-
-    std::vector<std::string> files;
 
     //
     // FIXME:
@@ -46,29 +26,37 @@ static std::vector<std::string> EnumerateFiles(StringRef pattern, size_t wildpos
     WIN32_FIND_DATAA info;
     HANDLE hFind = FindFirstFileExA(pattern.data(), FindExInfoStandard, &info, FindExSearchNameMatch, nullptr, 0);
 
-    if (hFind != INVALID_HANDLE_VALUE)
+    if (hFind == INVALID_HANDLE_VALUE)
+        return 0;
+
+    // Find first slash or colon before wildcard
+    auto patternpos = pattern.find_last_of("\\/:", wildpos);
+    auto size = files.size();
+
+    do
     {
-        do
+        StringRef arg = info.cFileName;
+
+        if (arg == "." || arg == "..")
+            continue;
+
+        if (patternpos == StringRef::npos)
         {
-            StringRef arg = info.cFileName;
-
-            if (arg[0] != '.' && !arg.starts_with(".."))
-            {
-                files.push_back(prefix + arg);
-            }
+            // Use current directory.
+            files.push_back(arg.str());
         }
-        while (FindNextFileA(hFind, &info));
-
-        FindClose(hFind);
+        else
+        {
+            // Path specified.
+            // Prefix each filename with the path.
+            files.push_back(pattern.substr(0, patternpos + 1).str() + arg.str());
+        }
     }
+    while (FindNextFileA(hFind, &info));
 
-    // Sort the list of files
-    // Ignore case!
+    FindClose(hFind);
 
-    std::sort(files.begin(), files.end(),
-        [](StringRef LHS, StringRef RHS) { return LHS.compare_no_case(RHS) < 0; });
-
-    return files;
+    return files.size() - size;
 }
 
 #endif
@@ -77,37 +65,40 @@ void support::cl::expandWildcards(std::vector<std::string>& args)
 {
 #ifdef _WIN32
 
-    size_t i = 0;
-    size_t wildpos = StringRef::npos;
+    std::vector<std::string> files;
 
-    // Find the first argument containing a '*' or a '?'
-    for (; i != args.size(); ++i)
+    for (size_t i = 0; i != args.size(); )
     {
-        wildpos = args[i].find_first_of("*?");
+        files.clear();
 
-        if (wildpos != std::string::npos)
-            break;
+        auto arg = StringRef(args[i]);
+        auto wildpos = arg.find_first_of("*?");
+
+        // If there is no '*' or '?'
+        // or there are no matching files,
+        // leave the pattern as is.
+        if (wildpos == std::string::npos || EnumFiles(arg, wildpos, files) == 0)
+        {
+            ++i;
+            continue;
+        }
+
+        // Sort the list. Ignore case.
+        std::sort(files.begin(), files.end(),
+            [](StringRef LHS, StringRef RHS) { return LHS.compare_no_case(RHS) < 0; });
+
+        // Replace the pattern with the first found file
+        args[i] = std::move(files.front());
+
+        // Insert the remaining files
+        args.insert(args.begin() + (i + 1),
+                    std::make_move_iterator(files.begin() + 1),
+                    std::make_move_iterator(files.end()));
+
+        i += files.size();
+
+        assert(i <= args.size());
     }
-
-    // If there is no '*' or '?' there is nothing to expand...
-    if (wildpos == StringRef::npos)
-        return;
-
-    // Enumerate the files matching the pattern
-    auto files = EnumerateFiles(args[i], wildpos);
-
-    // If there are no matches, leave the pattern in args_!
-    if (files.empty())
-        return;
-
-    // Erase the i-th argument (pattern)
-    args.erase(args.begin() + i);
-
-    // Insert the new arguments
-    auto I = std::make_move_iterator(files.begin());
-    auto E = std::make_move_iterator(files.end());
-
-    std::copy(I, E, std::inserter(args, args.begin() + i));
 
 #else
 
