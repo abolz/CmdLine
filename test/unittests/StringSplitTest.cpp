@@ -4,6 +4,7 @@
 #include "Support/StringSplit.h"
 
 #include <vector>
+#include <iostream>
 
 #include <gtest/gtest.h>
 
@@ -13,29 +14,29 @@ using namespace support::strings;
 template <class T> using IsStringRef = typename std::is_same<T, StringRef>::type;
 template <class T> using IsStdString = typename std::is_same<T, std::string>::type;
 
-using strings::details::Split_string;
+using strings::details::Split_string_t;
 
-static_assert( IsStringRef< Split_string::type<char*                >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char*&               >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char*&&              >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char (&)[1]          >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char const*          >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char const*&         >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char const*&&        >>::value, "" );
-static_assert( IsStringRef< Split_string::type<char const (&)[1]    >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef            >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef&           >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef&&          >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef const      >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef const&     >>::value, "" );
-static_assert( IsStringRef< Split_string::type<StringRef const&&    >>::value, "" );
-static_assert( IsStringRef< Split_string::type<std::string&         >>::value, "" );
-static_assert( IsStringRef< Split_string::type<std::string const&   >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char*                >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char*&               >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char*&&              >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char (&)[1]          >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char const*          >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char const*&         >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char const*&&        >>::value, "" );
+static_assert( IsStringRef< Split_string_t<char const (&)[1]    >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef            >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef&           >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef&&          >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef const      >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef const&     >>::value, "" );
+static_assert( IsStringRef< Split_string_t<StringRef const&&    >>::value, "" );
+static_assert( IsStringRef< Split_string_t<std::string&         >>::value, "" );
+static_assert( IsStringRef< Split_string_t<std::string const&   >>::value, "" );
 
-static_assert( IsStdString< Split_string::type<std::string          >>::value, "" );
-static_assert( IsStdString< Split_string::type<std::string&&        >>::value, "" );
-static_assert( IsStdString< Split_string::type<std::string const    >>::value, "" );
-static_assert( IsStdString< Split_string::type<std::string const&&  >>::value, "" );
+static_assert( IsStdString< Split_string_t<std::string          >>::value, "" );
+static_assert( IsStdString< Split_string_t<std::string&&        >>::value, "" );
+static_assert( IsStdString< Split_string_t<std::string const    >>::value, "" );
+static_assert( IsStdString< Split_string_t<std::string const&&  >>::value, "" );
 
 TEST(Test, EmptyStrings)
 {
@@ -445,5 +446,48 @@ TEST(Test, SplitOnce_SAS)
         EXPECT_TRUE(p.first.data() != nullptr);
         EXPECT_TRUE(p.second.data() == nullptr);
         EXPECT_EQ("a", p.first);
+    }
+}
+
+TEST(Test, Predicates)
+{
+    //using support::strings::details::Split_pred;
+    //std::cout << sizeof(Split_pred<Limit>) << std::endl;
+    //std::cout << sizeof(Split_pred<SkipEmpty, Limit>) << std::endl;
+    //std::cout << sizeof(Split_pred<Trim, SkipEmpty, Limit>) << std::endl;
+    //std::cout << sizeof(Split_pred<Limit, SkipEmpty>) << std::endl;
+
+    {
+        std::vector<StringRef>
+            vec( split("-a-b-c----d", "--", Limit(2)) );
+
+        ASSERT_EQ(2, vec.size());
+        EXPECT_EQ("-a-b-c", vec[0]);
+        EXPECT_EQ("", vec[1]);
+    }
+    {
+        std::vector<StringRef>
+            vec( split("-a-b-c----d", "--", SkipEmpty(), Limit(2)) );
+
+        ASSERT_EQ(2, vec.size());
+        EXPECT_EQ("-a-b-c", vec[0]);
+        EXPECT_EQ("d", vec[1]);
+    }
+    {
+        std::vector<StringRef>
+            vec( split("-a-b-c----d", "--", Limit(2), SkipEmpty()) );
+
+        ASSERT_EQ(1, vec.size());
+        EXPECT_EQ("-a-b-c", vec[0]);
+    }
+    {
+        std::vector<StringRef>
+            vec( split(" --\t a\n - b\v  - c\f - \r d-  ", "-", Trim(), SkipEmpty(), Limit(2)) );
+
+        ASSERT_EQ(2, vec.size());
+        EXPECT_EQ("a", vec[0]);
+        EXPECT_EQ("b", vec[1]);
+        //EXPECT_EQ("c", vec[2]);
+        //EXPECT_EQ("d", vec[3]);
     }
 }
