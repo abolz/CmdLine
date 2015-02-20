@@ -8,7 +8,6 @@
 #include "Support/Utility.h"
 
 #include <algorithm>
-#include <iomanip>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -185,7 +184,9 @@ struct Parser
     {
         StringRefStream stream(arg);
 
-        if (!(stream >> std::setbase(0) >> value) || !stream.eof())
+        stream.setf(std::ios_base::fmtflags(0), std::ios::basefield);
+
+        if (!(stream >> value) || !stream.eof())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
     }
 };
