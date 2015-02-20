@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "Support/Utility.h"
-
 #include <cctype>
 #include <algorithm>
 #include <fstream>
@@ -317,6 +315,9 @@ template <class InputIterator, class OutputIterator>
 std::pair<InputIterator, OutputIterator>
 quoteArgsWindows(InputIterator first, InputIterator last, OutputIterator out)
 {
+    using std::begin;
+    using std::end;
+
     for (; first != last; ++first)
     {
         auto I = begin(*first);
@@ -360,15 +361,18 @@ template <class Container, class Tokenizer>
 typename Container::iterator
 expandResponseFile(Container& cont, typename Container::iterator at, Tokenizer tokenize)
 {
+    using std::begin;
+    using std::end;
+
     using Buffer = typename Container::value_type;
 
     auto off = std::distance(begin(cont), at);
-    auto len = size(cont) - 1;
+    auto len = cont.size() - 1;
 
     std::ifstream file;
 
     file.exceptions(std::ios::failbit);
-    file.open(data(*at) + 1);
+    file.open(at->data() + 1);
 
     // Erase the i-th argument (@file)
     cont.erase(at);
@@ -394,10 +398,13 @@ expandResponseFile(Container& cont, typename Container::iterator at, Tokenizer t
 template <class Container, class Tokenizer>
 void expandResponseFiles(Container& args, Tokenizer tokenize, size_t maxResponseFiles = 100)
 {
+    using std::begin;
+    using std::end;
+
     // Recursively expand respond files...
     for (auto I = begin(args); I != end(args); )
     {
-        if (empty(*I) || front(*I) != '@')
+        if (I->empty() || I->front() != '@')
         {
             ++I;
             continue;
