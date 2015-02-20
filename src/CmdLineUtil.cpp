@@ -83,9 +83,9 @@ void support::cl::expandWildcards(std::vector<std::string>& args)
             continue;
         }
 
-        // Sort the list. Ignore case.
+        // Sort the list.
         std::sort(files.begin(), files.end(),
-            [](StringRef LHS, StringRef RHS) { return LHS.compare_no_case(RHS) < 0; });
+            [](StringRef LHS, StringRef RHS) { return LHS < RHS; });
 
         // Replace the pattern with the first found file
         args[i] = std::move(files.front());

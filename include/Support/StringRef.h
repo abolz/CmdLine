@@ -179,13 +179,6 @@ public:
         return c < 0 || (c == 0 && size() < RHS.size());
     }
 
-    // Lexicographically compare this string with another.
-    int compare(StringRef RHS) const;
-
-    // Lexicographically compare this string with another.
-    // Ignore case.
-    int compare_no_case(StringRef RHS) const;
-
     // Returns whether the string starts with Prefix
     bool starts_with(StringRef Prefix) const
     {
@@ -235,16 +228,91 @@ public:
     // Search for the last character in the sub-string [From, Length)
     // which does not match any of the characters in Chars.
     size_t find_last_not_of(StringRef Chars, size_t From = npos) const;
-
-    // Return string with consecutive characters in Chars starting from the left removed.
-    StringRef trim_left(StringRef Chars = " \t\n\v\f\r") const;
-
-    // Return string with consecutive characters in Chars starting from the right removed.
-    StringRef trim_right(StringRef Chars = " \t\n\v\f\r") const;
-
-    // Return string with consecutive characters in Chars starting from the left and right removed.
-    StringRef trim(StringRef Chars = " \t\n\v\f\r") const;
 };
+
+inline size_t StringRef::find(char_type Ch, size_t From) const
+{
+    if (From >= size())
+        return npos;
+
+    if (auto I = traits_type::find(data() + From, size() - From, Ch))
+        return I - data();
+
+    return npos;
+}
+
+inline size_t StringRef::find(StringRef Str, size_t From) const
+{
+    if (Str.size() == 1)
+        return find(Str[0], From);
+
+    if (From > size() || Str.size() > size())
+        return npos;
+
+    if (Str.empty())
+        return From;
+
+    for (auto I = From; I != size() - Str.size() + 1; ++I)
+        if (traits_type::compare(data() + I, Str.data(), Str.size()) == 0)
+            return I;
+
+    return npos;
+}
+
+inline size_t StringRef::find_first_of(StringRef Chars, size_t From) const
+{
+    if (From >= size() || Chars.empty())
+        return npos;
+
+    for (auto I = From; I != size(); ++I)
+        if (traits_type::find(Chars.data(), Chars.size(), data()[I]))
+            return I;
+
+    return npos;
+}
+
+inline size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
+{
+    if (From >= size())
+        return npos;
+
+    for (auto I = From; I != size(); ++I)
+        if (!traits_type::find(Chars.data(), Chars.size(), data()[I]))
+            return I;
+
+    return npos;
+}
+
+inline size_t StringRef::find_last_of(StringRef Chars, size_t From) const
+{
+    if (Chars.empty())
+        return npos;
+
+    if (From < size())
+        From++;
+    else
+        From = size();
+
+    for (auto I = From; I != 0; --I)
+        if (traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
+            return I - 1;
+
+    return npos;
+}
+
+inline size_t StringRef::find_last_not_of(StringRef Chars, size_t From) const
+{
+    if (From < size())
+        From++;
+    else
+        From = size();
+
+    for (auto I = From; I != 0; --I)
+        if (!traits_type::find(Chars.data(), Chars.size(), data()[I - 1]))
+            return I - 1;
+
+    return npos;
+}
 
 //--------------------------------------------------------------------------------------------------
 // Comparisons
@@ -275,19 +343,11 @@ inline bool operator >=(StringRef LHS, StringRef RHS) {
 }
 
 //--------------------------------------------------------------------------------------------------
-// to_string
-//
-
-inline std::string to_string(StringRef S) {
-    return std::string(S.begin(), S.end());
-}
-
-//--------------------------------------------------------------------------------------------------
 // Formatted output
 //
 
 inline std::ostream& operator <<(std::ostream& Stream, StringRef S) {
-    return Stream << to_string(S);
+    return Stream << S.str();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -310,28 +370,4 @@ inline std::string operator +(std::string LHS, StringRef RHS)
     return std::move(LHS);
 }
 
-//--------------------------------------------------------------------------------------------------
-// Hash
-//
-
-// Modified Bernstein hash
-inline size_t hashValue(StringRef Str, size_t H = 5381)
-{
-    for (size_t I = 0, E = Str.size(); I != E; ++I)
-        H = 33 * H ^ static_cast<unsigned char>(Str[I]);
-
-    return H;
-}
-
 } // namespace support
-
-namespace std
-{
-    template<>
-    struct hash<::support::StringRef>
-    {
-        size_t operator ()(::support::StringRef Str) const {
-            return hashValue(Str);
-        }
-    };
-}
