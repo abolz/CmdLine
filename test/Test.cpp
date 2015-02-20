@@ -32,11 +32,11 @@ namespace cl
 {
 
     template <class OptionT>
-    void prettyPrint(std::ostream& stream, OptionWrapper<OptionT> const& option)
+    void prettyPrint(std::ostream& stream, std::unique_ptr<OptionT> const& option)
     {
-        stream << option.name() << ":\n";
-        stream << "  count = " << option.count() << "\n";
-        stream << "  value = " << pretty(option.value());
+        stream << option->name() << ":\n";
+        stream << "  count = " << option->count() << "\n";
+        stream << "  value = " << pretty(option->value());
     }
 
 #if 1

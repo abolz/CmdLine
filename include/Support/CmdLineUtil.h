@@ -8,6 +8,7 @@
 #include <cctype>
 #include <algorithm>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>

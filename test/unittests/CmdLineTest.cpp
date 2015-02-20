@@ -56,16 +56,16 @@ TEST(CmdLineTest, Flags1)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, +c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, +c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
@@ -102,16 +102,16 @@ TEST(CmdLineTest, Grouping1)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, +c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, +c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-a"                   }, {1,1}, {0,0}, {0,0} ) );
@@ -156,16 +156,16 @@ TEST(CmdLineTest, Grouping2)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(a_val.first, a.count());
-        EXPECT_EQ(b_val.first, b.count());
-        EXPECT_EQ(c_val.first, c.count());
+        EXPECT_EQ(a_val.first, a->count());
+        EXPECT_EQ(b_val.first, b->count());
+        EXPECT_EQ(c_val.first, c->count());
 
-        if (a.count())
-            EXPECT_EQ(a_val.second, +a.value());
-        if (b.count())
-            EXPECT_EQ(b_val.second, +b.value());
-        if (c.count())
-            EXPECT_EQ(c_val.second, c.value());
+        if (a->count())
+            EXPECT_EQ(a_val.second, +a->value());
+        if (b->count())
+            EXPECT_EQ(b_val.second, +b->value());
+        if (c->count())
+            EXPECT_EQ(c_val.second, c->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  { "-xvf", "test.tar"       }, {1,1}, {1,1}, {1,"test.tar"} ) );
@@ -190,13 +190,13 @@ TEST(CmdLineTest, Prefix)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(r_val.first, r.count());
-        EXPECT_EQ(o_val.first, o.count());
+        EXPECT_EQ(r_val.first, r->count());
+        EXPECT_EQ(o_val.first, o->count());
 
-        if (r.count())
-            EXPECT_EQ(r_val.second, r.value());
-        if (o.count())
-            EXPECT_EQ(o_val.second, o.value());
+        if (r->count())
+            EXPECT_EQ(r_val.second, r->value());
+        if (o->count())
+            EXPECT_EQ(o_val.second, o->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
@@ -230,13 +230,13 @@ TEST(CmdLineTest, MayPrefix)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(r_val.first, r.count());
-        EXPECT_EQ(o_val.first, o.count());
+        EXPECT_EQ(r_val.first, r->count());
+        EXPECT_EQ(o_val.first, o->count());
 
-        if (r.count())
-            EXPECT_EQ(r_val.second, r.value());
-        if (o.count())
-            EXPECT_EQ(o_val.second, o.value());
+        if (r->count())
+            EXPECT_EQ(r_val.second, r->value());
+        if (o->count())
+            EXPECT_EQ(o_val.second, o->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {              }, {0,""        }, {0,""        }) );
@@ -270,10 +270,10 @@ TEST(CmdLineTest, Equals)
         if (!parse(cmd, argv))
             return false;
 
-        if (a.count()) EXPECT_EQ(a.value(), val);
-        if (b.count()) EXPECT_EQ(b.value(), val);
-        if (c.count()) EXPECT_EQ(c.value(), val);
-        if (d.count()) EXPECT_EQ(d.value(), val);
+        if (a->count()) EXPECT_EQ(a->value(), val);
+        if (b->count()) EXPECT_EQ(b->value(), val);
+        if (c->count()) EXPECT_EQ(c->value(), val);
+        if (d->count()) EXPECT_EQ(d->value(), val);
 
         return true;
     };
@@ -311,11 +311,11 @@ TEST(CmdLineTest, Consume1)
         if (!parse(cmd, argv))
             return false;
 
-        if (s.count())
-            EXPECT_EQ(s.value(), s_val);
+        if (s->count())
+            EXPECT_EQ(s->value(), s_val);
 
-        if (x.count())
-            EXPECT_EQ(x.value(), x_val);
+        if (x->count())
+            EXPECT_EQ(x->value(), x_val);
         else
             EXPECT_TRUE(x_val.empty());
 
@@ -351,8 +351,8 @@ TEST(CmdLineTest, Consume2)
         if (!parse(cmd, argv))
             return false;
 
-        if (s.count())
-            EXPECT_EQ(s.value(), s_val);
+        if (s->count())
+            EXPECT_EQ(s->value(), s_val);
 
         return true;
     };
@@ -396,10 +396,10 @@ TEST(CmdLineTest, Map1)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(true,  {                  }, {0,0}) );
@@ -437,10 +437,10 @@ TEST(CmdLineTest, Map2)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
@@ -479,10 +479,10 @@ TEST(CmdLineTest, Map3)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
@@ -520,10 +520,10 @@ TEST(CmdLineTest, Map4)
         bool actual_result = parse(cmd, argv);
         EXPECT_EQ(result, actual_result);
 
-        EXPECT_EQ(x_val.first, x.count());
+        EXPECT_EQ(x_val.first, x->count());
 
-        if (x.count())
-            EXPECT_EQ(x_val.second, x.value());
+        if (x->count())
+            EXPECT_EQ(x_val.second, x->value());
     };
 
     EXPECT_NO_FATAL_FAILURE( test(false, {                  }, {0,0}) );
@@ -609,7 +609,7 @@ TEST(CmdLineTest, Bump)
 //    bool ok = parse(cmd, {"-x", "1", "xxxx", "3", "-x", "4"});
 
     EXPECT_EQ(true, ok);
-    EXPECT_EQ(10, x.value());
+    EXPECT_EQ(10, x->value());
 }
 
 TEST(CmdLineTest, AllowedValues)
@@ -643,22 +643,4 @@ TEST(CmdLineTest, AllowedValues)
     };
 
     EXPECT_NO_FATAL_FAILURE(test());
-}
-
-TEST(CmdLineTest, Copy)
-{
-    cl::CmdLine cmd;
-
-    auto a1 = cl::makeOption<bool>(cl::Parser<>(), cmd, "a", cl::Grouping, cl::ZeroOrMore);
-    decltype(a1) a2;
-    a2 = a1;
-    auto b2 = cl::makeOption<bool>(cl::Parser<>(), cmd, "b", cl::Grouping);
-    auto b1 = std::move(b2);
-
-    cmd.parse({"-a=true", "-b=1"});
-
-    EXPECT_TRUE(*a1);
-    EXPECT_FALSE(*a2);
-    EXPECT_TRUE(*b1);
-//    EXPECT_FALSE(*b2);
 }
