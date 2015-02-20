@@ -9,7 +9,7 @@ local have_gtest = os.isdir("test/gtest")
 ----------------------------------------------------------------------------------------------------
 solution "Support"
 
-    configurations { "Debug", "Release" }
+    configurations { "Release", "Debug" }
 
     platforms { "x64", "x32" }
 
@@ -81,10 +81,8 @@ project "Test"
     includedirs { "include/" }
 
     files {
-        "test/Test.cpp",
-        "test/CmdLineQt.h",
-        "test/CmdLineWithIndex.h",
-        "test/PrettyPrint.h"
+        "test/*.cpp",
+        "test/*.h",
     }
 
 ----------------------------------------------------------------------------------------------------
