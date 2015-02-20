@@ -140,9 +140,7 @@ struct ArgName
 {
     std::string value;
 
-    explicit ArgName(std::string value) : value(std::move(value))
-    {
-    }
+    explicit ArgName(std::string value) : value(std::move(value)) {}
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -156,13 +154,10 @@ namespace details
     {
         T value;
 
-        explicit Initializer(T x) : value(std::forward<T>(x))
-        {
-        }
+        explicit Initializer(T x) : value(std::forward<T>(x)) {}
 
-        operator T() { // extract
-            return std::forward<T>(value);
-        }
+        // extract
+        operator T() { return std::forward<T>(value); }
     };
 }
 
@@ -216,7 +211,7 @@ template <>
 struct Parser<void> // default parser
 {
     template <class T>
-    void operator ()(StringRef name, StringRef arg, T& value) const {
+    void operator()(StringRef name, StringRef arg, T& value) const {
         Parser<T>()(name, arg, value);
     }
 };
@@ -244,7 +239,8 @@ struct MapParser
         // If the arg is empty, the option is specified by name
         auto key = arg.empty() ? name : arg;
 
-        auto I = std::find_if(map.begin(), map.end(), [&](MapValueType const& s) { return s.first == key; });
+        auto I = std::find_if(map.begin(), map.end(),
+            [&](MapValueType const& s) { return s.first == key; });
 
         if (I == map.end())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
@@ -273,6 +269,9 @@ struct BasicTraits
     using ElementType = ElementT;
     using InserterType = InserterT;
 };
+
+template <class T>
+using ScalarType = BasicTraits<T>;
 
 namespace details
 {
@@ -312,18 +311,13 @@ struct Traits : decltype(details::TestInsert<T>(details::R1()))
 {
 };
 
-template <class T>
-struct Traits<T&> : Traits<T>
-{
-};
+template <class T> struct Traits<T&> : Traits<T> {};
+template <class T> struct Traits<std::reference_wrapper<T>> : Traits<T> {};
 
 template <>
 struct Traits<std::string> : BasicTraits<std::string>
 {
 };
-
-template <class T>
-using ScalarType = BasicTraits<T>;
 
 //--------------------------------------------------------------------------------------------------
 // OptionBase
@@ -374,13 +368,9 @@ protected:
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
 
     template <class U>
-    void apply(details::Initializer<U>)
-    {
-    }
+    void apply(details::Initializer<U>) {}
 
-    void applyAll()
-    {
-    }
+    void applyAll() {}
 
     template <class A, class... Args>
     void applyAll(A&& a, Args&&... args)
@@ -455,11 +445,13 @@ public:
 template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::ElementType>>
 class Option : public BasicOption<T>
 {
-    using BaseType          = BasicOption<T>;
-    using ElementType       = typename TraitsT<T>::ElementType;
-    using InserterType      = typename TraitsT<T>::InserterType;
-    using IsScalar          = typename std::is_void<InserterType>::type;
+public:
+    using BaseType      = BasicOption<T>;
+    using ElementType   = typename TraitsT<T>::ElementType;
+    using InserterType  = typename TraitsT<T>::InserterType;
+    using IsScalar      = typename std::is_void<InserterType>::type;
 
+private:
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
         "elements of containers must be default constructible");
 
@@ -487,10 +479,8 @@ private:
     {
         ElementType t;
 
-        // Parse...
         parser()(name, arg, t);
 
-        // and insert into the container
         InserterType()(this->value(), std::move(t));
     }
 
