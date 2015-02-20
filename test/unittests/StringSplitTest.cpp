@@ -236,28 +236,6 @@ TEST(Test, SkipEmpty)
     EXPECT_EQ("d", vec[4]);
 }
 
-TEST(Test, SkipSpace)
-{
-    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", SkipSpace()));
-
-    ASSERT_EQ(4, vec.size());
-    EXPECT_EQ(" a ", vec[0]);
-    EXPECT_EQ("b ", vec[1]);
-    EXPECT_EQ(" c", vec[2]);
-    EXPECT_EQ("d", vec[3]);
-}
-
-TEST(Test, TrimSpace)
-{
-    std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", TrimSpace()));
-
-    ASSERT_EQ(4, vec.size());
-    EXPECT_EQ("a", vec[0]);
-    EXPECT_EQ("b", vec[1]);
-    EXPECT_EQ("c", vec[2]);
-    EXPECT_EQ("d", vec[3]);
-}
-
 TEST(Test, Iterators)
 {
     {
@@ -446,48 +424,5 @@ TEST(Test, SplitOnce_SAS)
         EXPECT_TRUE(p.first.data() != nullptr);
         EXPECT_TRUE(p.second.data() == nullptr);
         EXPECT_EQ("a", p.first);
-    }
-}
-
-TEST(Test, Predicates)
-{
-    //using support::strings::details::Split_pred;
-    //std::cout << sizeof(Split_pred<Limit>) << std::endl;
-    //std::cout << sizeof(Split_pred<SkipEmpty, Limit>) << std::endl;
-    //std::cout << sizeof(Split_pred<Trim, SkipEmpty, Limit>) << std::endl;
-    //std::cout << sizeof(Split_pred<Limit, SkipEmpty>) << std::endl;
-
-    {
-        std::vector<StringRef>
-            vec( split("-a-b-c----d", "--", Limit(2)) );
-
-        ASSERT_EQ(2, vec.size());
-        EXPECT_EQ("-a-b-c", vec[0]);
-        EXPECT_EQ("", vec[1]);
-    }
-    {
-        std::vector<StringRef>
-            vec( split("-a-b-c----d", "--", SkipEmpty(), Limit(2)) );
-
-        ASSERT_EQ(2, vec.size());
-        EXPECT_EQ("-a-b-c", vec[0]);
-        EXPECT_EQ("d", vec[1]);
-    }
-    {
-        std::vector<StringRef>
-            vec( split("-a-b-c----d", "--", Limit(2), SkipEmpty()) );
-
-        ASSERT_EQ(1, vec.size());
-        EXPECT_EQ("-a-b-c", vec[0]);
-    }
-    {
-        std::vector<StringRef>
-            vec( split(" --\t a\n - b\v  - c\f - \r d-  ", "-", Trim(), SkipEmpty(), Limit(2)) );
-
-        ASSERT_EQ(2, vec.size());
-        EXPECT_EQ("a", vec[0]);
-        EXPECT_EQ("b", vec[1]);
-        //EXPECT_EQ("c", vec[2]);
-        //EXPECT_EQ("d", vec[3]);
     }
 }
