@@ -253,7 +253,7 @@ struct MapParser
         value = I->second;
     }
 
-    std::vector<StringRef> allowedValues() const
+    std::vector<StringRef> getAllowedValues() const
     {
         std::vector<StringRef> vec;
 
@@ -370,17 +370,17 @@ protected:
     {
     }
 
-    template <class A, class... An>
-    void applyAll(A&& a, An&&... an)
+    template <class A, class... Args>
+    void applyAll(A&& a, Args&&... args)
     {
         apply(std::forward<A>(a));
-        applyAll(std::forward<An>(an)...);
+        applyAll(std::forward<Args>(args)...);
     }
 
-    template <class... An>
-    void applyAll(CmdLine& cmd, An&&... an)
+    template <class... Args>
+    void applyAll(CmdLine& cmd, Args&&... args)
     {
-        applyAll(std::forward<An>(an)...);
+        applyAll(std::forward<Args>(args)...);
 
         cmd.add(*this);
     }
@@ -395,7 +395,7 @@ private:
     bool isPrefix() const;
 
     // Parses the given value and stores the result.
-    virtual void parse(StringRef spec, StringRef value) = 0;
+    virtual void parse(StringRef name, StringRef arg) = 0;
 
     // Returns a list of allowed values for this option
     virtual std::vector<StringRef> getAllowedValues() const = 0;
@@ -444,7 +444,6 @@ template <class T, template <class> class TraitsT = Traits, class ParserT = Pars
 class Option : public BasicOption<T>
 {
     using BaseType          = BasicOption<T>;
-    using StringRefVector   = std::vector<StringRef>;
     using ElementType       = typename TraitsT<T>::ElementType;
     using InserterType      = typename TraitsT<T>::InserterType;
     using IsScalar          = typename std::is_void<InserterType>::type;
@@ -457,12 +456,12 @@ class Option : public BasicOption<T>
 public:
     using ParserType = unwrap_reference_wrapper_t<ParserT>;
 
-    template <class P, class... An>
-    explicit Option(std::piecewise_construct_t, P&& p, An&&... an)
-        : BaseType(std::piecewise_construct, std::forward<An>(an)...)
+    template <class P, class... Args>
+    explicit Option(std::piecewise_construct_t, P&& p, Args&&... args)
+        : BaseType(std::piecewise_construct, std::forward<Args>(args)...)
         , parser_(std::forward<P>(p))
     {
-        this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<An>(an)...);
+        this->applyAll(IsScalar::value ? Optional : ZeroOrMore, std::forward<Args>(args)...);
     }
 
     // Returns the parser
@@ -472,36 +471,36 @@ public:
     ParserType const& parser() const { return parser_; }
 
 private:
-    void parse(StringRef spec, StringRef value, std::false_type)
+    void parse(StringRef name, StringRef arg, std::false_type)
     {
         ElementType t;
 
         // Parse...
-        parser()(spec, value, t);
+        parser()(name, arg, t);
 
         // and insert into the container
         InserterType()(this->value(), std::move(t));
     }
 
-    void parse(StringRef spec, StringRef value, std::true_type) {
-        parser()(spec, value, this->value());
+    void parse(StringRef name, StringRef arg, std::true_type) {
+        parser()(name, arg, this->value());
     }
 
-    virtual void parse(StringRef spec, StringRef value) override final {
-        parse(spec, value, IsScalar());
+    virtual void parse(StringRef name, StringRef arg) override final {
+        this->parse(name, arg, IsScalar());
     }
 
     template <class X = ParserType>
-    auto allowedValues(details::R1) const -> decltype(std::declval<X const&>().allowedValues()) {
-        return parser().allowedValues();
+    auto getAllowedValues(details::R1) const -> decltype(std::declval<X const&>().getAllowedValues()) {
+        return parser().getAllowedValues();
     }
 
-    auto allowedValues(details::R2) const -> std::vector<StringRef> {
+    auto getAllowedValues(details::R2) const -> std::vector<StringRef> {
         return {};
     }
 
     virtual std::vector<StringRef> getAllowedValues() const override final {
-        return allowedValues(details::R1());
+        return this->getAllowedValues(details::R1());
     }
 };
 
@@ -510,25 +509,25 @@ private:
 //
 
 // Construct a new Option, initialize the parser with the given value
-template <class T, template <class> class TraitsT = Traits, class P, class... An>
-auto makeOption(P&& p, An&&... an)
+template <class T, template <class> class TraitsT = Traits, class P, class... Args>
+auto makeOption(P&& p, Args&&... args)
     -> std::unique_ptr<Option<T, TraitsT, decay_t<P>>>
 {
     using U = Option<T, TraitsT, decay_t<P>>;
 
     return std::unique_ptr<U>(
-        new U(std::piecewise_construct, std::forward<P>(p), std::forward<An>(an)...));
+        new U(std::piecewise_construct, std::forward<P>(p), std::forward<Args>(args)...));
 }
 
 // Construct a new Option, initialize the a map-parser with the given values
-template <class T, template <class> class TraitsT = Traits, class... An>
-auto makeOption(std::initializer_list<typename MapParser<T>::MapValueType> ilist, An&&... an)
+template <class T, template <class> class TraitsT = Traits, class... Args>
+auto makeOption(std::initializer_list<typename MapParser<T>::MapValueType> ilist, Args&&... args)
     -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
 {
     using U = Option<T, TraitsT, MapParser<T>>;
 
     return std::unique_ptr<U>(
-        new U(std::piecewise_construct, ilist, std::forward<An>(an)...));
+        new U(std::piecewise_construct, ilist, std::forward<Args>(args)...));
 }
 
 } // namespace cl
