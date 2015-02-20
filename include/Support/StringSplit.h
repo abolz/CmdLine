@@ -96,6 +96,55 @@ struct LiteralDelimiter
     }
 };
 
+struct LineDelimiter
+{
+    Delimiter operator ()(StringRef Str) const
+    {
+        auto I = Str.find_first_of("\n\r");
+
+        if (I == StringRef::npos)
+            return { StringRef::npos, 0 };
+
+        // Found "\n" or "\r".
+        // If this "\n\r" or "\r\n" skip the other half.
+        if (I + 1 < Str.size())
+        {
+            auto p = Str.data();
+
+            if ((p[I + 1] == '\n' || p[I + 1] == '\r') && p[I + 1] != p[I])
+                return { I, 2 };
+        }
+
+        return { I, 1 };
+    }
+};
+
+struct WrapDelimiter
+{
+    size_t Length;
+
+    explicit WrapDelimiter(size_t length)
+        : Length(length)
+    {
+        assert(length != 0 && "invalid parameter");
+    }
+
+    Delimiter operator ()(StringRef Str) const
+    {
+        // If the string fits into the current line, just return this last line.
+        if (Str.size() <= Length)
+            return { StringRef::npos, 0 };
+
+        // Otherwise, search for the first space preceding the line length.
+        auto I = Str.find_last_of(" \t", Length);
+
+        if (I != StringRef::npos)
+            return { I, 1 }; // There is a space.
+        else
+            return { Length, 0 }; // No space in current line, break at length.
+    }
+};
+
 //template <class R>
 //struct Regex
 //{
