@@ -5,7 +5,6 @@
 
 #include "Support/StringRef.h"
 #include "Support/StringRefStream.h"
-#include "Support/Utility.h"
 
 #include <algorithm>
 #include <memory>
@@ -229,7 +228,7 @@ struct Parser<void> // default parser
 template <class T>
 struct MapParser
 {
-    using ValueType     = remove_reference_t<T>;
+    using ValueType     = typename std::remove_reference<T>::type;
     using MapValueType  = std::pair<std::string, ValueType>;
     using MapType       = std::vector<MapValueType>;
 
@@ -280,6 +279,19 @@ namespace details
     struct R2 {};
     struct R1 : R2 {};
 
+    template <class T>
+    struct RecRemoveCV {
+        using type = typename std::remove_cv<T>::type;
+    };
+
+    template <template <class...> class T, class... A>
+    struct RecRemoveCV<T<A...>> {
+        using type = T<typename RecRemoveCV<A>::type...>;
+    };
+
+    template <class T> struct UnwrapReferenceWrapper { using type = T; };
+    template <class T> struct UnwrapReferenceWrapper<std::reference_wrapper<T>> { using type = T; };
+
     struct Inserter
     {
         template <class C, class V>
@@ -289,7 +301,7 @@ namespace details
     };
 
     template <class T>
-    auto TestInsert(R1) -> BasicTraits<remove_cv_rec_t<typename T::value_type>, Inserter>;
+    auto TestInsert(R1) -> BasicTraits<typename RecRemoveCV<typename T::value_type>::type, Inserter>;
 
     template <class T>
     auto TestInsert(R2) -> BasicTraits<T>;
@@ -454,7 +466,7 @@ class Option : public BasicOption<T>
     ParserT parser_;
 
 public:
-    using ParserType = unwrap_reference_wrapper_t<ParserT>;
+    using ParserType = typename details::UnwrapReferenceWrapper<ParserT>::type;
 
     template <class P, class... Args>
     explicit Option(std::piecewise_construct_t, P&& p, Args&&... args)
@@ -511,9 +523,9 @@ private:
 // Construct a new Option, initialize the parser with the given value
 template <class T, template <class> class TraitsT = Traits, class P, class... Args>
 auto makeOption(P&& p, Args&&... args)
-    -> std::unique_ptr<Option<T, TraitsT, decay_t<P>>>
+    -> std::unique_ptr<Option<T, TraitsT, typename std::decay<P>::type>>
 {
-    using U = Option<T, TraitsT, decay_t<P>>;
+    using U = Option<T, TraitsT, typename std::decay<P>::type>;
 
     return std::unique_ptr<U>(
         new U(std::piecewise_construct, std::forward<P>(p), std::forward<Args>(args)...));
