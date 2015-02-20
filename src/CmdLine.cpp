@@ -130,9 +130,9 @@ OptionBase* CmdLine::findOption(StringRef name) const
     return I == options_.end() ? nullptr : I->second;
 }
 
-CmdLine::OptionVector CmdLine::getUniqueOptions() const
+CmdLine::ConstOptionVector CmdLine::getUniqueOptions() const
 {
-    OptionVector opts;
+    ConstOptionVector opts;
 
     // Get the list of all (visible) options
     for (auto&& I : options_)

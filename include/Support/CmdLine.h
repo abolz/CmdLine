@@ -66,9 +66,10 @@ class OptionBase;
 class CmdLine
 {
 public:
-    using OptionMap     = std::vector<std::pair<StringRef, OptionBase*>>;
-    using OptionVector  = std::vector<OptionBase*>;
-    using StringVector  = std::vector<std::string>;
+    using OptionMap         = std::vector<std::pair<StringRef, OptionBase*>>;
+    using OptionVector      = std::vector<OptionBase*>;
+    using ConstOptionVector = std::vector<OptionBase const*>;
+    using StringVector      = std::vector<std::string>;
 
 private:
     // The current argument
@@ -114,7 +115,7 @@ private:
 
     OptionBase* findOption(StringRef name) const;
 
-    OptionVector getUniqueOptions() const;
+    ConstOptionVector getUniqueOptions() const;
 
     void handleArg(bool& dashdash, OptionVector::iterator& pos);
 
