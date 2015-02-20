@@ -54,6 +54,7 @@ enum MiscFlags : unsigned char {
     None                    = 0,
     CommaSeparated          = 0x01, // Should this list split between commas?
     ConsumeAfter            = 0x02, // Handle all following arguments as positional arguments
+    Hidden                  = 0x04, // Do not show this option in the help message
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -109,6 +110,12 @@ public:
     // Returns the next argument and increments the index
     StringRef bump();
 
+    // Returns a short usage description
+    std::string usage() const;
+
+    // Returns the help message
+    std::string help(StringRef programName, StringRef overview = "") const;
+
 private:
     void parse(bool checkRequired);
 
@@ -141,6 +148,17 @@ struct ArgName
     std::string value;
 
     explicit ArgName(std::string value) : value(std::move(value)) {}
+};
+
+//--------------------------------------------------------------------------------------------------
+// Desc
+//
+
+struct Desc
+{
+    std::string value;
+
+    explicit Desc(std::string value) : value(std::move(value)) {}
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -223,9 +241,26 @@ struct Parser<void> // default parser
 template <class T>
 struct MapParser
 {
-    using ValueType     = typename std::remove_reference<T>::type;
-    using MapValueType  = std::pair<std::string, ValueType>;
-    using MapType       = std::vector<MapValueType>;
+    using ValueType = typename std::remove_reference<T>::type;
+
+    struct MapValueType
+    {
+        // Key
+        std::string key;
+        // Value
+        ValueType value;
+        // An optional description of the value
+        std::string desc;
+
+        MapValueType(std::string key, ValueType value, std::string desc = "<< description missing >>")
+            : key(std::move(key))
+            , value(std::move(value))
+            , desc(std::move(desc))
+        {
+        }
+    };
+
+    using MapType = std::vector<MapValueType>;
 
     MapType map;
 
@@ -240,12 +275,12 @@ struct MapParser
         auto key = arg.empty() ? name : arg;
 
         auto I = std::find_if(map.begin(), map.end(),
-            [&](MapValueType const& s) { return s.first == key; });
+            [&](MapValueType const& s) { return s.key == key; });
 
         if (I == map.end())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
 
-        value = I->second;
+        value = I->value;
     }
 
     std::vector<StringRef> getAllowedValues() const
@@ -253,7 +288,17 @@ struct MapParser
         std::vector<StringRef> vec;
 
         for (auto&& I : map)
-            vec.emplace_back(I.first);
+            vec.emplace_back(I.key);
+
+        return vec;
+    }
+
+    std::vector<StringRef> getDescriptions() const
+    {
+        std::vector<StringRef> vec;
+
+        for (auto&& I : map)
+            vec.emplace_back(I.desc);
 
         return vec;
     }
@@ -331,6 +376,8 @@ class OptionBase
     std::string name_;
     // The name of the value of this option
     std::string argName_;
+    // Option description
+    std::string desc_;
     // Controls how often the option must/may be specified on the command line
     NumOccurrences numOccurrences_;
     // Controls whether the option expects a value
@@ -356,12 +403,22 @@ public:
     // Return name of the value
     std::string const& argName() const { return argName_; }
 
+    // Returns the option description
+    std::string const& desc() const { return desc_; }
+
     // Returns the number of times this option has been specified on the command line
     unsigned count() const { return count_; }
+
+    // Returns a short usage description
+    std::string usage() const;
+
+    // Returns the help message
+    std::string help() const;
 
 protected:
     void apply(std::string x)       { name_ = std::move(x); }
     void apply(ArgName x)           { argName_ = std::move(x.value); }
+    void apply(Desc x)              { desc_ = std::move(x.value); }
     void apply(NumOccurrences x)    { numOccurrences_ = x; }
     void apply(NumArgs x)           { numArgs_ = x; }
     void apply(Formatting x)        { formatting_ = x; }
@@ -401,6 +458,9 @@ private:
 
     // Returns a list of allowed values for this option
     virtual std::vector<StringRef> getAllowedValues() const = 0;
+
+    // Returns a list of descriptions for the values this option accepts
+    virtual std::vector<StringRef> getDescriptions() const = 0;
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -503,6 +563,19 @@ private:
 
     virtual std::vector<StringRef> getAllowedValues() const override final {
         return this->getAllowedValues(details::R1());
+    }
+
+    template <class X = ParserType>
+    auto getDescriptions(details::R1) const -> decltype(std::declval<X const&>().getDescriptions()) {
+        return parser().getDescriptions();
+    }
+
+    auto getDescriptions(details::R2) const -> std::vector<StringRef> {
+        return {};
+    }
+
+    virtual std::vector<StringRef> getDescriptions() const override final {
+        return this->getDescriptions(details::R1());
     }
 };
 

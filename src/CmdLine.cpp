@@ -8,6 +8,51 @@ using namespace support;
 using namespace support::cl;
 
 //--------------------------------------------------------------------------------------------------
+// Misc.
+//
+
+const size_t kMaxWidth   = 78;
+const size_t kIndent     = 3;
+const size_t kOffset     = kMaxWidth / 3;
+
+static std::string Spaces(size_t count)
+{
+    return std::string(count, ' ');
+}
+
+static std::string Aligned(StringRef text, size_t indent)
+{
+    if (text.size() < indent)
+        return text.str() + Spaces(indent - text.size());
+
+    return text + "\n" + Spaces(indent);
+}
+
+static std::string Wrapped(StringRef text, size_t indent, size_t maxWidth)
+{
+    std::string result;
+
+    bool first = true;
+
+    // Break the string into paragraphs
+    for (auto par : strings::split(text, strings::LineDelimiter()))
+    {
+        // Break the paragraphs at the maximum width into lines
+        for (auto line : strings::split(par, strings::WrapDelimiter(maxWidth - indent)))
+        {
+            if (first)
+                first = false;
+            else
+                result += "\n" + Spaces(indent);
+
+            result += line;
+        }
+    }
+
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
 // CmdLine
 //
 
@@ -96,6 +141,62 @@ StringRef CmdLine::bump()
     ++index_;
 
     return curr();
+}
+
+std::string CmdLine::usage() const
+{
+    std::string str = "[options]";
+
+    for (auto&& opt : positionals_)
+        str += " " + opt->usage();
+
+    return str;
+}
+
+template <class It>
+static void AppendHelp(std::string& result, StringRef text, It first, It last)
+{
+    if (first == last)
+        return;
+
+    result += text + "\n";
+
+    for (; first != last; ++first)
+        result += (*first)->help();
+
+    result += "\n";
+}
+
+std::string CmdLine::help(StringRef programName, StringRef overview) const
+{
+    auto maxWidth = kMaxWidth;
+    auto indent = kIndent;
+
+    std::string result;
+
+    if (!overview.empty())
+        result += "Overview:\n" + Spaces(indent)
+                  + Wrapped(overview, indent, maxWidth) + "\n\n";
+
+    result += "Usage:\n" + Spaces(indent) + programName + " " + usage() + "\n\n";
+
+    // Print positional options
+    AppendHelp(result, "Positional options:", positionals_.begin(), positionals_.end());
+
+    // Get the list of unique options
+    auto opts = getUniqueOptions();
+
+    // Print required options first.
+    auto E = std::stable_partition(opts.begin(), opts.end(),
+        [](OptionBase const* opt) { return opt->isRequired(); });
+
+    // Print all the required options - if any
+    AppendHelp(result, "Required options:", opts.begin(), E);
+
+    // Print all other options
+    AppendHelp(result, "Options:", E, opts.end());
+
+    return result;
 }
 
 void CmdLine::parse(bool checkRequired)
@@ -398,6 +499,7 @@ void CmdLine::check()
 OptionBase::OptionBase()
     : name_()
     , argName_("arg")
+    , desc_("<< description missing >>")
     , numOccurrences_(Optional)
     , numArgs_(ArgOptional)
     , formatting_(DefaultFormatting)
@@ -408,6 +510,87 @@ OptionBase::OptionBase()
 
 OptionBase::~OptionBase()
 {
+}
+
+std::string OptionBase::usage() const
+{
+    if (formatting_ == Positional)
+        return "<" + name_ + (isUnbounded() ? ">..." : ">");
+
+    switch (numArgs_)
+    {
+    case ArgDisallowed:
+        return "-" + name_;
+    case ArgOptional:
+        return "-" + name_ + "=<" + argName_ + ">";
+    case ArgRequired:
+        return "-" + name_ + (isPrefix() ? "<" : " <") + argName_ + ">";
+    }
+
+    assert(!"internal error");
+    return {};
+}
+
+std::string OptionBase::help() const
+{
+    auto maxWidth = kMaxWidth;
+    auto indent = kIndent;
+    auto offset = kOffset;
+
+    // Do not show hidden options
+    if (miscFlags_ & Hidden)
+        return "";
+
+//    // Do not show options without a description
+//    if (opt->desc.empty())
+//        return;
+
+    // Get the list of allowed values for this option.
+    auto values = getAllowedValues();
+
+    // If the option does not have a restricted set of allowed values,
+    // just print the short usage and the description for the option.
+    if (values.empty())
+    {
+        return Aligned(Spaces(indent) + usage(), offset)
+               + Wrapped(desc_, offset, maxWidth) + "\n";
+    }
+
+    // This option only allows a limited set of input values.
+    // Show all valid values and their descriptions.
+
+    std::string result;
+
+    // Get the list of descriptions for the allowed values.
+    auto descr = getDescriptions();
+
+    assert(descr.size() == values.size() && "not supported");
+
+    if (name_.empty())
+    {
+        // The option name is empty, i.e. this option is actually a group of
+        // options. Print the description only.
+        result += Wrapped(Spaces(indent) + desc_ + ":", indent, maxWidth) + "\n";
+    }
+    else
+    {
+        // Named alternative. Print the name and the description.
+        result += Aligned(Spaces(indent) + usage(), offset)
+                  + Wrapped(desc_ + ":", offset, maxWidth)
+                  + "\n";
+    }
+
+    auto prefix = Spaces(indent * 2) + (name_.empty() ? "-" : "=");
+
+    // Finally, print all the possible values with their descriptions.
+    for (size_t I = 0; I < values.size(); ++I)
+    {
+        result += Aligned(prefix + values[I], offset)
+                  + Wrapped("- " + descr[I], offset + 2, maxWidth)
+                  + "\n";
+    }
+
+    return result;
 }
 
 StringRef OptionBase::displayName() const

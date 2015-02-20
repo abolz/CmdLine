@@ -76,7 +76,8 @@ int main(int argc, char* argv[])
     auto help = cl::makeOption<std::string>(
         cl::Parser<>(), cmd, "help",
         cl::ArgName("option"),
-        cl::ArgOptional
+        cl::ArgOptional,
+        cl::Hidden
         );
 
                     //------------------------------------------------------------------------------
@@ -87,7 +88,8 @@ int main(int argc, char* argv[])
         cl::Parser<>(), cmd, "y",
         cl::ArgName("float"),
         cl::ArgRequired,
-        cl::init(y)
+        cl::init(y),
+        cl::Desc("A floating-point number")
         );
 
                     //------------------------------------------------------------------------------
@@ -103,7 +105,8 @@ int main(int argc, char* argv[])
         cl::ArgName("int"),
         cl::ArgRequired,
         cl::CommaSeparated,
-        cl::ZeroOrMore
+        cl::ZeroOrMore,
+        cl::Desc("A list of integers")
         );
 
                     //------------------------------------------------------------------------------
@@ -116,7 +119,16 @@ int main(int argc, char* argv[])
         cl::ArgName("dir"),
         cl::ArgRequired,
         cl::Prefix,
-        cl::ZeroOrMore
+        cl::ZeroOrMore,
+        cl::Desc(
+            // Test the word wrap algorithm...
+            "Add the directory dir to the list of directories to be searched for header files. "
+            "Directories named by -I are searched before the standard system include directories. "
+            "If the directory dir is a standard system include directory, the option is ignored to "
+            "ensure that the default search order for system directories and the special treatment "
+            "of system headers are not defeated . If dir begins with =, then the = will be replaced "
+            "by the sysroot prefix; see --sysroot and -isysroot."
+            )
         );
 
                     //------------------------------------------------------------------------------
@@ -124,8 +136,9 @@ int main(int argc, char* argv[])
     auto files = cl::makeOption<std::vector<std::string>>(
         cl::Parser<>(),
         cmd, "files",
+        cl::Desc("A list of input files"),
         cl::Positional,
-        cl::ZeroOrMore
+        cl::OneOrMore
         );
 
                     //------------------------------------------------------------------------------
@@ -138,10 +151,10 @@ int main(int argc, char* argv[])
     };
 
     auto optParser = cl::MapParser<OptimizationLevel>({
-        { "O0", OL_None      },
-        { "O1", OL_Trivial   },
-        { "O2", OL_Default   },
-        { "O3", OL_Expensive },
+        { "O0", OL_None,      "No optimizations"             },
+        { "O1", OL_Trivial,   "Enable trivial optimizations" },
+        { "O2", OL_Default,   "Enable some optimizations"    },
+        { "O3", OL_Expensive, "Enable all optimizations"     },
     });
 
     auto opt = cl::makeOption<OptimizationLevel>(
@@ -150,7 +163,8 @@ int main(int argc, char* argv[])
         cl::ArgDisallowed,
         cl::ArgName("optimization level"),
         cl::init(OL_None),
-        cl::Required
+        cl::Optional,
+        cl::Desc("Choose an optimization level")
         );
 
                     //------------------------------------------------------------------------------
@@ -159,19 +173,19 @@ int main(int argc, char* argv[])
         Homer, Marge, Bart, Lisa, Maggie, SideshowBob
     };
 
-    auto simpson = cl::makeOption<Simpson>(
-        {
-            { "homer",        Homer       },
-            { "marge",        Marge       },
-            { "bart",         Bart        },
-            { "el barto",     Bart        },
-            { "lisa",         Lisa        },
-            { "maggie",       Maggie      },
-//          { "sideshow bob", SideshowBob },
+    auto simpson = cl::makeOption<Simpson>({
+            { "homer",          Homer,          "Homer Jay Simpson"             },
+            { "marge",          Marge,          "Marjorie Simpson"              },
+            { "bart",           Bart,           "Bartholomew JoJo Simpson"      },
+            { "el barto",       Bart,           "?"                             },
+            { "lisa",           Lisa,           "Lisa Marie Simpson"            },
+            { "maggie",         Maggie,         "Margaret Simpson"              },
+//          { "sideshow bob",   SideshowBob,    "Robert Underdunk Terwilliger"  },
         },
         cmd, "simpson",
         cl::ArgRequired,
-        cl::init(SideshowBob)
+        cl::init(SideshowBob),
+        cl::Desc("Choose a Simpson")
         );
 
                     //------------------------------------------------------------------------------
@@ -186,6 +200,7 @@ int main(int argc, char* argv[])
         },
         cmd, "f",
         cl::ArgName("string:int"),
+        cl::Desc("A list of key-value pairs"),
         cl::ArgRequired,
         cl::CommaSeparated
         );
@@ -195,15 +210,16 @@ int main(int argc, char* argv[])
     auto debug_level = cl::makeOption<int>(
         cl::Parser<>(),
         cmd, "debug-level|d",
+        cl::Desc("Debug level"),
         cl::ArgRequired,
         cl::Optional
         );
 
                     //------------------------------------------------------------------------------
 
-    auto Wsign_conversion = makeWFlag(cmd, "Wsign-conversion|Wno-sign-conversion");
+    //auto Wsign_conversion = makeWFlag(cmd, "Wsign-conversion|Wno-sign-conversion");
 
-    auto Wsign_compare = makeWFlag(cmd, "Wsign-compare|Wno-sign-compare");
+    //auto Wsign_compare = makeWFlag(cmd, "Wsign-compare|Wno-sign-compare");
 
                     //------------------------------------------------------------------------------
 
@@ -216,7 +232,8 @@ int main(int argc, char* argv[])
                 value.insert(arg.str());
         },
         cmd, "without-|with-",
-        cl::ArgName("target"),
+        cl::ArgName("build-target"),
+        cl::Desc("Specifiy which targets to build"),
         cl::ArgRequired,
         cl::CommaSeparated,
         cl::Prefix,
@@ -226,7 +243,11 @@ int main(int argc, char* argv[])
                     //------------------------------------------------------------------------------
 
 #if 1
-    auto x_list = cl::makeOption<std::forward_list<int>>(cl::Parser<>(), cmd, "x_list");
+    auto x_list = cl::makeOption<std::forward_list<int>>(
+        cl::Parser<>(), cmd, "x_list",
+        cl::Desc("A list of integers"),
+        cl::ArgName("int")
+        );
 #endif
 
     //----------------------------------------------------------------------------------------------
@@ -244,6 +265,8 @@ int main(int argc, char* argv[])
     catch (std::exception& e)
     {
         std::cout << "error: " << e.what() << std::endl;
+        std::cout << "\n";
+        std::cout << cmd.help("Test") << std::endl;
         return -1;
     }
 
