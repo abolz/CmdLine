@@ -8,15 +8,11 @@ namespace support
 namespace cl
 {
 
-//--------------------------------------------------------------------------------------------------
-// Parser
-//
-
 #ifdef QSTRING_H
 template <>
 struct Parser<QString>
 {
-    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QString& value) const
+    void operator()(StringRef /*name*/, StringRef arg, QString& value) const
     {
         value.fromUtf8(arg.data(), arg.size());
     }
@@ -27,22 +23,18 @@ struct Parser<QString>
 template <>
 struct Parser<QUrl>
 {
-    void operator()(StringRef /*name*/, StringRef arg, size_t /*i*/, QUrl& value) const
+    void operator()(StringRef /*name*/, StringRef arg, QUrl& value) const
     {
         value.setUrl(QString::fromUtf8(arg.data(), arg.size()), QUrl::StrictMode);
 
         if (!value.isValid())
         {
-            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'"
-                + " not a valid URL");
+            throw std::runtime_error("invalid argument '" + arg + "' for option '" + name
+                + "' (invalid URL)");
         }
     }
 };
 #endif
-
-//--------------------------------------------------------------------------------------------------
-// Traits
-//
 
 namespace qt
 {
