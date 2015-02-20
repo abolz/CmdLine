@@ -229,23 +229,23 @@ struct Parser<void> // default parser
 template <class T>
 struct MapParser
 {
-    using value_type = remove_reference_t<T>;
-    using map_value_type = std::pair<std::string, value_type>;
-    using map_type = std::vector<map_value_type>;
+    using ValueType     = remove_reference_t<T>;
+    using MapValueType  = std::pair<std::string, ValueType>;
+    using MapType       = std::vector<MapValueType>;
 
-    map_type map;
+    MapType map;
 
-    explicit MapParser(std::initializer_list<map_value_type> ilist)
+    explicit MapParser(std::initializer_list<MapValueType> ilist)
         : map(ilist)
     {
     }
 
-    void operator()(StringRef name, StringRef arg, value_type& value) const
+    void operator()(StringRef name, StringRef arg, ValueType& value) const
     {
         // If the arg is empty, the option is specified by name
         auto key = arg.empty() ? name : arg;
 
-        auto I = std::find_if(map.begin(), map.end(), [&](map_value_type const& s) { return s.first == key; });
+        auto I = std::find_if(map.begin(), map.end(), [&](MapValueType const& s) { return s.first == key; });
 
         if (I == map.end())
             throw std::runtime_error("invalid argument '" + arg + "' for option '" + name + "'");
@@ -271,8 +271,8 @@ struct MapParser
 template <class ElementT, class InserterT = void>
 struct BasicTraits
 {
-    using element_type = ElementT;
-    using inserter_type = InserterT;
+    using ElementType = ElementT;
+    using InserterType = InserterT;
 };
 
 namespace details
@@ -440,13 +440,13 @@ public:
 // Option
 //
 
-template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::element_type>>
+template <class T, template <class> class TraitsT = Traits, class ParserT = Parser<typename TraitsT<T>::ElementType>>
 class Option : public BasicOption<T>
 {
     using BaseType          = BasicOption<T>;
     using StringRefVector   = std::vector<StringRef>;
-    using ElementType       = typename TraitsT<T>::element_type;
-    using InserterType      = typename TraitsT<T>::inserter_type;
+    using ElementType       = typename TraitsT<T>::ElementType;
+    using InserterType      = typename TraitsT<T>::InserterType;
     using IsScalar          = typename std::is_void<InserterType>::type;
 
     static_assert(IsScalar::value || std::is_default_constructible<ElementType>::value,
@@ -455,7 +455,7 @@ class Option : public BasicOption<T>
     ParserT parser_;
 
 public:
-    using parser_type = unwrap_reference_wrapper_t<ParserT>;
+    using ParserType = unwrap_reference_wrapper_t<ParserT>;
 
     template <class P, class... An>
     explicit Option(std::piecewise_construct_t, P&& p, An&&... an)
@@ -466,10 +466,10 @@ public:
     }
 
     // Returns the parser
-    parser_type& parser() { return parser_; }
+    ParserType& parser() { return parser_; }
 
     // Returns the parser
-    parser_type const& parser() const { return parser_; }
+    ParserType const& parser() const { return parser_; }
 
 private:
     void parse(StringRef spec, StringRef value, std::false_type)
@@ -491,7 +491,7 @@ private:
         parse(spec, value, IsScalar());
     }
 
-    template <class X = parser_type>
+    template <class X = ParserType>
     auto allowedValues(details::R1) const -> decltype(std::declval<X const&>().allowedValues()) {
         return parser().allowedValues();
     }
@@ -522,7 +522,7 @@ auto makeOption(P&& p, An&&... an)
 
 // Construct a new Option, initialize the a map-parser with the given values
 template <class T, template <class> class TraitsT = Traits, class... An>
-auto makeOption(std::initializer_list<typename MapParser<T>::map_value_type> ilist, An&&... an)
+auto makeOption(std::initializer_list<typename MapParser<T>::MapValueType> ilist, An&&... an)
     -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>
 {
     using U = Option<T, TraitsT, MapParser<T>>;
