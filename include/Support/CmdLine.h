@@ -407,45 +407,32 @@ private:
 template <class T>
 class BasicOption : public OptionBase
 {
-    using BaseType = OptionBase;
-
     T value_;
 
 protected:
-    BasicOption(std::piecewise_construct_t)
-        : BaseType()
-        , value_() // NOTE: error here if T is a reference type and not initialized using init(T)
-    {
-    }
+    BasicOption(std::piecewise_construct_t) : value_() {}
 
-    template <class... An, class X = T, class = enable_if_t<std::is_reference<X>::value>>
-    BasicOption(std::piecewise_construct_t, details::Initializer<T> x, An&&...)
-        : BaseType()
+    template <class U, class... Args>
+    BasicOption(std::piecewise_construct_t, details::Initializer<U> x, Args&&...)
+        : OptionBase()
         , value_(x)
     {
     }
 
-    template <class U, class... An, class X = T, class = enable_if_t<!std::is_reference<X>::value>>
-    BasicOption(std::piecewise_construct_t, details::Initializer<U> x, An&&...)
-        : BaseType()
-        , value_(x)
-    {
-    }
-
-    template <class A, class... An>
-    BasicOption(std::piecewise_construct_t, A&&, An&&... an)
-        : BasicOption(std::piecewise_construct, std::forward<An>(an)...)
+    template <class A, class... Args>
+    BasicOption(std::piecewise_construct_t, A&&, Args&&... args)
+        : BasicOption(std::piecewise_construct, std::forward<Args>(args)...)
     {
     }
 
 public:
-    using value_type = remove_reference_t<T>;
+    using ValueType = typename std::remove_reference<T>::type;
 
-    // Returns the value
-    value_type& value() { return value_; }
+    // Returns the option value
+    ValueType& value() { return value_; }
 
-    // Returns the value
-    value_type const& value() const { return value_; }
+    // Returns the option value
+    ValueType const& value() const { return value_; }
 };
 
 //--------------------------------------------------------------------------------------------------
