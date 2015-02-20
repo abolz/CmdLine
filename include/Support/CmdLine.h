@@ -64,13 +64,11 @@ enum MiscFlags : unsigned char {
 //
 
 class OptionBase;
-class OptionGroup;
 
 class CmdLine
 {
 public:
     using OptionMap     = std::map<StringRef, OptionBase*>;
-    using OptionGroups  = std::map<StringRef, OptionGroup*>;
     using OptionVector  = std::vector<OptionBase*>;
     using StringVector  = std::vector<std::string>;
 
@@ -83,8 +81,6 @@ private:
     size_t index_;
     // List of options
     OptionMap options_;
-    // List of option groups and associated options
-    OptionGroups groups_;
     // List of positional options
     OptionVector positionals_;
     // The length of the longest prefix option
@@ -100,28 +96,8 @@ public:
     // Adds the given option to the command line
     void add(OptionBase& opt);
 
-    // Adds the given option group to the command line
-    void add(OptionGroup& group);
-
     // Parse the given command line arguments
     void parse(StringVector const& argv, bool checkRequired = true);
-
-    // Parse the given command line arguments
-    template <class Iterator>
-    void parse(Iterator first, Iterator last, bool checkRequired = true)
-    {
-        parse(StringVector(first, last), checkRequired);
-    }
-
-    // Parse the given command line arguments
-    template <class T>
-    void parse(T const& argv, bool checkRequired = true)
-    {
-        using std::begin;
-        using std::end;
-
-        parse(StringVector(begin(argv), end(argv)), checkRequired);
-    }
 
     // Returns whether all command line arguments have been processed
     bool empty() const;
@@ -337,43 +313,6 @@ template <class T>
 using ScalarType = BasicTraits<T>;
 
 //--------------------------------------------------------------------------------------------------
-// OptionGroup
-//
-
-class OptionGroup
-{
-    friend class CmdLine;
-
-public:
-    enum Type {
-        Default,    // No restrictions (zero or more...)
-        Zero,       // No options in this group may be specified
-        ZeroOrOne,  // At most one option of this group must be specified
-        One,        // Exactly one option of this group must be specified
-        OneOrMore,  // At least one option must be specified
-        All,        // All options of this group must be specified
-        ZeroOrAll,  // If any option in this group is specified, the others must be specified, too.
-    };
-
-public:
-    explicit OptionGroup(std::string name, Type type = Default);
-
-    // Add an option to this group
-    void add(OptionBase& opt);
-
-    // Checks whether this group is valid
-    void check() const;
-
-private:
-    // The name of this option group
-    std::string name_;
-    // The type of this group
-    Type type_;
-    // The list of options in this group
-    std::vector<OptionBase*> options_;
-};
-
-//--------------------------------------------------------------------------------------------------
 // OptionBase
 //
 
@@ -420,7 +359,6 @@ protected:
     void apply(NumArgs x)           { numArgs_ = x; }
     void apply(Formatting x)        { formatting_ = x; }
     void apply(MiscFlags x)         { miscFlags_ = static_cast<MiscFlags>(miscFlags_ | x); }
-    void apply(OptionGroup& x)      { x.add(*this); }
 
     template <class U>
     void apply(details::Initializer<U>)

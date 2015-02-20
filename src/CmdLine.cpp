@@ -16,7 +16,6 @@ CmdLine::CmdLine()
     , argLast_()
     , index_(0)
     , options_()
-    , groups_()
     , positionals_()
     , maxPrefixLength_(0)
 {
@@ -66,12 +65,6 @@ void CmdLine::add(OptionBase& opt)
         for (auto&& s : strings::split(opt.name(), "|"))
             insert(s);
     }
-}
-
-void CmdLine::add(OptionGroup& group)
-{
-    if (!groups_.insert({ group.name_, &group }).second)
-        throw std::runtime_error("option group '" + group.name_ + "' already exists");
 }
 
 void CmdLine::parse(StringVector const& argv, bool checkRequired)
@@ -402,69 +395,6 @@ void CmdLine::check()
 
     for (auto& I : positionals_)
         check(I);
-
-    for (auto& I : groups_)
-        I.second->check();
-}
-
-//--------------------------------------------------------------------------------------------------
-// OptionGroup
-//
-
-OptionGroup::OptionGroup(std::string name, Type type)
-    : name_(std::move(name))
-    , type_(type)
-{
-}
-
-void OptionGroup::add(OptionBase& opt)
-{
-    // FIXME:
-    // Check for duplicates!
-    options_.push_back(&opt);
-}
-
-void OptionGroup::check() const
-{
-    if (type_ == OptionGroup::Default)
-        return;
-
-    auto pred = [](OptionBase const* x) {
-        return x->count() > 0;
-    };
-
-    // Count the number of options in this group which have been specified on the command-line
-    size_t N = std::count_if(options_.begin(), options_.end(), pred);
-
-    switch (type_)
-    {
-    case Default: // prevent warning
-        break;
-    case Zero:
-        if (N != 0)
-            throw std::runtime_error("no options in group '" + name_ + "' may be specified");
-        break;
-    case ZeroOrOne:
-        if (N != 0 && N != 1)
-            throw std::runtime_error("at most one option in group '" + name_ + "' may be specified");
-        break;
-    case One:
-        if (N != 1)
-            throw std::runtime_error("exactly one option in group '" + name_ + "' must be specified");
-        break;
-    case OneOrMore:
-        if (N < 1)
-            throw std::runtime_error("at least one option in group '" + name_ + "' must be specified");
-        break;
-    case All:
-        if (N != options_.size())
-            throw std::runtime_error("all options in group '" + name_ + "' must be specified");
-        break;
-    case ZeroOrAll:
-        if (N != 0 && N != options_.size())
-            throw std::runtime_error("none or all options in group '" + name_ + "' must be specified");
-        break;
-    }
 }
 
 //--------------------------------------------------------------------------------------------------

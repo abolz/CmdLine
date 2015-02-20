@@ -536,38 +536,6 @@ TEST(CmdLineTest, Map4)
     EXPECT_NO_FATAL_FAILURE( test(false, {"-O2", "-O1"      }, {1,2}) );
 }
 
-TEST(CmdLineTest, OptionGroup1)
-{
-    auto test = [](bool result, Argv const& argv)
-    {
-        SCOPED_TRACE("parsing: " + to_pretty_string(argv));
-
-        cl::CmdLine cmd;
-
-        auto gr1 = cl::OptionGroup("gr1");
-        cmd.add(gr1);
-        auto gr2 = cl::OptionGroup("gr2", cl::OptionGroup::ZeroOrAll);
-        cmd.add(gr2);
-        auto gr3 = cl::OptionGroup("gr3", cl::OptionGroup::One);
-        cmd.add(gr3);
-
-        auto x = cl::makeOption<bool>(cl::Parser<>(), cmd, "x", gr1);
-        auto y = cl::makeOption<bool>(cl::Parser<>(), cmd, "y", gr2);
-        auto z = cl::makeOption<bool>(cl::Parser<>(), cmd, "z", gr2, gr3);
-
-        bool actual_result = parse(cmd, argv);
-        EXPECT_EQ(result, actual_result);
-    };
-
-    EXPECT_NO_FATAL_FAILURE( test(false, {}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-z"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-y", "-z"}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-x"}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-z"}) );
-    EXPECT_NO_FATAL_FAILURE( test(false, {"-x", "-y"}) );
-    EXPECT_NO_FATAL_FAILURE( test(true,  {"-x", "-y", "-z"}) );
-}
-
 TEST(CmdLineTest, MapRef)
 {
     int opt = 0;
