@@ -27,42 +27,34 @@ CmdLine::~CmdLine()
 
 void CmdLine::add(OptionBase& opt)
 {
-    if (opt.formatting_ == Positional)
-    {
-        if (opt.name().empty())
-            throw std::runtime_error("positional options need a valid name");
-
-        positionals_.push_back(&opt);
-        return;
-    }
-
     auto insert = [&](StringRef s)
     {
-        // Save the length of the longest prefix option
-        if (opt.isPrefix())
-        {
-            if (maxPrefixLength_ < s.size())
-                maxPrefixLength_ = s.size();
-        }
-
-        // Insert the option into the map
-        if (!options_.insert({ s, &opt }).second)
+        if (findOption(s))
             throw std::runtime_error("option '" + s + "' already exists");
+
+        options_.emplace_back(s, &opt);
+
+        if (maxPrefixLength_ < s.size() && opt.isPrefix())
+            maxPrefixLength_ = s.size();
     };
 
-    if (opt.name().empty())
+    if (opt.formatting_ == Positional)
     {
-        auto values = opt.getAllowedValues();
-
-        if (values.empty())
-            throw std::runtime_error("option name is empty and option does not provide allowed values");
-
-        for (auto&& s : values)
+        positionals_.push_back(&opt);
+    }
+    else if (!opt.name().empty())
+    {
+        for (auto&& s : strings::split(opt.name(), "|"))
             insert(s);
     }
     else
     {
-        for (auto&& s : strings::split(opt.name(), "|"))
+        auto values = opt.getAllowedValues();
+
+        if (values.empty())
+            throw std::runtime_error("option name empty and no allowed values");
+
+        for (auto&& s : values)
             insert(s);
     }
 }
@@ -132,8 +124,10 @@ void CmdLine::parse(bool checkRequired)
 
 OptionBase* CmdLine::findOption(StringRef name) const
 {
-    auto I = options_.find(name);
-    return I == options_.end() ? 0 : I->second;
+    auto I = std::find_if(options_.begin(), options_.end(),
+        [=](OptionMap::value_type const& x) { return x.first == name; });
+
+    return I == options_.end() ? nullptr : I->second;
 }
 
 CmdLine::OptionVector CmdLine::getUniqueOptions() const

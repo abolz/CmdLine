@@ -8,7 +8,6 @@
 #include "Support/Utility.h"
 
 #include <algorithm>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -67,7 +66,7 @@ class OptionBase;
 class CmdLine
 {
 public:
-    using OptionMap     = std::map<StringRef, OptionBase*>;
+    using OptionMap     = std::vector<std::pair<StringRef, OptionBase*>>;
     using OptionVector  = std::vector<OptionBase*>;
     using StringVector  = std::vector<std::string>;
 

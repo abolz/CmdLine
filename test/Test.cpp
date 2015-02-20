@@ -11,6 +11,7 @@
 #include <forward_list>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <set>
 
 using namespace support;
