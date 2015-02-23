@@ -43,25 +43,25 @@ TEST(Test, EmptyStrings)
     {
         auto vec = std::vector<StringRef>(split(StringRef(), ","));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("", ","));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split(StringRef(), AnyOfDelimiter(",")));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("", AnyOfDelimiter(",")));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
 }
@@ -71,44 +71,44 @@ TEST(Test, EmptyDelimiters)
     {
         auto vec = std::vector<StringRef>(split(StringRef(), ""));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split(StringRef(), AnyOfDelimiter("")));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("", ""));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("", AnyOfDelimiter("")));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("x", ""));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("x", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("x", AnyOfDelimiter("")));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("x", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("abc", ""));
 
 #if SUPPORT_STD_SPLIT
-        ASSERT_EQ(3, vec.size());
+        ASSERT_EQ(3u, vec.size());
         EXPECT_EQ("a", vec[0]);
         EXPECT_EQ("b", vec[1]);
         EXPECT_EQ("c", vec[2]);
@@ -121,7 +121,7 @@ TEST(Test, EmptyDelimiters)
         auto vec = std::vector<StringRef>(split("abc", AnyOfDelimiter("")));
 
 #if SUPPORT_STD_SPLIT
-        ASSERT_EQ(3, vec.size());
+        ASSERT_EQ(3u, vec.size());
         EXPECT_EQ("a", vec[0]);
         EXPECT_EQ("b", vec[1]);
         EXPECT_EQ("c", vec[2]);
@@ -137,14 +137,14 @@ TEST(Test, LeadingDelimiters)
     {
         auto vec = std::vector<StringRef>(split(",", ","));
 
-        ASSERT_EQ(2, vec.size());
+        ASSERT_EQ(2u, vec.size());
         EXPECT_EQ("", vec[0]);
         EXPECT_EQ("", vec[1]);
     }
     {
         auto vec = std::vector<StringRef>(split(", ", ","));
 
-        ASSERT_EQ(2, vec.size());
+        ASSERT_EQ(2u, vec.size());
         EXPECT_EQ("", vec[0]);
         EXPECT_EQ(" ", vec[1]);
     }
@@ -155,27 +155,27 @@ TEST(Test, SimpleLiteralTests)
     {
         auto vec = std::vector<StringRef>(split("a", ","));
 
-        ASSERT_EQ(1, vec.size());
+        ASSERT_EQ(1u, vec.size());
         EXPECT_EQ("a", vec[0]);
     }
     {
         auto vec = std::vector<StringRef>(split("a,", ","));
 
-        ASSERT_EQ(2, vec.size());
+        ASSERT_EQ(2u, vec.size());
         EXPECT_EQ("a", vec[0]);
         EXPECT_EQ("", vec[1]);
     }
     {
         auto vec = std::vector<StringRef>(split("a,b", ","));
 
-        ASSERT_EQ(2, vec.size());
+        ASSERT_EQ(2u, vec.size());
         EXPECT_EQ("a", vec[0]);
         EXPECT_EQ("b", vec[1]);
     }
     {
         auto vec = std::vector<StringRef>(split("-a-b-c----d", "-"));
 
-        ASSERT_EQ(8, vec.size());
+        ASSERT_EQ(8u, vec.size());
         EXPECT_EQ("", vec[0]);
         EXPECT_EQ("a", vec[1]);
         EXPECT_EQ("b", vec[2]);
@@ -188,7 +188,7 @@ TEST(Test, SimpleLiteralTests)
     {
         auto vec = std::vector<StringRef>(split("-a-b-c----d", "--"));
 
-        ASSERT_EQ(3, vec.size());
+        ASSERT_EQ(3u, vec.size());
         EXPECT_EQ("-a-b-c", vec[0]);
         EXPECT_EQ("", vec[1]);
         EXPECT_EQ("d", vec[2]);
@@ -199,7 +199,7 @@ TEST(Test, AnyOfDelimiter)
 {
     auto vec = std::vector<StringRef>(split("a.b-c,. d, e .f-", AnyOfDelimiter(".,-")));
 
-    ASSERT_EQ(8, vec.size());
+    ASSERT_EQ(8u, vec.size());
     EXPECT_EQ("a", vec[0]);
     EXPECT_EQ("b", vec[1]);
     EXPECT_EQ("c", vec[2]);
@@ -214,7 +214,7 @@ TEST(Test, KeepEmpty)
 {
     std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", KeepEmpty()));
 
-    ASSERT_EQ( 7, vec.size());
+    ASSERT_EQ( 7u, vec.size());
     EXPECT_EQ( "", vec[0]);
     EXPECT_EQ( " a ", vec[1]);
     EXPECT_EQ( "b ", vec[2]);
@@ -228,7 +228,7 @@ TEST(Test, SkipEmpty)
 {
     std::vector<StringRef> vec(split(", a ,b , c,,  ,d", ",", SkipEmpty()));
 
-    ASSERT_EQ(5, vec.size());
+    ASSERT_EQ(5u, vec.size());
     EXPECT_EQ(" a ", vec[0]);
     EXPECT_EQ("b ", vec[1]);
     EXPECT_EQ(" c", vec[2]);
@@ -248,7 +248,7 @@ TEST(Test, Iterators)
             vec.push_back(*I);
         }
 
-        ASSERT_EQ(4, vec.size());
+        ASSERT_EQ(4u, vec.size());
         EXPECT_EQ("a", vec[0]);
         EXPECT_EQ("b", vec[1]);
         EXPECT_EQ("c", vec[2]);

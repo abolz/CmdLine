@@ -15,10 +15,10 @@ void CheckFind()
     StringT Y = "y";
     StringT S = "xxx";
 
-    EXPECT_EQ(E.find(E),                                0);
-    EXPECT_EQ(S.find(E),                                0);
+    EXPECT_EQ(E.find(E),                                0u);
+    EXPECT_EQ(S.find(E),                                0u);
     EXPECT_EQ(E.find(E, 2),                             StringT::npos);
-    EXPECT_EQ(S.find(E, 2),                             2);
+    EXPECT_EQ(S.find(E, 2),                             2u);
     EXPECT_EQ(E.find(E, 8),                             StringT::npos);
     EXPECT_EQ(S.find(E, 8),                             StringT::npos);
     EXPECT_EQ(E.find(E, StringT::npos),                 StringT::npos);
@@ -33,9 +33,9 @@ void CheckFind()
     EXPECT_EQ(E.find_first_of(E, StringT::npos),        StringT::npos);
     EXPECT_EQ(S.find_first_of(E, StringT::npos),        StringT::npos);
     EXPECT_EQ(E.find_first_of(X),                       StringT::npos);
-    EXPECT_EQ(S.find_first_of(X),                       0);
+    EXPECT_EQ(S.find_first_of(X),                       0u);
     EXPECT_EQ(E.find_first_of(X, 2),                    StringT::npos);
-    EXPECT_EQ(S.find_first_of(X, 2),                    2);
+    EXPECT_EQ(S.find_first_of(X, 2),                    2u);
     EXPECT_EQ(E.find_first_of(X, 8),                    StringT::npos);
     EXPECT_EQ(S.find_first_of(X, 8),                    StringT::npos);
     EXPECT_EQ(E.find_first_of(X, StringT::npos),        StringT::npos);
@@ -48,9 +48,9 @@ void CheckFind()
     EXPECT_EQ(S.find_first_of(Y, StringT::npos),        StringT::npos);
 
     EXPECT_EQ(E.find_first_not_of(E),                   StringT::npos);
-    EXPECT_EQ(S.find_first_not_of(E),                   0);
+    EXPECT_EQ(S.find_first_not_of(E),                   0u);
     EXPECT_EQ(E.find_first_not_of(E, 2),                StringT::npos);
-    EXPECT_EQ(S.find_first_not_of(E, 2),                2);
+    EXPECT_EQ(S.find_first_not_of(E, 2),                2u);
     EXPECT_EQ(E.find_first_not_of(E, 8),                StringT::npos);
     EXPECT_EQ(S.find_first_not_of(E, 8),                StringT::npos);
     EXPECT_EQ(E.find_first_not_of(E, StringT::npos),    StringT::npos);
@@ -64,7 +64,7 @@ void CheckFind()
     EXPECT_EQ(E.find_first_not_of(X, StringT::npos),    StringT::npos);
     EXPECT_EQ(S.find_first_not_of(X, StringT::npos),    StringT::npos);
     EXPECT_EQ(E.find_first_not_of(Y, 2),                StringT::npos);
-    EXPECT_EQ(S.find_first_not_of(Y, 2),                2);
+    EXPECT_EQ(S.find_first_not_of(Y, 2),                2u);
     EXPECT_EQ(E.find_first_not_of(Y, 8),                StringT::npos);
     EXPECT_EQ(S.find_first_not_of(Y, 8),                StringT::npos);
     EXPECT_EQ(E.find_first_not_of(Y, StringT::npos),    StringT::npos);
@@ -81,11 +81,11 @@ void CheckFind()
     EXPECT_EQ(E.find_last_of(E),                        StringT::npos);
     EXPECT_EQ(S.find_last_of(E),                        StringT::npos);
     EXPECT_EQ(E.find_last_of(X, 2),                     StringT::npos);
-    EXPECT_EQ(S.find_last_of(X, 2),                     2);
+    EXPECT_EQ(S.find_last_of(X, 2),                     2u);
     EXPECT_EQ(E.find_last_of(X, 8),                     StringT::npos);
-    EXPECT_EQ(S.find_last_of(X, 8),                     2);
+    EXPECT_EQ(S.find_last_of(X, 8),                     2u);
     EXPECT_EQ(E.find_last_of(X, 0),                     StringT::npos);
-    EXPECT_EQ(S.find_last_of(X, 0),                     0);
+    EXPECT_EQ(S.find_last_of(X, 0),                     0u);
     EXPECT_EQ(E.find_last_of(Y, 2),                     StringT::npos);
     EXPECT_EQ(S.find_last_of(Y, 2),                     StringT::npos);
     EXPECT_EQ(E.find_last_of(Y, 8),                     StringT::npos);
@@ -94,15 +94,15 @@ void CheckFind()
     EXPECT_EQ(S.find_last_of(Y, 0),                     StringT::npos);
 
     EXPECT_EQ(E.find_last_not_of(E),                    StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(E),                    2);
+    EXPECT_EQ(S.find_last_not_of(E),                    2u);
     EXPECT_EQ(E.find_last_not_of(E, 2),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(E, 2),                 2);
+    EXPECT_EQ(S.find_last_not_of(E, 2),                 2u);
     EXPECT_EQ(E.find_last_not_of(E, 8),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(E, 8),                 2);
+    EXPECT_EQ(S.find_last_not_of(E, 8),                 2u);
     EXPECT_EQ(E.find_last_not_of(E, 0),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(E, 0),                 0);
+    EXPECT_EQ(S.find_last_not_of(E, 0),                 0u);
     EXPECT_EQ(E.find_last_not_of(E),                    StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(E),                    2);
+    EXPECT_EQ(S.find_last_not_of(E),                    2u);
     EXPECT_EQ(E.find_last_not_of(X, 2),                 StringT::npos);
     EXPECT_EQ(S.find_last_not_of(X, 2),                 StringT::npos);
     EXPECT_EQ(E.find_last_not_of(X, 8),                 StringT::npos);
@@ -110,11 +110,11 @@ void CheckFind()
     EXPECT_EQ(E.find_last_not_of(X, 0),                 StringT::npos);
     EXPECT_EQ(S.find_last_not_of(X, 0),                 StringT::npos);
     EXPECT_EQ(E.find_last_not_of(Y, 2),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(Y, 2),                 2);
+    EXPECT_EQ(S.find_last_not_of(Y, 2),                 2u);
     EXPECT_EQ(E.find_last_not_of(Y, 8),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(Y, 8),                 2);
+    EXPECT_EQ(S.find_last_not_of(Y, 8),                 2u);
     EXPECT_EQ(E.find_last_not_of(Y, 0),                 StringT::npos);
-    EXPECT_EQ(S.find_last_not_of(Y, 0),                 0);
+    EXPECT_EQ(S.find_last_not_of(Y, 0),                 0u);
 }
 
 TEST(Test, CheckStdString)

@@ -97,31 +97,31 @@ TEST(CmdLineExpand, TestWildcards)
     {
         std::vector<std::string> args = {"kjhasfjkhasdf"};
         support::cl::expandWildcards(args);
-        EXPECT_EQ(1, args.size());
+        EXPECT_EQ(1u, args.size());
         std::cout << pretty(args) << std::endl;
     }
     {
         std::vector<std::string> args = {"file*.t?t"};
         support::cl::expandWildcards(args);
-        EXPECT_EQ(6, args.size());
+        EXPECT_EQ(6u, args.size());
         std::cout << pretty(args) << std::endl;
     }
     {
         std::vector<std::string> args = {"file?.txt"};
         support::cl::expandWildcards(args);
-        EXPECT_EQ(3, args.size());
+        EXPECT_EQ(3u, args.size());
         std::cout << pretty(args) << std::endl;
     }
     {
         std::vector<std::string> args = {"file2?.txt", "file1?.txt"};
         support::cl::expandWildcards(args);
-        EXPECT_EQ(5, args.size());
+        EXPECT_EQ(5u, args.size());
         std::cout << pretty(args) << std::endl;
     }
     {
         std::vector<std::string> args = {"file1?.txt", "file2?.txt", "file5?.txt"};
         support::cl::expandWildcards(args);
-        EXPECT_EQ(6, args.size());
+        EXPECT_EQ(6u, args.size());
         std::cout << pretty(args) << std::endl;
     }
 }
