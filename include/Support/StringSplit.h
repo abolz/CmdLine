@@ -463,14 +463,9 @@ auto split_once(S&& str, D delim, P pred = P())
 {
     auto range = split(std::forward<S>(str), std::move(delim), std::move(pred));
 
-    auto I = range.begin();
-
-    // Copy the first token
-    auto first = *I;
-    // Copy the remaining string
-    auto last = range.str();
-
-    return { first, (++I == range.end()) ? StringRef() : last };
+    // NOTE:
+    // There is always at least one token.
+    return { *range.begin(), range.str() };
 }
 
 } // namespace strings

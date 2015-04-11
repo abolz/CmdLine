@@ -365,8 +365,9 @@ TEST(Test, SplitOnce_AS)
         auto p = split_once("a:", ":", SkipEmpty());
 
         EXPECT_TRUE(p.first.data() != nullptr);
-        EXPECT_TRUE(p.second.data() == nullptr);
+        EXPECT_TRUE(p.second.data() != nullptr);
         EXPECT_EQ("a", p.first);
+        EXPECT_EQ("", p.second);
     }
 }
 
@@ -384,8 +385,9 @@ TEST(Test, SplitOnce_ASS)
         auto p = split_once("a::", ":", SkipEmpty());
 
         EXPECT_TRUE(p.first.data() != nullptr);
-        EXPECT_TRUE(p.second.data() == nullptr);
+        EXPECT_TRUE(p.second.data() != nullptr);
         EXPECT_EQ("a", p.first);
+        EXPECT_EQ(":", p.second);
     }
 }
 
@@ -422,7 +424,8 @@ TEST(Test, SplitOnce_SAS)
         auto p = split_once(":a:", ":", SkipEmpty());
 
         EXPECT_TRUE(p.first.data() != nullptr);
-        EXPECT_TRUE(p.second.data() == nullptr);
+        EXPECT_TRUE(p.second.data() != nullptr);
         EXPECT_EQ("a", p.first);
+        EXPECT_EQ("", p.second);
     }
 }
