@@ -131,7 +131,7 @@ static void CheckSplit(StringRef str, size_t pos, size_t n, StringRef first, Str
 {
     auto P = str.remove_substr(pos, n);
 
-    auto S = P.first.str() + str.substr(pos, n) + P.second;
+    auto S = P.first + str.substr(pos, n) + P.second;
 
     ASSERT_EQ(P.first, first);
     ASSERT_EQ(P.second, second);

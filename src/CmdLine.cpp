@@ -23,7 +23,7 @@ static std::string Spaces(size_t count)
 static std::string Aligned(StringRef text, size_t indent)
 {
     if (text.size() < indent)
-        return text.str() + Spaces(indent - text.size());
+        return text + Spaces(indent - text.size());
 
     return text + "\n" + Spaces(indent);
 }

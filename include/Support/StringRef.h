@@ -15,6 +15,8 @@ namespace support
 // StringRef
 //
 
+// Describes an object that can refer to a constant contiguous sequence of char-like objects with
+// the first element of the sequence at position zero.
 class StringRef
 {
 public:
@@ -160,7 +162,7 @@ public:
     }
 
     // Removes substr(Pos, N) from the current string S.
-    // Returns a pair (A,B) such that S == A + substr(Pos, N) + B.
+    // Returns a pair (A,B) such that S == A + S.substr(Pos, N) + B.
     std::pair<StringRef, StringRef> remove_substr(size_t Pos, size_t N = 0) const {
         return { front(Pos), drop_front(Pos).drop_front(N) };
     }
@@ -221,11 +223,14 @@ public:
     // which does not match any of the characters in Chars.
     size_t find_first_not_of(StringRef Chars, size_t From = 0) const;
 
-    // Search for the last character in the sub-string [From, Length)
+    // Search for the last character Ch in the sub-string [0, From)
+    size_t rfind(char_type Ch, size_t From = npos) const;
+
+    // Search for the last character in the sub-string [0, From)
     // which matches any of the characters in Chars.
     size_t find_last_of(StringRef Chars, size_t From = npos) const;
 
-    // Search for the last character in the sub-string [From, Length)
+    // Search for the last character in the sub-string [0, From)
     // which does not match any of the characters in Chars.
     size_t find_last_not_of(StringRef Chars, size_t From = npos) const;
 };
@@ -261,6 +266,9 @@ inline size_t StringRef::find(StringRef Str, size_t From) const
 
 inline size_t StringRef::find_first_of(StringRef Chars, size_t From) const
 {
+    if (Chars.size() == 1)
+        return find(Chars[0], From);
+
     if (From >= size() || Chars.empty())
         return npos;
 
@@ -283,8 +291,25 @@ inline size_t StringRef::find_first_not_of(StringRef Chars, size_t From) const
     return npos;
 }
 
+inline size_t StringRef::rfind(char_type Ch, size_t From) const
+{
+    if (From < size())
+        From++;
+    else
+        From = size();
+
+    for (auto I = From; I != 0; --I)
+        if (traits_type::eq(Ch, data()[I - 1]))
+            return I - 1;
+
+    return npos;
+}
+
 inline size_t StringRef::find_last_of(StringRef Chars, size_t From) const
 {
+    if (Chars.size() == 1)
+        return rfind(Chars[0], From);
+
     if (Chars.empty())
         return npos;
 
@@ -354,20 +379,16 @@ inline std::ostream& operator <<(std::ostream& Stream, StringRef S) {
 // String operations
 //
 
+inline std::string to_string(StringRef Str) {
+    return Str.str();
+}
+
 inline std::string& operator +=(std::string& LHS, StringRef RHS) {
     return LHS.append(RHS.data(), RHS.size());
 }
 
-inline std::string operator +(StringRef LHS, std::string RHS)
-{
-    RHS.insert(0, LHS.data(), LHS.size());
-    return std::move(RHS);
-}
-
-inline std::string operator +(std::string LHS, StringRef RHS)
-{
-    LHS.append(RHS.data(), RHS.size());
-    return std::move(LHS);
+inline std::string operator +(StringRef LHS, StringRef RHS) {
+    return LHS.str() + RHS.str();
 }
 
 } // namespace support

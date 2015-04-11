@@ -43,13 +43,13 @@ static size_t EnumFiles(StringRef pattern, size_t wildpos, std::vector<std::stri
         if (patternpos == StringRef::npos)
         {
             // Use current directory.
-            files.push_back(arg.str());
+            files.emplace_back(arg);
         }
         else
         {
             // Path specified.
             // Prefix each filename with the path.
-            files.push_back(pattern.substr(0, patternpos + 1).str() + arg.str());
+            files.emplace_back(pattern.substr(0, patternpos + 1) + arg);
         }
     }
     while (FindNextFileA(hFind, &info));
