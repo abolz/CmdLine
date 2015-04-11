@@ -145,7 +145,7 @@ StringRef CmdLine::bump()
 
 std::string CmdLine::usage() const
 {
-    std::string str = "[options]";
+    std::string str = "[OPTIONS]";
 
     for (auto&& opt : positionals_)
         str += " " + opt->usage();
@@ -240,11 +240,8 @@ CmdLine::ConstOptionVector CmdLine::getUniqueOptions() const
         opts.emplace_back(I.second);
 
     // Sort by name
-    auto compare = [](OptionBase const* LHS, OptionBase const* RHS) {
-        return LHS->name() < RHS->name();
-    };
-
-    std::stable_sort(opts.begin(), opts.end(), compare);
+    std::stable_sort(opts.begin(), opts.end(),
+        [](OptionBase const* LHS, OptionBase const* RHS) { return LHS->name() < RHS->name(); });
 
     // Remove duplicates
     opts.erase(std::unique(opts.begin(), opts.end()), opts.end());
@@ -485,10 +482,10 @@ void CmdLine::check(OptionBase const* opt)
 
 void CmdLine::check()
 {
-    for (auto& I : getUniqueOptions())
+    for (auto& I : positionals_)
         check(I);
 
-    for (auto& I : positionals_)
+    for (auto& I : getUniqueOptions())
         check(I);
 }
 
@@ -498,8 +495,8 @@ void CmdLine::check()
 
 OptionBase::OptionBase()
     : name_()
-    , argName_("arg")
-    , desc_("<< description missing >>")
+    , argName_("ARG")
+    , desc_("(description missing)")
     , numOccurrences_(Optional)
     , numArgs_(ArgOptional)
     , formatting_(DefaultFormatting)
@@ -515,20 +512,23 @@ OptionBase::~OptionBase()
 std::string OptionBase::usage() const
 {
     if (formatting_ == Positional)
-        return "<" + name_ + (isUnbounded() ? ">..." : ">");
-
-    switch (numArgs_)
     {
-    case ArgDisallowed:
-        return "-" + name_;
-    case ArgOptional:
-        return "-" + name_ + "=<" + argName_ + ">";
-    case ArgRequired:
-        return "-" + name_ + (isPrefix() ? "<" : " <") + argName_ + ">";
+        auto res = name_ + (isUnbounded() ? "..." : "");
+        return isRequired() ? res : "[" + res + "]";
     }
 
-    assert(!"internal error");
-    return {};
+    if (numArgs_ == ArgDisallowed)
+        return "-" + name_;
+
+    auto argName = "<" + argName_ + ">";
+
+    if (!isPrefix())
+        argName = "=" + argName;
+
+    if (numArgs_ == ArgOptional)
+        argName = "[" + argName + "]";
+
+    return "-" + name_ + argName;
 }
 
 std::string OptionBase::help() const
@@ -561,11 +561,6 @@ std::string OptionBase::help() const
 
     std::string result;
 
-    // Get the list of descriptions for the allowed values.
-    auto descr = getDescriptions();
-
-    assert(descr.size() == values.size() && "not supported");
-
     if (name_.empty())
     {
         // The option name is empty, i.e. this option is actually a group of
@@ -579,6 +574,10 @@ std::string OptionBase::help() const
                   + Wrapped(desc_ + ":", offset, maxWidth)
                   + "\n";
     }
+
+    // Get the list of descriptions for the allowed values.
+    auto descr = getDescriptions();
+    assert(descr.size() == values.size() && "not supported");
 
     auto prefix = Spaces(indent * 2) + (name_.empty() ? "-" : "=");
 

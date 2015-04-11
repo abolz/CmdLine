@@ -86,10 +86,7 @@ private:
     size_t maxPrefixLength_;
 
 public:
-    // Constructor.
     CmdLine();
-
-    // Destructor.
     ~CmdLine();
 
     // Adds the given option to the command line
@@ -252,7 +249,7 @@ struct MapParser
         // An optional description of the value
         std::string desc;
 
-        MapValueType(std::string key, ValueType value, std::string desc = "<< description missing >>")
+        MapValueType(std::string key, ValueType value, std::string desc = "(description missing)")
             : key(std::move(key))
             , value(std::move(value))
             , desc(std::move(desc))
@@ -390,11 +387,9 @@ class OptionBase
     unsigned count_;
 
 protected:
-    // Constructor.
     OptionBase();
 
 public:
-    // Destructor.
     virtual ~OptionBase();
 
     // Returns the name of this option
@@ -583,7 +578,7 @@ private:
 // makeOption
 //
 
-// Construct a new Option, initialize the parser with the given value
+// Constructs a new Option with a custom parser
 template <class T, template <class> class TraitsT = Traits, class P, class... Args>
 auto makeOption(P&& p, Args&&... args)
     -> std::unique_ptr<Option<T, TraitsT, typename std::decay<P>::type>>
@@ -594,7 +589,7 @@ auto makeOption(P&& p, Args&&... args)
         new U(std::piecewise_construct, std::forward<P>(p), std::forward<Args>(args)...));
 }
 
-// Construct a new Option, initialize the a map-parser with the given values
+// Constructs a new Option with a MapParser
 template <class T, template <class> class TraitsT = Traits, class... Args>
 auto makeOption(std::initializer_list<typename MapParser<T>::MapValueType> ilist, Args&&... args)
     -> std::unique_ptr<Option<T, TraitsT, MapParser<T>>>

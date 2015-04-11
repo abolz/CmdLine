@@ -133,12 +133,14 @@ int main(int argc, char* argv[])
 
                     //------------------------------------------------------------------------------
 
+    auto xxx = cl::makeOption<std::string>(cl::Parser<>(), cmd, "outdir", cl::Positional, cl::Required);
+
     auto files = cl::makeOption<std::vector<std::string>>(
         cl::Parser<>(),
         cmd, "files",
         cl::Desc("A list of input files"),
         cl::Positional,
-        cl::OneOrMore
+        cl::ZeroOrMore
         );
 
                     //------------------------------------------------------------------------------
