@@ -45,7 +45,7 @@ solution "Support"
 
     configuration { "gmake" }
         buildoptions {
-            "-std=c++11",
+            "-std=c++1y",
             "-pedantic",
         }
 
@@ -53,6 +53,8 @@ solution "Support"
         flags { "Unicode" }
 
 ----------------------------------------------------------------------------------------------------
+group "Library"
+
 project "CmdLine"
 
     kind "StaticLib"
@@ -70,6 +72,8 @@ project "CmdLine"
         targetsuffix "d"
 
 ----------------------------------------------------------------------------------------------------
+group "App"
+
 project "Test"
 
     kind "ConsoleApp"
@@ -87,6 +91,9 @@ project "Test"
 
 ----------------------------------------------------------------------------------------------------
 function add_unittest(name)
+
+    group "Unit Tests"
+
     project (name)
 
         kind "ConsoleApp"
@@ -112,6 +119,8 @@ add_unittest("StringSplitTest")
 
 ----------------------------------------------------------------------------------------------------
 if have_gtest then
+
+    group "Externals"
 
     project "gtest"
 
