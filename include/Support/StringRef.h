@@ -38,7 +38,7 @@ private:
     }
 
 public:
-    enum : size_t { npos = static_cast<size_t>(-1) };
+    static const size_t npos = static_cast<size_t>(-1);
 
 public:
     // Construct an empty StringRef.
