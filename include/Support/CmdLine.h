@@ -341,15 +341,37 @@ namespace details
         }
     };
 
-    template <class T>
-    auto TestInsert(R1) -> BasicTraits<typename RecRemoveCV<typename T::value_type>::type, Inserter>;
+    struct No {};
 
     template <class T>
-    auto TestInsert(R2) -> BasicTraits<T>;
+    auto TestValueType(R1, T const&) -> typename T::value_type;
+
+    template <class T>
+    auto TestValueType(R2, T const&) -> No;
+
+    template <class T>
+    struct MissingValueType : std::is_same<No, decltype( TestValueType(std::declval<R1>(), std::declval<T const&>()) )>
+    {
+    };
+
+    template <class T, bool = MissingValueType<T>::value>
+    struct TestInsert
+    {
+        using type = BasicTraits<typename RecRemoveCV<typename T::value_type>::type, Inserter>;
+    };
+
+    template <class T>
+    struct TestInsert<T, true>
+    {
+        using type = BasicTraits<T>;
+    };
+
+    template <class T>
+    using TestInsertType = typename TestInsert<T>::type;
 }
 
 template <class T>
-struct Traits : decltype(details::TestInsert<T>(details::R1()))
+struct Traits : details::TestInsertType<T>
 {
 };
 
