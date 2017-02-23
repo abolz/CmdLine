@@ -104,14 +104,14 @@ void CmdLine::add(OptionBase& opt)
     }
 }
 
-void CmdLine::parse(StringVector const& argv, bool checkRequired)
+void CmdLine::parse(StringVector const& argv, bool ignoreUnknown, bool checkRequired)
 {
     // Save the list of arguments
     argCurr_ = argv.begin();
     argLast_ = argv.end();
 
     // Parse...
-    parse(checkRequired);
+    parse(ignoreUnknown, checkRequired);
 }
 
 bool CmdLine::empty() const
@@ -199,7 +199,7 @@ std::string CmdLine::help(StringRef programName, StringRef overview) const
     return result;
 }
 
-void CmdLine::parse(bool checkRequired)
+void CmdLine::parse(bool ignoreUnknown, bool checkRequired)
 {
     // "--" seen?
     auto dashdash = false;
@@ -210,7 +210,15 @@ void CmdLine::parse(bool checkRequired)
     // Handle all arguments
     while (!empty())
     {
-        handleArg(dashdash, pos);
+        try
+        {
+            handleArg(dashdash, pos);
+        }
+        catch (...)
+        {
+            if (!ignoreUnknown)
+                throw;
+        }
 
         bump();
     }

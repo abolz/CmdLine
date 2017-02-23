@@ -93,7 +93,7 @@ public:
     void add(OptionBase& opt);
 
     // Parse the given command line arguments
-    void parse(StringVector const& argv, bool checkRequired = true);
+    void parse(StringVector const& argv, bool ignoreUnknown = false, bool checkRequired = true);
 
     // Returns whether all command line arguments have been processed
     bool empty() const;
@@ -114,7 +114,7 @@ public:
     std::string help(StringRef programName, StringRef overview = "") const;
 
 private:
-    void parse(bool checkRequired);
+    void parse(bool ignoreUnknown, bool checkRequired);
 
     OptionBase* findOption(StringRef name) const;
 
